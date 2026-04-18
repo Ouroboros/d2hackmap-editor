@@ -542,9 +542,13 @@ function handleDragEnd() {
   dragOverIndex.value = null
 }
 
+function isReadonlyColorItem(item: ItemColorItem | RuneColorItem | GoldColorItem): boolean {
+  return isReadOnly.value || isItemDisabled(item) || isItemExtern(item)
+}
+
 function updateItemColor(index: number, field: string, value: string) {
-  if (isReadOnly.value) return
   const item = getItemAtIndex(index, 'items')
+  if (!item || isReadonlyColorItem(item)) return
   if (item) {
     (item as Record<string, unknown>)[field] = value
   }
@@ -616,8 +620,8 @@ function addRuneColor() {
 }
 
 function updateRuneColor(index: number, field: string, value: string) {
-  if (isReadOnly.value) return
   const item = getItemAtIndex(index, 'runes')
+  if (!item || isReadonlyColorItem(item)) return
   if (item) {
     (item as Record<string, unknown>)[field] = value
   }
@@ -731,8 +735,8 @@ function addGoldColor() {
 }
 
 function updateGoldColor(index: number, field: string, value: string) {
-  if (isReadOnly.value) return
   const item = getItemAtIndex(index, 'golds')
+  if (!item || isReadonlyColorItem(item)) return
   if (item) {
     (item as Record<string, unknown>)[field] = value
   }
@@ -1018,7 +1022,7 @@ const currentFormatter = computed(() => {
               :modelValue="item.itemId"
               :placeholder="t('itemColors.itemId')"
               :disabled="isReadOnly"
-              :readonly="isItemDisabled(item)"
+              :readonly="isReadonlyColorItem(item)"
               :class="{ 'has-warning': hasInvalidIds(item.itemId) }"
               @update:modelValue="updateItemColor(index, 'itemId', $event)"
               style="width: 150px;"
@@ -1026,27 +1030,28 @@ const currentFormatter = computed(() => {
             <QualityPicker
               :modelValue="item.quality"
               :disabled="isReadOnly"
-              :readonly="isItemDisabled(item)"
+              :readonly="isReadonlyColorItem(item)"
               @update:modelValue="updateItemColor(index, 'quality', $event)"
               style="width: 80px;"
             />
             <TextColorPicker
               :modelValue="item.textColor"
               :disabled="isReadOnly"
-              :readonly="isItemDisabled(item)"
+              :readonly="isReadonlyColorItem(item)"
               @update:modelValue="updateItemColor(index, 'textColor', $event)"
             />
             <MapColorPicker
               :modelValue="item.mapColor"
               :disabled="isReadOnly"
-              :readonly="isItemDisabled(item)"
+              :readonly="isReadonlyColorItem(item)"
               @update:modelValue="updateItemColor(index, 'mapColor', $event)"
             />
             <input
               type="text"
               :placeholder="t('itemColors.mapText')"
               :value="item.mapText"
-              :disabled="isItemDisabled(item) || isReadOnly"
+              :readonly="isReadonlyColorItem(item)"
+              :disabled="isReadOnly"
               @input="updateItemColor(index, 'mapText', $event.target.value)"
               :style="{ width: itemMapTextWidth + 'px' }"
             />
@@ -1055,7 +1060,8 @@ const currentFormatter = computed(() => {
               class="col-comment comment-input"
               :placeholder="t('itemColors.comment')"
               :value="item.comment"
-              :disabled="isItemDisabled(item) || isReadOnly"
+              :readonly="isReadonlyColorItem(item)"
+              :disabled="isReadOnly"
               @input="updateItemColor(index, 'comment', $event.target.value)"
             />
 
@@ -1142,27 +1148,28 @@ const currentFormatter = computed(() => {
             <RunePicker
               :modelValue="rune.range"
               :disabled="isReadOnly"
-              :readonly="isItemDisabled(rune)"
+              :readonly="isReadonlyColorItem(rune)"
               @update:modelValue="updateRuneColor(index, 'range', $event)"
               style="width: 120px;"
             />
             <TextColorPicker
               :modelValue="rune.textColor"
               :disabled="isReadOnly"
-              :readonly="isItemDisabled(rune)"
+              :readonly="isReadonlyColorItem(rune)"
               @update:modelValue="updateRuneColor(index, 'textColor', $event)"
             />
             <MapColorPicker
               :modelValue="rune.mapColor"
               :disabled="isReadOnly"
-              :readonly="isItemDisabled(rune)"
+              :readonly="isReadonlyColorItem(rune)"
               @update:modelValue="updateRuneColor(index, 'mapColor', $event)"
             />
             <input
               type="text"
               :placeholder="t('itemColors.mapText')"
               :value="rune.mapText"
-              :disabled="isItemDisabled(rune) || isReadOnly"
+              :readonly="isReadonlyColorItem(rune)"
+              :disabled="isReadOnly"
               @input="updateRuneColor(index, 'mapText', $event.target.value)"
               :style="{ width: runeMapTextWidth + 'px' }"
             />
@@ -1171,7 +1178,8 @@ const currentFormatter = computed(() => {
               class="col-comment comment-input"
               :placeholder="t('itemColors.comment')"
               :value="rune.comment"
-              :disabled="isItemDisabled(rune) || isReadOnly"
+              :readonly="isReadonlyColorItem(rune)"
+              :disabled="isReadOnly"
               @input="updateRuneColor(index, 'comment', $event.target.value)"
             />
 
@@ -1259,27 +1267,29 @@ const currentFormatter = computed(() => {
               type="text"
               :placeholder="t('itemColors.goldRange')"
               :value="gold.range"
-              :disabled="isItemDisabled(gold) || isReadOnly"
+              :readonly="isReadonlyColorItem(gold)"
+              :disabled="isReadOnly"
               @input="updateGoldColor(index, 'range', $event.target.value)"
               style="width: 120px;"
             />
             <TextColorPicker
               :modelValue="gold.textColor"
               :disabled="isReadOnly"
-              :readonly="isItemDisabled(gold)"
+              :readonly="isReadonlyColorItem(gold)"
               @update:modelValue="updateGoldColor(index, 'textColor', $event)"
             />
             <MapColorPicker
               :modelValue="gold.mapColor"
               :disabled="isReadOnly"
-              :readonly="isItemDisabled(gold)"
+              :readonly="isReadonlyColorItem(gold)"
               @update:modelValue="updateGoldColor(index, 'mapColor', $event)"
             />
             <input
               type="text"
               :placeholder="t('itemColors.mapText')"
               :value="gold.mapText"
-              :disabled="isItemDisabled(gold) || isReadOnly"
+              :readonly="isReadonlyColorItem(gold)"
+              :disabled="isReadOnly"
               @input="updateGoldColor(index, 'mapText', $event.target.value)"
               :style="{ width: goldMapTextWidth + 'px' }"
             />
@@ -1288,7 +1298,8 @@ const currentFormatter = computed(() => {
               class="col-comment comment-input"
               :placeholder="t('itemColors.comment')"
               :value="gold.comment"
-              :disabled="isItemDisabled(gold) || isReadOnly"
+              :readonly="isReadonlyColorItem(gold)"
+              :disabled="isReadOnly"
               @input="updateGoldColor(index, 'comment', $event.target.value)"
             />
 

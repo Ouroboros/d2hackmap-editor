@@ -110,9 +110,13 @@ function getItemAtIndex(filteredIndex: number): ImportItemItem | undefined {
   return importItems.value[filteredIndex]
 }
 
+function isReadonlyImportItem(item: ImportItemItem): boolean {
+  return isReadOnly.value || isItemDisabled(item) || isItemExtern(item)
+}
+
 function updateItem(index: number, field: keyof ImportItemItem, value: string): void {
-  if (isReadOnly.value) return
   const item = getItemAtIndex(index)
+  if (!item || isReadonlyImportItem(item)) return
   if (item) {
     ;(item as ImportItemItem)[field] = value as never
   }
@@ -466,7 +470,7 @@ const debugImportItems = computed((): ImportItemItem[] => {
           :show-index="true"
           :show-drag="true"
           :is-selected="isSelected(item)"
-          :is-disabled="isItemDisabled(item)"
+          :is-disabled="isItemDisabled(item) || isItemExtern(item)"
           :is-drag-over="dragOverIndex === index"
           :is-read-only="isReadOnly"
           :row-classes="getItemRowClasses(item)"
@@ -481,20 +485,20 @@ const debugImportItems = computed((): ImportItemItem[] => {
             :modelValue="item.itemId"
             :placeholder="t('itemColors.itemId')"
             :disabled="isReadOnly"
-            :readonly="isItemDisabled(item)"
+            :readonly="isReadonlyImportItem(item)"
             @update:modelValue="updateItem(index, 'itemId', $event)"
             style="width: 150px;"
           />
           <QualityPicker
             :modelValue="item.quality"
             :disabled="isReadOnly"
-            :readonly="isItemDisabled(item)"
+            :readonly="isReadonlyImportItem(item)"
             @update:modelValue="updateItem(index, 'quality', $event)"
             style="width: 80px;"
           />
           <select
             :value="item.mode"
-            :disabled="isItemDisabled(item) || isReadOnly"
+            :disabled="isReadonlyImportItem(item)"
             @change="updateItem(index, 'mode', ($event.target as HTMLSelectElement).value)"
             style="width: 200px;"
           >
@@ -505,7 +509,7 @@ const debugImportItems = computed((): ImportItemItem[] => {
           <StatGroupPicker
             :modelValue="item.statGroup"
             :disabled="isReadOnly"
-            :readonly="isItemDisabled(item)"
+            :readonly="isReadonlyImportItem(item)"
             @update:modelValue="updateItem(index, 'statGroup', $event)"
             style="width: 120px;"
           />
@@ -514,7 +518,8 @@ const debugImportItems = computed((): ImportItemItem[] => {
             class="col-comment comment-input"
             :placeholder="t('itemColors.comment')"
             :value="item.comment"
-            :disabled="isItemDisabled(item) || isReadOnly"
+            :readonly="isReadonlyImportItem(item)"
+            :disabled="isReadOnly"
             @input="updateItem(index, 'comment', ($event.target as HTMLInputElement).value)"
           />
 

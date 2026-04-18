@@ -133,6 +133,7 @@ function selectColor(color: PaletteColor): void {
 }
 
 function clearColor(): void {
+  if (props.readonly) return
   emit('update:modelValue', COLOR_NONE)
   showPicker.value = false
 }
@@ -198,7 +199,7 @@ function isColorSelected(colorIndex: number): boolean {
           <div class="picker-header">
             <span>{{ t('mapColor.selectTitle') }}</span>
             <span v-if="readonly" class="readonly-badge">{{ t('status.readOnly') }}</span>
-            <button class="btn btn-small btn-secondary" @click="clearColor">{{ t('mapColor.clear') }}</button>
+            <button v-if="!readonly" class="btn btn-small btn-secondary" @click="clearColor">{{ t('mapColor.clear') }}</button>
           </div>
           <div class="palette-grid">
             <div
@@ -206,7 +207,7 @@ function isColorSelected(colorIndex: number): boolean {
               :key="color.index"
               class="palette-cell"
               :style="{ backgroundColor: color.hex }"
-              :class="{ selected: isColorSelected(color.index) }"
+              :class="{ selected: isColorSelected(color.index), readonly }"
               :title="`${color.index}: ${color.hex}`"
               @click="selectColor(color)"
             />
@@ -309,6 +310,14 @@ function isColorSelected(colorIndex: number): boolean {
   transform: scale(1.2);
   z-index: 1;
   position: relative;
+}
+
+.palette-cell.readonly {
+  cursor: default;
+}
+
+.palette-cell.readonly:hover {
+  transform: none;
 }
 
 .palette-cell.selected {

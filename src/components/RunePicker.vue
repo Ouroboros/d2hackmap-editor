@@ -85,6 +85,7 @@ function isSelected(id: number): boolean {
 
 // Toggle rune selection
 function toggleRune(id: number): void {
+  if (props.readonly) return
   const selected = new Set(selectedIds.value)
   if (selected.has(id)) {
     selected.delete(id)
@@ -96,6 +97,7 @@ function toggleRune(id: number): void {
 
 // Select all visible runes
 function selectAll(): void {
+  if (props.readonly) return
   if (!searchQuery.value) {
     manualInput.value = `1-${MAX_RUNE}`
   } else {
@@ -109,6 +111,7 @@ function selectAll(): void {
 
 // Clear all selections
 function selectNone(): void {
+  if (props.readonly) return
   manualInput.value = ''
 }
 
@@ -123,6 +126,7 @@ function openPicker(): void {
 
 // Confirm and emit value
 function confirmSelection(): void {
+  if (props.readonly) return
   emit('update:modelValue', manualInput.value)
   showPicker.value = false
 }
@@ -187,7 +191,7 @@ const selectedTooltip = computed(() => {
           <div class="picker-header">
             <span>{{ t('runePicker.title') }}</span>
             <span v-if="readonly" class="readonly-badge">{{ t('status.readOnly') }}</span>
-            <div class="picker-actions">
+            <div v-if="!readonly" class="picker-actions">
               <button class="btn btn-small btn-secondary" @click="selectAll">{{ t('runePicker.selectAll') }}</button>
               <button class="btn btn-small btn-secondary" @click="selectNone">{{ t('runePicker.clear') }}</button>
             </div>
@@ -200,6 +204,7 @@ const selectedTooltip = computed(() => {
               v-model="manualInput"
               type="text"
               :placeholder="t('runePicker.inputPlaceholder')"
+              :readonly="readonly"
               class="manual-input"
             />
           </div>
@@ -231,13 +236,14 @@ const selectedTooltip = computed(() => {
               v-for="rune in filteredRunes"
               :key="rune.id"
               class="rune-option"
-              :class="{ selected: isSelected(rune.id) }"
+              :class="{ selected: isSelected(rune.id), readonly }"
             >
               <input
-                type="checkbox"
-                :checked="isSelected(rune.id)"
-                @change="toggleRune(rune.id)"
-              />
+              type="checkbox"
+              :checked="isSelected(rune.id)"
+              :disabled="readonly"
+              @change="toggleRune(rune.id)"
+            />
               <span class="rune-id">{{ rune.id }}</span>
               <span class="rune-code">{{ rune.code }}</span>
               <span class="rune-name">{{ rune.name }}</span>
@@ -365,6 +371,10 @@ const selectedTooltip = computed(() => {
   background: var(--bg-tertiary);
 }
 
+.rune-option.readonly {
+  cursor: default;
+}
+
 .rune-option.selected {
   background: rgba(var(--accent-rgb, 74, 144, 226), 0.15);
 }
@@ -374,6 +384,10 @@ const selectedTooltip = computed(() => {
   height: 14px;
   cursor: pointer;
   flex-shrink: 0;
+}
+
+.rune-option.readonly input[type="checkbox"] {
+  cursor: default;
 }
 
 .rune-id {

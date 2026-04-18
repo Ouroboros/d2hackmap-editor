@@ -86,6 +86,7 @@ function isSelected(id: number): boolean {
 
 // Toggle item selection
 function toggleItem(id: number): void {
+  if (props.readonly) return
   const selected = new Set(selectedIds.value)
   if (selected.has(id)) {
     selected.delete(id)
@@ -98,6 +99,7 @@ function toggleItem(id: number): void {
 
 // Select all visible items
 function selectAll(): void {
+  if (props.readonly) return
   // If no search filter, use "1+" to represent all items
   if (!searchQuery.value && items.value.length > 0) {
     manualInput.value = '1+'
@@ -112,6 +114,7 @@ function selectAll(): void {
 
 // Clear all selections
 function selectNone(): void {
+  if (props.readonly) return
   manualInput.value = ''
 }
 
@@ -126,6 +129,7 @@ function openPicker(): void {
 
 // Confirm and emit value
 function confirmSelection(): void {
+  if (props.readonly) return
   emit('update:modelValue', manualInput.value)
   showPicker.value = false
 }
@@ -188,7 +192,7 @@ const selectedTooltip = computed(() => {
           <div class="picker-header">
             <span>{{ t('itemPicker.title') }}</span>
             <span v-if="readonly" class="readonly-badge">{{ t('status.readOnly') }}</span>
-            <div class="picker-actions">
+            <div v-if="!readonly" class="picker-actions">
               <button class="btn btn-small btn-secondary" @click="selectAll" :disabled="filteredItems.length === 0">{{ t('itemPicker.selectAll') }}</button>
               <button class="btn btn-small btn-secondary" @click="selectNone">{{ t('itemPicker.clear') }}</button>
             </div>
@@ -201,6 +205,7 @@ const selectedTooltip = computed(() => {
               v-model="manualInput"
               type="text"
               :placeholder="t('itemPicker.inputPlaceholder')"
+              :readonly="readonly"
               class="manual-input"
             />
           </div>
@@ -232,13 +237,14 @@ const selectedTooltip = computed(() => {
               v-for="item in filteredItems"
               :key="item.id"
               class="item-option"
-              :class="{ selected: isSelected(item.id) }"
+              :class="{ selected: isSelected(item.id), readonly }"
             >
               <input
-                type="checkbox"
-                :checked="isSelected(item.id)"
-                @change="toggleItem(item.id)"
-              />
+              type="checkbox"
+              :checked="isSelected(item.id)"
+              :disabled="readonly"
+              @change="toggleItem(item.id)"
+            />
               <span class="item-id">{{ item.id }}</span>
               <span class="item-name">{{ item.name }}</span>
               <span v-if="item.code" class="item-code">{{ item.code }}</span>
@@ -377,6 +383,10 @@ const selectedTooltip = computed(() => {
   background: var(--bg-tertiary);
 }
 
+.item-option.readonly {
+  cursor: default;
+}
+
 .item-option.selected {
   background: rgba(var(--accent-rgb, 74, 144, 226), 0.15);
 }
@@ -386,6 +396,10 @@ const selectedTooltip = computed(() => {
   height: 14px;
   cursor: pointer;
   flex-shrink: 0;
+}
+
+.item-option.readonly input[type="checkbox"] {
+  cursor: default;
 }
 
 .item-id {

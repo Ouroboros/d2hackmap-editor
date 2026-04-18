@@ -477,6 +477,7 @@ function duplicateKeyBindingToMain(binding: KeyBindingItem) {
 // Comment/Delete/Restore handlers for Stat Limits
 function handleStatLimitComment(item: StatLimitItem) {
   if (!config.value || isReadOnly.value) return
+  if (isItemExtern(item)) return
   markCommented(item)
   refreshEffectiveStatus(config.value)
 }
@@ -491,17 +492,22 @@ function handleStatLimitDelete(item: StatLimitItem) {
 
 function handleStatLimitRestore(item: StatLimitItem) {
   if (!config.value || isReadOnly.value) return
+  if (isItemExtern(item)) return
   markRestored(item)
   refreshEffectiveStatus(config.value)
 }
 
+function isReadonlyStatLimit(item: StatLimitItem): boolean {
+  return isReadOnly.value || isItemDisabled(item) || isItemExtern(item)
+}
+
 function updateStatLimit(item: StatLimitItem, field: string, value: string) {
-  if (!config.value || isReadOnly.value) return
+  if (!config.value || isReadonlyStatLimit(item)) return
   ;(item as any)[field] = value
 }
 
 function updateStatLimitName(item: StatLimitItem, newName: string) {
-  if (!config.value || isReadOnly.value) return
+  if (!config.value || isReadonlyStatLimit(item)) return
   if (item.name === newName || !newName) return
   item.name = newName
   refreshEffectiveStatus(config.value)
@@ -767,34 +773,38 @@ function copyAllExtern() {
           <input
             type="text"
             :value="item.name"
-            :disabled="isItemDisabled(item) || isReadOnly"
+            :readonly="isReadonlyStatLimit(item)"
+            :disabled="isReadOnly"
             @input="updateStatLimitName(item, $event.target.value)"
             :style="{ width: limitNameWidth, fontWeight: 500 }"
           />
           <StatPicker
             :modelValue="item.statId"
             :disabled="isReadOnly"
-            :readonly="isItemDisabled(item)"
+            :readonly="isReadonlyStatLimit(item)"
             @update:modelValue="updateStatLimit(item, 'statId', $event)"
           />
           <input
             type="text"
             :value="item.param"
-            :disabled="isItemDisabled(item) || isReadOnly"
+            :readonly="isReadonlyStatLimit(item)"
+            :disabled="isReadOnly"
             @input="updateStatLimit(item, 'param', $event.target.value)"
             style="width: 60px;"
           />
           <input
             type="text"
             :value="item.min"
-            :disabled="isItemDisabled(item) || isReadOnly"
+            :readonly="isReadonlyStatLimit(item)"
+            :disabled="isReadOnly"
             @input="updateStatLimit(item, 'min', $event.target.value)"
             style="width: 80px;"
           />
           <input
             type="text"
             :value="item.max"
-            :disabled="isItemDisabled(item) || isReadOnly"
+            :readonly="isReadonlyStatLimit(item)"
+            :disabled="isReadOnly"
             @input="updateStatLimit(item, 'max', $event.target.value)"
             style="width: 80px;"
           />
@@ -803,7 +813,8 @@ function copyAllExtern() {
             class="comment-input"
             :placeholder="t('itemColors.comment')"
             :value="item.comment"
-            :disabled="isItemDisabled(item) || isReadOnly"
+            :readonly="isReadonlyStatLimit(item)"
+            :disabled="isReadOnly"
             @input="updateStatLimit(item, 'comment', $event.target.value)"
             style="width: 150px;"
           />

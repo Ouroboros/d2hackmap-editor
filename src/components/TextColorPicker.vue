@@ -98,7 +98,7 @@ onUnmounted(() => {
               v-for="color in TEXT_COLORS"
               :key="color.id"
               class="color-item"
-              :class="{ selected: String(color.id) === String(modelValue) }"
+              :class="{ selected: String(color.id) === String(modelValue), readonly }"
               @click="selectColor(color)"
             >
               <div
@@ -203,6 +203,10 @@ onUnmounted(() => {
 
 .color-item:hover {
   background: var(--bg-tertiary);
+}
+
+.color-item.readonly {
+  cursor: default;
 }
 
 .color-item.selected {

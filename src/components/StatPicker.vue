@@ -77,11 +77,13 @@ function isSelected(id: string | number): boolean {
 
 // Select a stat
 function selectStat(id: string | number): void {
+  if (props.readonly) return
   selectedId.value = id?.toString()
 }
 
 // Clear selection
 function clearSelection(): void {
+  if (props.readonly) return
   selectedId.value = ''
 }
 
@@ -96,6 +98,7 @@ function openPicker(): void {
 
 // Confirm and emit value
 function confirmSelection(): void {
+  if (props.readonly) return
   emit('update:modelValue', selectedId.value)
   showPicker.value = false
 }
@@ -148,7 +151,7 @@ const selectedTooltip = computed(() => {
           <div class="picker-header">
             <span>{{ t('statPicker.title') }}</span>
             <span v-if="readonly" class="readonly-badge">{{ t('status.readOnly') }}</span>
-            <div class="picker-actions">
+            <div v-if="!readonly" class="picker-actions">
               <button class="btn btn-small btn-secondary" @click="clearSelection">{{ t('statPicker.clear') }}</button>
             </div>
           </div>
@@ -160,6 +163,7 @@ const selectedTooltip = computed(() => {
               v-model="selectedId"
               type="text"
               :placeholder="t('statPicker.inputPlaceholder')"
+              :readonly="readonly"
               class="manual-input"
             />
           </div>
@@ -183,12 +187,13 @@ const selectedTooltip = computed(() => {
               v-for="stat in filteredStats"
               :key="stat.id"
               class="stat-option"
-              :class="{ selected: isSelected(stat.id) }"
+              :class="{ selected: isSelected(stat.id), readonly }"
               @click="selectStat(stat.id)"
             >
               <input
                 type="radio"
                 :checked="isSelected(stat.id)"
+                :disabled="readonly"
                 @change="selectStat(stat.id)"
               />
               <span class="stat-id">{{ stat.id }}</span>
@@ -336,6 +341,10 @@ const selectedTooltip = computed(() => {
   background: var(--bg-tertiary);
 }
 
+.stat-option.readonly {
+  cursor: default;
+}
+
 .stat-option.selected {
   background: rgba(var(--accent-rgb, 74, 144, 226), 0.15);
 }
@@ -345,6 +354,10 @@ const selectedTooltip = computed(() => {
   height: 14px;
   cursor: pointer;
   flex-shrink: 0;
+}
+
+.stat-option.readonly input[type="radio"] {
+  cursor: default;
 }
 
 .stat-id {

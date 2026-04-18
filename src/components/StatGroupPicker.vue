@@ -96,6 +96,7 @@ function isSelected(name: string): boolean {
 
 // Toggle selection of an item
 function toggleItem(name: string): void {
+  if (props.readonly) return
   const items = new Set(selectedItems.value)
   if (items.has(name)) {
     items.delete(name)
@@ -106,6 +107,7 @@ function toggleItem(name: string): void {
 }
 
 function selectAll(): void {
+  if (props.readonly) return
   // Select all items from current tab's filtered list
   const items = new Set(selectedItems.value)
   const toAdd = activeTab.value === 'limits' ? filteredLimits.value : filteredGroups.value
@@ -114,10 +116,15 @@ function selectAll(): void {
 }
 
 function clearSelection(): void {
+  if (props.readonly) return
   emit('update:modelValue', '')
 }
 
 function cancelSelection(): void {
+  if (props.readonly) {
+    showPicker.value = false
+    return
+  }
   emit('update:modelValue', originalValue.value)
   showPicker.value = false
 }
@@ -196,7 +203,7 @@ const displayText = computed(() => {
               </button>
             </div>
             <span v-if="readonly" class="readonly-badge">{{ t('status.readOnly') }}</span>
-            <div class="header-actions">
+            <div v-if="!readonly" class="header-actions">
               <button class="btn btn-small btn-secondary" @click="selectAll">
                 {{ t('quality.selectAll') }}
               </button>
@@ -240,10 +247,10 @@ const displayText = computed(() => {
                 v-for="name in filteredLimits"
                 :key="name"
                 class="picker-item"
-                :class="{ selected: isSelected(name) }"
+                :class="{ selected: isSelected(name), readonly }"
                 @click="toggleItem(name)"
               >
-                <input type="checkbox" :checked="isSelected(name)" @click.stop />
+                <input type="checkbox" :checked="isSelected(name)" :disabled="readonly" @click.stop />
                 <span>{{ name }}</span>
               </div>
             </div>
@@ -259,10 +266,10 @@ const displayText = computed(() => {
                 v-for="name in filteredGroups"
                 :key="name"
                 class="picker-item"
-                :class="{ selected: isSelected(name) }"
+                :class="{ selected: isSelected(name), readonly }"
                 @click="toggleItem(name)"
               >
-                <input type="checkbox" :checked="isSelected(name)" @click.stop />
+                <input type="checkbox" :checked="isSelected(name)" :disabled="readonly" @click.stop />
                 <span>{{ name }}</span>
               </div>
             </div>
@@ -460,6 +467,10 @@ const displayText = computed(() => {
   background: var(--bg-tertiary);
 }
 
+.picker-item.readonly {
+  cursor: default;
+}
+
 .picker-item.selected {
   background: var(--accent-color);
   color: white;
@@ -469,6 +480,10 @@ const displayText = computed(() => {
   width: 16px;
   height: 16px;
   cursor: pointer;
+}
+
+.picker-item.readonly input[type="checkbox"] {
+  cursor: default;
 }
 
 .empty-hint {

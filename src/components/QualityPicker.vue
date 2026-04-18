@@ -134,7 +134,7 @@ function closePicker(e: MouseEvent): void {
           <div class="picker-header">
             <span>{{ t('quality.selectTitle') }}</span>
             <span v-if="readonly" class="readonly-badge">{{ t('status.readOnly') }}</span>
-            <div class="picker-actions">
+            <div v-if="!readonly" class="picker-actions">
               <button class="btn btn-small btn-secondary" @click="selectAll">{{ t('quality.selectAll') }}</button>
               <button class="btn btn-small btn-secondary" @click="selectNone">{{ t('quality.clear') }}</button>
             </div>
@@ -144,11 +144,13 @@ function closePicker(e: MouseEvent): void {
               v-for="q in qualities"
               :key="q.value"
               class="quality-item"
+              :class="{ readonly }"
               :style="{ '--quality-color': getDisplayColor(q.color) }"
             >
               <input
                 type="checkbox"
                 :checked="isSelected(q.value)"
+                :disabled="readonly"
                 @change="toggleQuality(q.value)"
               />
               <span class="quality-label">{{ q.value }}. {{ q.label }}</span>
@@ -247,10 +249,18 @@ function closePicker(e: MouseEvent): void {
   background: var(--bg-tertiary);
 }
 
+.quality-item.readonly {
+  cursor: default;
+}
+
 .quality-item input[type="checkbox"] {
   width: 16px;
   height: 16px;
   cursor: pointer;
+}
+
+.quality-item.readonly input[type="checkbox"] {
+  cursor: default;
 }
 
 .quality-label {
