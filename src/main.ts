@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import './style.css'
 import zhCN from './i18n/zh-CN'
+import { isTauriRuntime } from './services/tauriApi'
 
 // Simple pre-Vue i18n lookup
 function t(key: string): string {
@@ -11,10 +12,11 @@ function t(key: string): string {
 // Browser compatibility check
 function checkBrowserCompatibility(): boolean {
   const errors: string[] = []
+  const isTauri = isTauriRuntime()
 
-  if (typeof TextDecoder === 'undefined') {
+  if (!isTauri && typeof TextDecoder === 'undefined') {
     errors.push('TextDecoder API')
-  } else {
+  } else if (!isTauri) {
     try {
       new TextDecoder('gbk')
     } catch (e) {
@@ -22,7 +24,7 @@ function checkBrowserCompatibility(): boolean {
     }
   }
 
-  if (typeof FileReader === 'undefined') {
+  if (!isTauri && typeof FileReader === 'undefined') {
     errors.push('FileReader API')
   }
 

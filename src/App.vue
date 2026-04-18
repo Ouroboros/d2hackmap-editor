@@ -7,7 +7,13 @@ import { refreshEffectiveStatus } from './composables/useItemActions'
 import { useReferenceData } from './composables/useReferenceData'
 import { useFileStorage } from './composables/useFileStorage'
 import { useConfigChain } from './composables/useConfigChain'
+import type { ChainNode } from './composables/useConfigChain'
 import { useEditorOutput, EDITOR_OUTPUT_FILENAME, REQUIRED_FILE } from './composables/useEditorOutput'
+import {
+  pickConfigDirectory,
+  readConfigFile,
+  type ConfigDirectory
+} from './services/tauriApi'
 import { useI18n } from './i18n'
 import ToggleEditor from './components/ToggleEditor.vue'
 import ItemColorEditor from './components/ItemColorEditor.vue'
@@ -25,15 +31,11 @@ const {
   hasUnsavedChanges,
   isReadOnly,
   fileName,
-  pendingExterns,
-  loadedFiles,
-  openFile,
   saveFile,
-  newConfig,
   initForDirectoryLoad,
   closeConfig,
-  loadConfigFile,
-  loadConfigFiles
+  loadConfigText,
+  ensureEditableFile
 } = useConfig()
 
 const {
@@ -48,7 +50,6 @@ const {
 const {
   dirHandle: editorDirHandle,
   validateConfigDirectory,
-  getEditorOutputHandle,
   setDirHandle,
   saveToEditorFile
 } = useEditorOutput()
@@ -69,10 +70,7 @@ const {
   clearAllStorage
 } = useFileStorage()
 
-// Track file handles for File System Access API
-const mainFileHandle = ref<FileSystemFileHandle | null>(null)
-const externFileHandles = ref<FileSystemFileHandle[]>([])
-const lastUsedHandle = ref<FileSystemDirectoryHandle | null>(null)  // Remember last directory even after close
+const lastUsedHandle = ref<ConfigDirectory | null>(null)  // Remember last directory even after close
 
 const activeTab = ref<string>('toggles')
 
@@ -102,11 +100,8 @@ async function handleOpenDirectoryClick() {
   }
 
   try {
-    const options = {}
-    if (lastUsedHandle.value) {
-      options.startIn = lastUsedHandle.value
-    }
-    const dirHandle = await window.showDirectoryPicker(options)
+    const dirHandle = await pickConfigDirectory(lastUsedHandle.value?.path ?? null)
+    if (!dirHandle) return
 
     // Validate directory: check permission and required file
     const result = await validateConfigDirectory(dirHandle)
@@ -134,14 +129,12 @@ async function handleOpenDirectoryClick() {
       await loadConfigFromDirectory(dirHandle)
     }
   } catch (e) {
-    if (e.name !== 'AbortError') {
-      console.error('Failed to open directory:', e)
-    }
+    console.error('Failed to open directory:', e)
   }
 }
 
 // Load config after directory is validated and chain is parsed
-async function loadConfigFromDirectory(dirHandle) {
+async function loadConfigFromDirectory(dirHandle: ConfigDirectory) {
   // Get all loaded nodes from chain (BFS order)
   const allNodes = getLoadedNodes(chainRoot.value)
   if (allNodes.length === 0) return
@@ -154,17 +147,13 @@ async function loadConfigFromDirectory(dirHandle) {
   // gen.cfg is editable (isEditable=true), others are extern (isEditable=false)
   // Skip refresh during batch loading to avoid intermediate renders
 
-  const externHandles = []
   for (const node of allNodes) {
     try {
-      const file = await node.handle.getFile()
-      const isEditable = node.file === EDITOR_OUTPUT_FILENAME
-      await loadConfigFile(file, isEditable, true)  // skipRefresh=true
-      if (!isEditable) {
-        externHandles.push(node.handle)
-      } else {
-        mainFileHandle.value = node.handle
-      }
+      if (!node.fullPath) continue
+      const file = await readConfigFile(node.fullPath)
+      const displayName = node.path || file.name
+      const isEditable = getBaseName(displayName) === EDITOR_OUTPUT_FILENAME
+      await loadConfigText(displayName, file.lines, isEditable, true)  // skipRefresh=true
     } catch (e) {
       console.error('Failed to read file:', node.file, e)
       alert(t('error.readFileFailed', { file: node.file }))
@@ -173,30 +162,38 @@ async function loadConfigFromDirectory(dirHandle) {
       return
     }
   }
-  externFileHandles.value = externHandles
+
+  ensureEditableFile(EDITOR_OUTPUT_FILENAME)
 
   // Refresh effective status once after all files loaded
   if (config.value) {
     refreshEffectiveStatus(config.value)
+    hasUnsavedChanges.value = false
   }
 
   // Remember directory for restore
   await saveDirHandle(dirHandle)
 }
 
+function getBaseName(path: string): string {
+  return path.split(/[\\/]/).pop() || path
+}
+
 // Handle config chain dialog events
-async function handleChainSelectDir(node) {
+async function handleChainSelectDir(node: ChainNode) {
   await selectFileForNode(node)
 }
 
-function handleChainSkipNode(node) {
+function handleChainSkipNode(node: ChainNode) {
   skipNode(node)
 }
 
 // Called when user confirms chain dialog (after authorizing pending dirs)
 async function handleChainConfirm() {
   showChainDialog.value = false
-  await loadConfigFromDirectory(editorDirHandle.value)
+  if (editorDirHandle.value) {
+    await loadConfigFromDirectory(editorDirHandle.value)
+  }
 }
 
 function handleChainClose() {
@@ -212,8 +209,7 @@ async function handleSave() {
   }
 
   try {
-    const editorHandle = await saveToEditorFile(config.value)
-    mainFileHandle.value = editorHandle
+    await saveToEditorFile(config.value)
     hasUnsavedChanges.value = false
     // Brief visual feedback
     const btn = document.activeElement
@@ -221,16 +217,17 @@ async function handleSave() {
       btn.textContent = t('status.saved')
       setTimeout(() => { btn.textContent = t('btn.save') }, 1500)
     }
-    // Reload config to refresh effective status
+    // Re-parse and reload config to pick up a newly inserted gen.cfg import.
+    await parseConfigChain(editorDirHandle.value)
     await loadConfigFromDirectory(editorDirHandle.value)
   } catch (e) {
     console.error('Failed to save:', e)
-    alert(t('error.saveFailed', { message: e.message }))
+    alert(t('error.saveFailed', { message: (e as Error).message }))
   }
 }
 
 // Unsaved changes warning
-function handleBeforeUnload(e) {
+function handleBeforeUnload(e: BeforeUnloadEvent) {
   if (hasUnsavedChanges.value) {
     e.preventDefault()
     e.returnValue = ''
@@ -286,8 +283,6 @@ async function handleClearAllStorage() {
 async function handleCloseConfig() {
   await clearRememberedFiles()
   closeConfig()
-  mainFileHandle.value = null
-  externFileHandles.value = []
   setDirHandle(null)
   // Note: lastUsedHandle is kept for directory memory
   showRestorePrompt.value = false

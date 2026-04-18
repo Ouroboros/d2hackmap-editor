@@ -1,87 +1,27 @@
 import { ref, type Ref } from 'vue'
+import type { ConfigDirectory } from '../services/tauriApi'
 
-// Check if File System Access API is supported
-const isFileSystemAccessSupported = 'showOpenFilePicker' in window
+// Tauri provides native file access through backend commands.
+const isFileSystemAccessSupported = true
 
-// IndexedDB for storing file handles
-const DB_NAME = 'd2hackmap-editor'
-const DB_VERSION = 1
-const STORE_NAME = 'fileHandles'
-
-let db: IDBDatabase | null = null
-
-async function openDB(): Promise<IDBDatabase> {
-  if (db) return db
-
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION)
-
-    request.onerror = () => reject(request.error)
-    request.onsuccess = () => {
-      db = request.result
-      resolve(db)
-    }
-
-    request.onupgradeneeded = (e) => {
-      const database = (e.target as IDBOpenDBRequest).result
-      if (!database.objectStoreNames.contains(STORE_NAME)) {
-        database.createObjectStore(STORE_NAME, { keyPath: 'id' })
-      }
-    }
-  })
-}
-
-async function saveHandle(id: string, handle: FileSystemHandle): Promise<void> {
-  const database = await openDB()
-  return new Promise((resolve, reject) => {
-    const tx = database.transaction(STORE_NAME, 'readwrite')
-    const store = tx.objectStore(STORE_NAME)
-    const request = store.put({ id, handle })
-    request.onsuccess = () => resolve()
-    request.onerror = () => reject(request.error)
-  })
-}
-
-async function getHandle(id: string): Promise<FileSystemHandle | null> {
-  const database = await openDB()
-  return new Promise((resolve, reject) => {
-    const tx = database.transaction(STORE_NAME, 'readonly')
-    const store = tx.objectStore(STORE_NAME)
-    const request = store.get(id)
-    request.onsuccess = () => resolve(request.result?.handle || null)
-    request.onerror = () => reject(request.error)
-  })
-}
-
-async function clearHandles(): Promise<void> {
-  const database = await openDB()
-  return new Promise((resolve, reject) => {
-    const tx = database.transaction(STORE_NAME, 'readwrite')
-    const store = tx.objectStore(STORE_NAME)
-    const request = store.clear()
-    request.onsuccess = () => resolve()
-    request.onerror = () => reject(request.error)
-  })
-}
-
-// Stored file names type
 interface StoredFileNames {
   mainFile: string
   externFiles: string[]
 }
 
-// Restore files result type
 interface RestoreFilesResult {
   mainFile: File | null
   externFiles: File[]
-  mainHandle: FileSystemFileHandle | null
-  externHandles: FileSystemFileHandle[]
+  mainHandle: null
+  externHandles: []
 }
 
-// State
 const rememberedMainFile: Ref<string | null> = ref(null)
 const rememberedExternFiles: Ref<string[]> = ref([])
 const isRestoring = ref(false)
+
+const DIR_PATH_KEY = 'd2hackmap-dirPath'
+const DIR_NAME_KEY = 'd2hackmap-dirName'
 
 export function useFileStorage() {
   // Save file info to localStorage (names only for fallback)
@@ -147,136 +87,55 @@ export function useFileStorage() {
     }
   }
 
-  // Save file handles (for File System Access API)
-  async function saveFileHandles(mainHandle: FileSystemFileHandle | null, externHandles: FileSystemFileHandle[]): Promise<void> {
-    if (!isFileSystemAccessSupported) return
-
-    try {
-      if (mainHandle) {
-        await saveHandle('main', mainHandle)
-      }
-
-      // Save extern handles with their names as keys
-      for (const handle of externHandles) {
-        await saveHandle(`extern:${handle.name}`, handle)
-      }
-
-      // Save list of extern file names
-      const externNames = externHandles.map(h => h.name)
-      localStorage.setItem('d2hackmap-externHandleNames', JSON.stringify(externNames))
-    } catch (e) {
-      console.warn('Failed to save file handles:', e)
-    }
-  }
-
   // Save directory handle
-  async function saveDirHandle(dirHandle: FileSystemDirectoryHandle | null): Promise<void> {
-    if (!isFileSystemAccessSupported || !dirHandle) return
+  async function saveDirHandle(dirHandle: ConfigDirectory | null): Promise<void> {
+    if (!dirHandle) return
 
     try {
-      await saveHandle('directory', dirHandle)
-      localStorage.setItem('d2hackmap-dirName', dirHandle.name)
+      localStorage.setItem(DIR_PATH_KEY, dirHandle.path)
+      localStorage.setItem(DIR_NAME_KEY, dirHandle.name)
     } catch (e) {
       console.warn('Failed to save directory handle:', e)
     }
   }
 
   // Restore directory handle
-  async function restoreDirHandle(): Promise<FileSystemDirectoryHandle | null> {
-    if (!isFileSystemAccessSupported) return null
-
+  async function restoreDirHandle(): Promise<ConfigDirectory | null> {
+    isRestoring.value = true
     try {
-      const dirHandle = await getHandle('directory') as FileSystemDirectoryHandle | null
-      if (!dirHandle) return null
-
-      // Request permission (will prompt user)
-      const permission = await dirHandle.requestPermission({ mode: 'readwrite' })
-      if (permission === 'granted') {
-        return dirHandle
-      }
+      const path = localStorage.getItem(DIR_PATH_KEY)
+      const name = localStorage.getItem(DIR_NAME_KEY)
+      if (!path || !name) return null
+      return { path, name }
     } catch (e) {
       console.warn('Failed to restore directory handle:', e)
+      return null
+    } finally {
+      isRestoring.value = false
     }
-    return null
   }
 
   // Check if there's a saved directory
   function hasSavedDirectory(): boolean {
-    return !!localStorage.getItem('d2hackmap-dirName')
+    return !!localStorage.getItem(DIR_PATH_KEY)
   }
 
   // Get saved directory name (for display)
   function getSavedDirectoryName(): string {
-    return localStorage.getItem('d2hackmap-dirName') || ''
+    return localStorage.getItem(DIR_NAME_KEY) || ''
   }
 
-  // Try to restore files from saved handles
+  // Legacy browser-file restore API kept for component compatibility.
   async function restoreFiles(): Promise<RestoreFilesResult> {
-    isRestoring.value = true
-    const result: RestoreFilesResult = { mainFile: null, externFiles: [], mainHandle: null, externHandles: [] }
-
-    try {
-      if (isFileSystemAccessSupported) {
-        // Try to restore main file handle
-        const mainHandle = await getHandle('main') as FileSystemFileHandle | null
-        if (mainHandle) {
-          // Request permission
-          const permission = await mainHandle.requestPermission({ mode: 'read' })
-          if (permission === 'granted') {
-            result.mainFile = await mainHandle.getFile()
-            result.mainHandle = mainHandle
-            rememberedMainFile.value = mainHandle.name
-          }
-        }
-
-        // Try to restore extern file handles
-        const externNames: string[] = JSON.parse(localStorage.getItem('d2hackmap-externHandleNames') || '[]')
-        for (const name of externNames) {
-          const handle = await getHandle(`extern:${name}`) as FileSystemFileHandle | null
-          if (handle) {
-            const permission = await handle.requestPermission({ mode: 'read' })
-            if (permission === 'granted') {
-              const file = await handle.getFile()
-              result.externFiles.push(file)
-              result.externHandles.push(handle)
-              rememberedExternFiles.value.push(handle.name)
-            }
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to restore files:', e)
-    }
-
-    // If no handles restored, just load names from localStorage for display
-    if (!result.mainFile) {
-      const stored = loadFromLocalStorage()
-      rememberedMainFile.value = stored.mainFile || null
-      rememberedExternFiles.value = stored.externFiles || []
-    }
-
-    isRestoring.value = false
-    return result
+    return { mainFile: null, externFiles: [], mainHandle: null, externHandles: [] }
   }
 
-  // Remember files after opening
-  async function rememberFiles(
-    mainFile: File | null,
-    externFiles: File[],
-    mainHandle: FileSystemFileHandle | null = null,
-    externHandles: FileSystemFileHandle[] = []
-  ): Promise<void> {
-    // Save names to localStorage
+  // Legacy browser-file remember API kept for component compatibility.
+  async function rememberFiles(mainFile: File | null, externFiles: File[]): Promise<void> {
     const externNames = externFiles.map(f => f.name)
     saveToLocalStorage(mainFile?.name, externNames)
-
     rememberedMainFile.value = mainFile?.name || null
     rememberedExternFiles.value = externNames
-
-    // Save handles if available
-    if (mainHandle || externHandles.length > 0) {
-      await saveFileHandles(mainHandle, externHandles)
-    }
   }
 
   // Clear all remembered files and directory
@@ -285,11 +144,8 @@ export function useFileStorage() {
       localStorage.removeItem('d2hackmap-mainFile')
       localStorage.removeItem('d2hackmap-externFiles')
       localStorage.removeItem('d2hackmap-externHandleNames')
-      localStorage.removeItem('d2hackmap-dirName')
-
-      if (isFileSystemAccessSupported) {
-        await clearHandles()
-      }
+      localStorage.removeItem(DIR_PATH_KEY)
+      localStorage.removeItem(DIR_NAME_KEY)
 
       rememberedMainFile.value = null
       rememberedExternFiles.value = []
@@ -309,25 +165,18 @@ export function useFileStorage() {
     return loadFromLocalStorage()
   }
 
-  // Clear all storage (IndexedDB + localStorage for this app)
+  // Clear all storage (localStorage for this app)
   async function clearAllStorage(): Promise<void> {
     try {
-      // Clear all localStorage items for this app
       const keysToRemove: string[] = []
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i)
-        if (key && key.startsWith('d2hackmap-')) {
+        if (key && (key.startsWith('d2hackmap-') || key === 'cfg-editor-theme')) {
           keysToRemove.push(key)
         }
       }
       keysToRemove.forEach(key => localStorage.removeItem(key))
 
-      // Clear IndexedDB
-      if (isFileSystemAccessSupported) {
-        await clearHandles()
-      }
-
-      // Reset state
       rememberedMainFile.value = null
       rememberedExternFiles.value = []
     } catch (e) {

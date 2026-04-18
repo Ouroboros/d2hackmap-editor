@@ -238,6 +238,59 @@ function generateTransmuteExport(cfg: Config): string {
 }
 
 export function useConfig() {
+  async function loadConfigText(
+    displayName: string,
+    lines: string[],
+    isEditable: boolean = false,
+    skipRefresh: boolean = false
+  ): Promise<void> {
+    log(`[loadConfigText] file: ${displayName}, isEditable: ${isEditable}, skipRefresh: ${skipRefresh}`)
+    if (config.value === null) return
+    if (loadedFiles.value.has(displayName)) {
+      log(`[loadConfigText] skip: ${displayName} already loaded`)
+      return
+    }
+
+    try {
+      // Parse with sourceFile = filename for extern, null for editable
+      const sourceFile = isEditable ? null : displayName
+      const configData = parseConfig(lines, sourceFile)
+
+      const fileConfig: FileConfig = {
+        file: displayName,
+        isEditable,
+        data: configData
+      }
+
+      loadedFiles.value.add(displayName)
+
+      // Find and mark the extern as loaded in all files
+      for (const fc of config.value.files) {
+        const inc = fc.data.includes.find(i => i.file === displayName)
+        if (inc) {
+          inc.loaded = true
+        }
+      }
+
+      config.value.files.push(fileConfig)
+
+      if (!skipRefresh) {
+        refreshEffectiveStatus(config.value)
+      }
+
+      configVersion.value++
+
+      const allIncludes = getAllIncludes(config.value)
+      pendingExterns.value = allIncludes.filter(inc =>
+        !loadedFiles.value.has(inc.file)
+      )
+    } catch (e) {
+      console.error('Failed to load config text:', e)
+      const { t } = useI18n()
+      alert(t('error.loadExternFailed', { message: (e as Error).message }))
+    }
+  }
+
   async function openFile(file: File): Promise<void> {
     try {
       const lines = await readFile(file)
@@ -288,44 +341,7 @@ export function useConfig() {
 
     try {
       const lines = await readFile(file)
-      // Parse with sourceFile = filename for extern, null for editable
-      const sourceFile = isEditable ? null : file.name
-      const configData = parseConfig(lines, sourceFile)
-
-      // Create FileConfig for this extern file
-      const fileConfig: FileConfig = {
-        file: file.name,
-        isEditable: isEditable,
-        data: configData
-      }
-
-      // Mark as loaded
-      loadedFiles.value.add(file.name)
-
-      // Find and mark the extern as loaded in all files
-      for (const fc of config.value.files) {
-        const inc = fc.data.includes.find(i => i.file === file.name)
-        if (inc) {
-          inc.loaded = true
-        }
-      }
-
-      // Add to files array (later loaded files go to the end)
-      config.value.files.push(fileConfig)
-
-      // Refresh effective status after adding (unless batch loading)
-      if (!skipRefresh) {
-        refreshEffectiveStatus(config.value)
-      }
-
-      // Bump config version to trigger validation refresh
-      configVersion.value++
-
-      // Update pending externs (collect from all files)
-      const allIncludes = getAllIncludes(config.value)
-      pendingExterns.value = allIncludes.filter(inc =>
-        !loadedFiles.value.has(inc.file)
-      )
+      await loadConfigText(file.name, lines, isEditable, skipRefresh)
     } catch (e) {
       console.error('Failed to load extern file:', e)
       const { t } = useI18n()
@@ -380,6 +396,19 @@ export function useConfig() {
     isReadOnly.value = false
     loadedFiles.value = new Set()
     pendingExterns.value = []
+  }
+
+  function ensureEditableFile(name: string): void {
+    if (!config.value) return
+    if (getEditableFile(config.value)) return
+
+    const fileConfig: FileConfig = {
+      file: name,
+      isEditable: true,
+      data: createEmptyConfigData()
+    }
+    config.value.files.push(fileConfig)
+    loadedFiles.value.add(name)
   }
 
   function closeConfig(): void {
@@ -438,6 +467,8 @@ export function useConfig() {
     closeConfig,
     exportSection,
     loadConfigFile,
-    loadConfigFiles
+    loadConfigFiles,
+    loadConfigText,
+    ensureEditableFile
   }
 }
