@@ -1,0 +1,16 @@
+[
+  { "id": 7, "name": "最大生命值", "code": "maxhp", "min": 1, "max": 200 },
+  { "id": 9, "name": "最大法力值", "code": "maxmana", "min": 1, "max": 150 },
+  { "id": 31, "name": "防御", "code": "armorclass", "min": 1, "max": 500 },
+  { "id": 39, "name": "火焰抗性", "code": "fireresist", "min": 1, "max": 50 },
+  { "id": 41, "name": "闪电抗性", "code": "lightresist", "min": 1, "max": 50 },
+  { "id": 43, "name": "冰冷抗性", "code": "coldresist", "min": 1, "max": 50 },
+  { "id": 45, "name": "毒素抗性", "code": "poisonresist", "min": 1, "max": 50 },
+  { "id": 76, "name": "生命百分比", "code": "maxhp_percent", "min": 1, "max": 30 },
+  { "id": 77, "name": "法力百分比", "code": "maxmana_percent", "min": 1, "max": 30 },
+  { "id": 83, "name": "职业技能", "code": "classskill", "min": 1, "max": 3 },
+  { "id": 105, "name": "快速施法", "code": "fcr", "min": 5, "max": 35 },
+  { "id": 107, "name": "单技能加成", "code": "singleskill", "min": 1, "max": 5 },
+  { "id": 188, "name": "技能页加成", "code": "skilltab", "min": 1, "max": 6 },
+  { "id": 194, "name": "孔数", "code": "sockets", "min": 1, "max": 6 }
+]

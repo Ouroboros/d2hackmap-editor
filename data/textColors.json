@@ -1,0 +1,17 @@
+[
+  { "id": -2, "name": "隐藏", "rgb": null },
+  { "id": -1, "name": "默认", "rgb": "#FFFFFF" },
+  { "id": 0, "code": "0", "name": "白色", "rgb": "#FFFFFF" },
+  { "id": 1, "code": "1", "name": "红色", "rgb": "#FF0000" },
+  { "id": 2, "code": "2", "name": "亮绿色", "rgb": "#00FF00" },
+  { "id": 3, "code": "3", "name": "蓝色", "rgb": "#6969FF" },
+  { "id": 4, "code": "4", "name": "暗金", "rgb": "#C7B377" },
+  { "id": 5, "code": "5", "name": "灰色", "rgb": "#808080" },
+  { "id": 6, "code": "6", "name": "黑色", "rgb": "#000000" },
+  { "id": 7, "code": "7", "name": "金色", "rgb": "#D4A017" },
+  { "id": 8, "code": "8", "name": "橙色", "rgb": "#FF8C00" },
+  { "id": 9, "code": "9", "name": "黄色", "rgb": "#FFFF00" },
+  { "id": 10, "code": ":", "name": "暗绿色", "rgb": "#008000" },
+  { "id": 11, "code": ";", "name": "紫色", "rgb": "#8B008B" },
+  { "id": 12, "code": "<", "name": "亮暗绿色", "rgb": "#006400" }
+]
