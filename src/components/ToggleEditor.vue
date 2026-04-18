@@ -10,7 +10,8 @@ import {
   deleteItemFromFile,
   buildCommentedMainMap,
   getJumpTargetIndex,
-  scrollToIndex
+  scrollToIndex,
+  scrollToMainItemInList
 } from '../composables/useItemActions'
 import { useI18n } from '../i18n'
 import { useDebugMode } from '../composables/useDebugMode'
@@ -77,6 +78,10 @@ const togglesJumpMap = computed(() => buildCommentedMainMap(toggles.value, getTo
 // Get jump target for an item
 function getToggleJumpTarget(item: ToggleItem): number | undefined {
   return getJumpTargetIndex(item, togglesJumpMap.value, getToggleKey)
+}
+
+function jumpToToggle(index: number): void {
+  scrollToIndex(index, '.toggle-list')
 }
 
 // Calculate dynamic width for name column based on longest text
@@ -154,6 +159,7 @@ function duplicateToMain(item: ToggleItem, skipRefresh = false): boolean {
   addItemToEditable(config.value, 'toggles', newItem)
   if (!skipRefresh) {
     refreshEffectiveStatus(config.value)
+    scrollToMainItemInList(() => toggles.value, newItem, getToggleKey, '.toggle-list')
   }
   return true
 }
@@ -258,7 +264,7 @@ function formatToggle(item: ToggleItem): string {
               <button
                 v-if="getToggleJumpTarget(toggle) !== undefined"
                 class="btn btn-small btn-warning"
-                @click="scrollToIndex(getToggleJumpTarget(toggle)!)"
+                @click="jumpToToggle(getToggleJumpTarget(toggle)!)"
                 :title="t('action.jumpToMain')"
               >→</button>
               <button v-if="!isReadOnly && getToggleJumpTarget(toggle) === undefined" class="btn btn-small btn-accent" @click="duplicateToMain(toggle)" :title="t('action.copyToMain')">

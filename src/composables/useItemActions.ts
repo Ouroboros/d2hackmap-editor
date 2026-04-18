@@ -18,7 +18,9 @@ export {
   deleteItemFromFile,
   buildCommentedMainMap,
   getJumpTargetIndex,
-  scrollToIndex
+  scrollToIndex,
+  scrollToItemInList,
+  scrollToMainItemInList
 } from './useGroupedItems'
 import {
   getAllItems as _getAllItems,

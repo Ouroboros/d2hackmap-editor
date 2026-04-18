@@ -10,7 +10,8 @@ import {
   deleteItemFromFile,
   buildCommentedMainMap,
   getJumpTargetIndex,
-  scrollToIndex
+  scrollToIndex,
+  scrollToMainItemInList
 } from '../composables/useItemActions'
 import { moveItemInFile } from '../utils/grouping'
 import { log } from '../utils/log'
@@ -90,6 +91,10 @@ const importItemsJumpMap = computed(() => buildCommentedMainMap(importItems.valu
 // Get jump target for an item
 function getItemJumpTarget(item: ImportItemItem): number | undefined {
   return getJumpTargetIndex(item, importItemsJumpMap.value, getImportItemKey)
+}
+
+function jumpToImportItem(index: number): void {
+  scrollToIndex(index, '.import-items-list')
 }
 
 // Selectable count (non-extern items only)
@@ -224,6 +229,7 @@ function duplicateItemToMain(index: number, skipRefresh = false): boolean {
   addItemToEditable(config.value, 'importItems', newItem)
   if (!skipRefresh) {
     refreshEffectiveStatus(config.value)
+    scrollToMainItemInList(() => importItems.value, newItem, getImportItemKey, '.import-items-list')
   }
   return true
 }
@@ -443,7 +449,7 @@ const debugImportItems = computed((): ImportItemItem[] => {
       <div v-if="importItems.length === 0" class="empty-state">
         <p>{{ t('import.empty') }}</p>
       </div>
-      <div v-else class="item-list">
+      <div v-else class="item-list import-items-list">
         <!-- Header -->
         <ConfigHeader
           :show-checkbox="true"
@@ -528,7 +534,7 @@ const debugImportItems = computed((): ImportItemItem[] => {
               <button
                 v-if="getItemJumpTarget(item) !== undefined"
                 class="btn btn-small btn-warning"
-                @click="scrollToIndex(getItemJumpTarget(item)!)"
+                @click="jumpToImportItem(getItemJumpTarget(item)!)"
                 :title="t('action.jumpToMain')"
               >→</button>
               <button v-if="!isReadOnly && getItemJumpTarget(item) === undefined" class="btn btn-small btn-accent" @click="duplicateItemToMain(index)" :title="t('action.copyToMain')">

@@ -3,7 +3,18 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useConfig } from '../composables/useConfig'
 import { useValidation } from '../composables/useValidation'
 import { useFileStorage } from '../composables/useFileStorage'
-import { useItemActions, getEditableFile } from '../composables/useItemActions'
+import {
+  useItemActions,
+  getEditableFile,
+  scrollToMainItemInList,
+  getStatLimitKey,
+  getStatLimitGroupKey,
+  getItemDescriptorKey,
+  getCubeFormulaKey,
+  getPreItemTaskKey,
+  getDoTaskKey,
+  getKeyBindingKey
+} from '../composables/useItemActions'
 import { moveTransmuteItemInFile } from '../utils/grouping'
 import { useI18n } from '../i18n'
 import { RELATION_TYPES, ACTION_TYPES, VK_CODES } from '../configDefs'
@@ -356,6 +367,7 @@ function duplicateStatLimitToMain(item: StatLimitItem, skipRefresh = false): boo
   addTransmuteItemToEditable('statLimits', newItem)
   if (!skipRefresh) {
     refreshEffectiveStatus(config.value)
+    scrollToMainItemInList(() => statLimits.value, newItem, getStatLimitKey, '.stat-limits-list')
   }
   return true
 }
@@ -378,6 +390,7 @@ function duplicateStatLimitGroupToMain(group: StatLimitGroupItem, skipRefresh = 
   addTransmuteItemToEditable('statLimitGroups', newItem)
   if (!skipRefresh) {
     refreshEffectiveStatus(config.value)
+    scrollToMainItemInList(() => statLimitGroups.value, newItem, getStatLimitGroupKey, '.stat-limit-groups-list')
   }
   return true
 }
@@ -400,6 +413,7 @@ function duplicateItemDescriptorToMain(desc: ItemDescriptorItem) {
   }
   addTransmuteItemToEditable('itemDescriptors', newItem)
   refreshEffectiveStatus(config.value)
+  scrollToMainItemInList(() => itemDescriptors.value, newItem, getItemDescriptorKey, '.item-descriptors-list')
 }
 
 function duplicateCubeFormulaToMain(formula: CubeFormulaItem) {
@@ -417,6 +431,7 @@ function duplicateCubeFormulaToMain(formula: CubeFormulaItem) {
   }
   addTransmuteItemToEditable('cubeFormulas', newItem)
   refreshEffectiveStatus(config.value)
+  scrollToMainItemInList(() => cubeFormulas.value, newItem, getCubeFormulaKey, '.cube-formulas-list')
 }
 
 function duplicatePreItemTaskToMain(task: PreItemTaskItem) {
@@ -437,6 +452,7 @@ function duplicatePreItemTaskToMain(task: PreItemTaskItem) {
   }
   addTransmuteItemToEditable('preItemTasks', newItem)
   refreshEffectiveStatus(config.value)
+  scrollToMainItemInList(() => preItemTasks.value, newItem, getPreItemTaskKey, '.pre-item-tasks-list')
 }
 
 function duplicateDoTaskToMain(task: DoTaskItem) {
@@ -455,6 +471,7 @@ function duplicateDoTaskToMain(task: DoTaskItem) {
   }
   addTransmuteItemToEditable('doTasks', newItem)
   refreshEffectiveStatus(config.value)
+  scrollToMainItemInList(() => doTasks.value, newItem, getDoTaskKey, '.do-tasks-list')
 }
 
 function duplicateKeyBindingToMain(binding: KeyBindingItem) {
@@ -472,6 +489,7 @@ function duplicateKeyBindingToMain(binding: KeyBindingItem) {
   }
   addTransmuteItemToEditable('keyBindings', newItem)
   refreshEffectiveStatus(config.value)
+  scrollToMainItemInList(() => keyBindings.value, newItem, getKeyBindingKey, '.key-bindings-list')
 }
 
 // Comment/Delete/Restore handlers for Stat Limits
@@ -731,7 +749,7 @@ function copyAllExtern() {
       <div v-if="statLimits.length === 0" class="empty-state">
         <p>{{ t('transmute.empty.statLimits') }}</p>
       </div>
-      <div v-else class="item-list">
+      <div v-else class="item-list stat-limits-list">
         <!-- Header -->
         <ConfigHeader
           :show-checkbox="true"
@@ -855,8 +873,8 @@ function copyAllExtern() {
       <div v-if="statLimitGroups.length === 0" class="empty-state">
         <p>{{ t('transmute.empty.statLimitGroups') }}</p>
       </div>
-      <div v-else class="config-list">
-        <div v-for="(group, index) in statLimitGroups" :key="index" class="config-row flex-col" :class="getItemRowClasses(group)">
+      <div v-else class="config-list stat-limit-groups-list">
+        <div v-for="(group, index) in statLimitGroups" :key="index" class="config-row flex-col" :class="getItemRowClasses(group)" :data-index="index">
           <div class="flex items-center gap-sm">
             <span class="col-index">{{ index + 1 }}</span>
             <span class="label" style="min-width: 150px;">{{ group.name }}</span>
@@ -893,8 +911,8 @@ function copyAllExtern() {
       <div v-if="itemDescriptors.length === 0" class="empty-state">
         <p>{{ t('transmute.empty.itemDescriptors') }}</p>
       </div>
-      <div v-else class="config-list">
-        <div v-for="(desc, index) in itemDescriptors" :key="index" class="config-row" :class="getItemRowClasses(desc)">
+      <div v-else class="config-list item-descriptors-list">
+        <div v-for="(desc, index) in itemDescriptors" :key="index" class="config-row" :class="getItemRowClasses(desc)" :data-index="index">
           <span class="col-index">{{ index + 1 }}</span>
           <span class="label" style="min-width: 150px;">{{ desc.name }}</span>
           <span>{{ t('transmute.itemId') }}: {{ desc.itemId }}</span>
@@ -933,8 +951,8 @@ function copyAllExtern() {
       <div v-if="cubeFormulas.length === 0" class="empty-state">
         <p>{{ t('transmute.empty.cubeFormulas') }}</p>
       </div>
-      <div v-else class="config-list">
-        <div v-for="(formula, index) in cubeFormulas" :key="index" class="config-row flex-col" :class="getItemRowClasses(formula)">
+      <div v-else class="config-list cube-formulas-list">
+        <div v-for="(formula, index) in cubeFormulas" :key="index" class="config-row flex-col" :class="getItemRowClasses(formula)" :data-index="index">
           <div class="flex items-center gap-sm">
             <span class="col-index">{{ index + 1 }}</span>
             <span class="label">{{ formula.name }}</span>
@@ -974,8 +992,8 @@ function copyAllExtern() {
       <div v-if="preItemTasks.length === 0" class="empty-state">
         <p>{{ t('transmute.empty.preItemTasks') }}</p>
       </div>
-      <div v-else class="config-list">
-        <div v-for="(task, index) in preItemTasks" :key="index" class="config-row" :class="getItemRowClasses(task)">
+      <div v-else class="config-list pre-item-tasks-list">
+        <div v-for="(task, index) in preItemTasks" :key="index" class="config-row" :class="getItemRowClasses(task)" :data-index="index">
           <span class="col-index">{{ index + 1 }}</span>
           <span class="label" style="min-width: 150px;">{{ task.name }}</span>
           <span>{{ t('transmute.itemId') }}: {{ task.itemId }}</span>
@@ -1014,8 +1032,8 @@ function copyAllExtern() {
       <div v-if="doTasks.length === 0" class="empty-state">
         <p>{{ t('transmute.empty.doTasks') }}</p>
       </div>
-      <div v-else class="config-list">
-        <div v-for="(task, index) in doTasks" :key="index" class="config-row flex-col" :class="getItemRowClasses(task)">
+      <div v-else class="config-list do-tasks-list">
+        <div v-for="(task, index) in doTasks" :key="index" class="config-row flex-col" :class="getItemRowClasses(task)" :data-index="index">
           <div class="flex items-center gap-sm">
             <span class="col-index">{{ index + 1 }}</span>
             <span class="label">{{ task.name }}</span>
@@ -1052,8 +1070,8 @@ function copyAllExtern() {
       <div v-if="keyBindings.length === 0" class="empty-state">
         <p>{{ t('transmute.empty.keyBindings') }}</p>
       </div>
-      <div v-else class="config-list">
-        <div v-for="(binding, index) in keyBindings" :key="index" class="config-row" :class="getItemRowClasses(binding)">
+      <div v-else class="config-list key-bindings-list">
+        <div v-for="(binding, index) in keyBindings" :key="index" class="config-row" :class="getItemRowClasses(binding)" :data-index="index">
           <span class="col-index">{{ index + 1 }}</span>
           <span class="label" style="min-width: 150px;">{{ binding.keyCode }}</span>
           <span>{{ binding.command }}</span>

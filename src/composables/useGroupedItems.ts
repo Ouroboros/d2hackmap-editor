@@ -2,6 +2,7 @@
  * Vue composable for grouped item display and operations
  * Provides convenience functions for editors working with file-based config
  */
+import { nextTick } from 'vue'
 import type {
   Config,
   ConfigData,
@@ -214,14 +215,138 @@ export function getJumpTargetIndex<T extends BaseConfigItem>(
 /**
  * Scroll to a row by index and highlight it briefly
  */
-export function scrollToIndex(index: number, containerSelector?: string): void {
+const FAST_SCROLL_DURATION_MS = 140
+const HIGHLIGHT_DURATION_MS = 1100
+const highlightTimers = new WeakMap<Element, number>()
+
+function animateScrollTop(container: HTMLElement, targetTop: number): void {
+  const startTop = container.scrollTop
+  const delta = targetTop - startTop
+  if (Math.abs(delta) < 2) {
+    container.scrollTop = targetTop
+    return
+  }
+
+  const startTime = performance.now()
+  const step = (now: number): void => {
+    const progress = Math.min(1, (now - startTime) / FAST_SCROLL_DURATION_MS)
+    const eased = 1 - Math.pow(1 - progress, 3)
+    container.scrollTop = startTop + delta * eased
+    if (progress < 1) {
+      requestAnimationFrame(step)
+    }
+  }
+
+  requestAnimationFrame(step)
+}
+
+function scrollRowIntoContainer(row: Element, container: HTMLElement): void {
+  const rowRect = row.getBoundingClientRect()
+  const containerRect = container.getBoundingClientRect()
+  const rowTop = container.scrollTop + rowRect.top - containerRect.top
+  const targetTop = rowTop - (container.clientHeight - rowRect.height) / 2
+  const maxTop = Math.max(0, container.scrollHeight - container.clientHeight)
+  animateScrollTop(container, Math.min(maxTop, Math.max(0, targetTop)))
+}
+
+function restartRowHighlight(row: Element): void {
+  const activeTimer = highlightTimers.get(row)
+  if (activeTimer !== undefined) {
+    window.clearTimeout(activeTimer)
+  }
+
+  row.classList.remove('highlight-jump')
+  if (row instanceof HTMLElement) {
+    void row.offsetWidth
+  } else {
+    row.getBoundingClientRect()
+  }
+  row.classList.add('highlight-jump')
+
+  const timer = window.setTimeout(() => {
+    row.classList.remove('highlight-jump')
+    highlightTimers.delete(row)
+  }, HIGHLIGHT_DURATION_MS)
+  highlightTimers.set(row, timer)
+}
+
+export function scrollToIndex(index: number, containerSelector?: string): boolean {
   const selector = containerSelector
     ? `${containerSelector} [data-index="${index}"]`
     : `[data-index="${index}"]`
   const row = document.querySelector(selector)
-  if (row) {
-    row.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    row.classList.add('highlight-jump')
-    setTimeout(() => row.classList.remove('highlight-jump'), 3000)
+  if (!row) {
+    return false
   }
+
+  const container = containerSelector
+    ? document.querySelector<HTMLElement>(containerSelector)
+    : null
+
+  if (container && container.scrollHeight > container.clientHeight) {
+    scrollRowIntoContainer(row, container)
+  } else {
+    row.scrollIntoView({ behavior: 'auto', block: 'center' })
+  }
+  restartRowHighlight(row)
+  return true
+}
+
+/**
+ * Scroll to an item object after Vue has rendered the updated list.
+ */
+export function scrollToItemInList<T>(
+  getItems: () => readonly T[],
+  item: T,
+  containerSelector?: string,
+  isTarget?: (candidate: T, item: T) => boolean
+): void {
+  const findIndex = (): number => {
+    const index = getItems().indexOf(item)
+    if (index >= 0 || !isTarget) {
+      return index
+    }
+
+    return getItems().findIndex(candidate => isTarget(candidate, item))
+  }
+
+  const runAfterFrame = (callback: () => void): void => {
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(callback)
+    } else {
+      setTimeout(callback, 0)
+    }
+  }
+
+  const tryScroll = (remaining: number): void => {
+    nextTick(() => {
+      runAfterFrame(() => {
+        const index = findIndex()
+        if (index >= 0 && scrollToIndex(index, containerSelector)) return
+        if (remaining > 0) {
+          setTimeout(() => tryScroll(remaining - 1), 50)
+        }
+      })
+    })
+  }
+
+  tryScroll(10)
+}
+
+/**
+ * Scroll to the matching main-config item. Uses object identity first and key
+ * matching as a fallback after copied items cause list recomputation.
+ */
+export function scrollToMainItemInList<T extends BaseConfigItem>(
+  getItems: () => readonly T[],
+  item: T,
+  getKey: (item: T) => string,
+  containerSelector?: string
+): void {
+  scrollToItemInList(
+    getItems,
+    item,
+    containerSelector,
+    (candidate, target) => candidate.sourceFile === null && getKey(candidate) === getKey(target)
+  )
 }

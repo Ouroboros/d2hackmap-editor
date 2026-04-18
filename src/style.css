@@ -744,10 +744,23 @@ label {
 
 /* Jump highlight animation */
 @keyframes highlight-jump-animation {
-  0% { background-color: var(--warning-color); }
-  100% { background-color: transparent; }
+  0% {
+    box-shadow:
+      inset 0 0 0 9999px transparent,
+      0 0 0 0 transparent;
+  }
+  25% {
+    box-shadow:
+      inset 0 0 0 9999px color-mix(in srgb, var(--warning-color) 34%, transparent),
+      0 0 0 2px color-mix(in srgb, var(--warning-color) 80%, transparent);
+  }
+  100% {
+    box-shadow:
+      inset 0 0 0 9999px transparent,
+      0 0 0 0 transparent;
+  }
 }
 
 .highlight-jump {
-  animation: highlight-jump-animation 3s ease-out;
+  animation: highlight-jump-animation 1.1s ease-in-out;
 }

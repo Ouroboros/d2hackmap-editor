@@ -14,7 +14,8 @@ import {
   deleteItemFromFile,
   buildCommentedMainMap,
   getJumpTargetIndex,
-  scrollToIndex
+  scrollToIndex,
+  scrollToMainItemInList
 } from '../composables/useItemActions'
 import { moveItemInFile } from '../utils/grouping'
 import { useReferenceData } from '../composables/useReferenceData'
@@ -684,6 +685,7 @@ function duplicateItemColorToMain(index: number, skipRefresh = false): boolean {
   addItemToEditable(config.value, 'itemColors', newItem)
   if (!skipRefresh) {
     refreshEffectiveStatus(config.value)
+    scrollToMainItemInList(() => itemColors.value, newItem, getItemColorKey, '.items-color-list')
   }
   return true
 }
@@ -713,6 +715,7 @@ function duplicateRuneColorToMain(index: number, skipRefresh = false): boolean {
   addItemToEditable(config.value, 'runeColors', newItem)
   if (!skipRefresh) {
     refreshEffectiveStatus(config.value)
+    scrollToMainItemInList(() => runeColors.value, newItem, getRuneColorKey, '.runes-color-list')
   }
   return true
 }
@@ -815,6 +818,7 @@ function duplicateGoldColorToMain(index: number, skipRefresh = false): boolean {
   addItemToEditable(config.value, 'goldColors', newItem)
   if (!skipRefresh) {
     refreshEffectiveStatus(config.value)
+    scrollToMainItemInList(() => goldColors.value, newItem, getGoldColorKey, '.golds-color-list')
   }
   return true
 }
