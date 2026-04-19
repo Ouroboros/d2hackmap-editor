@@ -101,7 +101,10 @@ const { t } = useI18n()
 
 <style scoped>
 .help-guide {
+  min-height: 0;
+  overflow-y: auto;
   max-width: 800px;
+  width: 100%;
   margin: 0 auto;
   padding: 20px;
   line-height: 1.6;

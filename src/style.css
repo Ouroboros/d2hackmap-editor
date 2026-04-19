@@ -213,7 +213,55 @@ body {
   flex: 1;
   min-height: 0;
   padding: 20px;
-  overflow: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.content > * {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.content .toggle-editor,
+.content .item-color-editor,
+.content .import-item-editor,
+.content .transmute-editor {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.content .panel {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-bottom: 0;
+  overflow: hidden;
+  flex-direction: column;
+}
+
+.content .panel-header {
+  flex: 0 0 auto;
+}
+
+.content .tab-content {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.content .toggle-list,
+.content .item-list,
+.content .color-list,
+.content .config-list,
+.content .validation-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none !important;
+  overflow-y: auto;
 }
 
 /* Form elements */
@@ -419,6 +467,7 @@ label {
 /* Status bar */
 .status-bar {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
   padding: 8px 20px;
