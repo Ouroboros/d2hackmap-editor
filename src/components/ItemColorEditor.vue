@@ -1052,7 +1052,6 @@ const currentFormatter = computed(() => {
             />
             <input
               type="text"
-              :placeholder="t('itemColors.mapText')"
               :value="item.mapText"
               :readonly="isReadonlyColorItem(item)"
               :disabled="isReadOnly"
@@ -1170,7 +1169,6 @@ const currentFormatter = computed(() => {
             />
             <input
               type="text"
-              :placeholder="t('itemColors.mapText')"
               :value="rune.mapText"
               :readonly="isReadonlyColorItem(rune)"
               :disabled="isReadOnly"
@@ -1290,7 +1288,6 @@ const currentFormatter = computed(() => {
             />
             <input
               type="text"
-              :placeholder="t('itemColors.mapText')"
               :value="gold.mapText"
               :readonly="isReadonlyColorItem(gold)"
               :disabled="isReadOnly"

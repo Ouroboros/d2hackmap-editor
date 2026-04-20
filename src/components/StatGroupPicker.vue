@@ -48,14 +48,22 @@ watch(showPicker, (val) => {
 
 // Get stat limits from transmute config
 const statLimits = computed(() => {
-  const limits = config.value?.transmute?.statLimits || []
-  return limits.map(item => item.name).filter(Boolean).sort()
+  const limits = config.value?.files.flatMap(file => file.data.transmute.statLimits) || []
+  return [...new Set(limits
+    .filter(item => item.isEffective !== false || item.isCommented)
+    .map(item => item.name)
+    .filter(Boolean))]
+    .sort()
 })
 
 // Get stat limit groups from transmute config
 const statLimitGroups = computed(() => {
-  const groups = config.value?.transmute?.statLimitGroups || []
-  return groups.map(item => item.name).filter(Boolean).sort()
+  const groups = config.value?.files.flatMap(file => file.data.transmute.statLimitGroups) || []
+  return [...new Set(groups
+    .filter(item => item.isEffective !== false || item.isCommented)
+    .map(item => item.name)
+    .filter(Boolean))]
+    .sort()
 })
 
 // Filtered stat limits (exclude names that exist in stat limit groups - groups take priority)

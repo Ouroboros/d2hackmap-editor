@@ -7,7 +7,7 @@ use std::{
     fs,
     path::{Path, PathBuf},
 };
-use tauri::{Manager, PhysicalPosition, PhysicalSize, WebviewWindowBuilder};
+use tauri::WebviewWindowBuilder;
 
 const REQUIRED_FILE: &str = "d2hackmap.default.cfg";
 const EDITOR_OUTPUT_FILE: &str = "d2hackmap.gen.cfg";
@@ -444,9 +444,22 @@ fn exe_webview_data_dir() -> Result<PathBuf, std::io::Error> {
 }
 
 fn create_main_window(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
-    let Some(window_config) = app.config().app.windows.first().cloned() else {
+    let Some(mut window_config) = app.config().app.windows.first().cloned() else {
         return Ok(());
     };
+
+    if let Some(monitor) = app.primary_monitor()? {
+        let work_area = monitor.work_area();
+        let scale_factor = monitor.scale_factor();
+        let target_width = ((work_area.size.width as f64) * 0.85 / scale_factor).round();
+        let target_height = ((work_area.size.height as f64) * 0.85 / scale_factor).round();
+
+        window_config.width = target_width;
+        window_config.height = target_height;
+        window_config.center = true;
+        window_config.x = None;
+        window_config.y = None;
+    }
 
     WebviewWindowBuilder::from_config(app, &window_config)?
         .data_directory(exe_webview_data_dir()?)
@@ -455,36 +468,10 @@ fn create_main_window(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>
     Ok(())
 }
 
-fn size_and_center_main_window(app: &tauri::App) -> Result<(), tauri::Error> {
-    let Some(window) = app.get_webview_window("main") else {
-        return Ok(());
-    };
-
-    let monitor = window
-        .current_monitor()?
-        .or_else(|| window.primary_monitor().ok().flatten());
-
-    let Some(monitor) = monitor else {
-        return Ok(());
-    };
-
-    let work_area = monitor.work_area();
-    let target_width = ((work_area.size.width as f64) * 0.85).round() as u32;
-    let target_height = ((work_area.size.height as f64) * 0.85).round() as u32;
-    let target_x = work_area.position.x + (work_area.size.width as i32 - target_width as i32) / 2;
-    let target_y =
-        work_area.position.y + (work_area.size.height as i32 - target_height as i32) / 2;
-
-    window.set_size(PhysicalSize::new(target_width, target_height))?;
-    window.set_position(PhysicalPosition::new(target_x, target_y))?;
-    Ok(())
-}
-
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
             create_main_window(app)?;
-            size_and_center_main_window(app)?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
