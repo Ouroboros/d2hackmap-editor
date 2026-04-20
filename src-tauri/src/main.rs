@@ -7,6 +7,7 @@ use std::{
     fs,
     path::{Path, PathBuf},
 };
+use tauri::{Manager, PhysicalPosition, PhysicalSize, WebviewWindowBuilder};
 
 const REQUIRED_FILE: &str = "d2hackmap.default.cfg";
 const EDITOR_OUTPUT_FILE: &str = "d2hackmap.gen.cfg";
@@ -436,8 +437,56 @@ fn path_to_string(path: &Path) -> String {
     path.to_string_lossy().replace('\\', "/")
 }
 
+fn exe_webview_data_dir() -> Result<PathBuf, std::io::Error> {
+    let exe_path = std::env::current_exe()?;
+    let exe_dir = exe_path.parent().unwrap_or(Path::new("."));
+    Ok(exe_dir.join("webview-data"))
+}
+
+fn create_main_window(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    let Some(window_config) = app.config().app.windows.first().cloned() else {
+        return Ok(());
+    };
+
+    WebviewWindowBuilder::from_config(app, &window_config)?
+        .data_directory(exe_webview_data_dir()?)
+        .build()?;
+
+    Ok(())
+}
+
+fn size_and_center_main_window(app: &tauri::App) -> Result<(), tauri::Error> {
+    let Some(window) = app.get_webview_window("main") else {
+        return Ok(());
+    };
+
+    let monitor = window
+        .current_monitor()?
+        .or_else(|| window.primary_monitor().ok().flatten());
+
+    let Some(monitor) = monitor else {
+        return Ok(());
+    };
+
+    let work_area = monitor.work_area();
+    let target_width = ((work_area.size.width as f64) * 0.85).round() as u32;
+    let target_height = ((work_area.size.height as f64) * 0.85).round() as u32;
+    let target_x = work_area.position.x + (work_area.size.width as i32 - target_width as i32) / 2;
+    let target_y =
+        work_area.position.y + (work_area.size.height as i32 - target_height as i32) / 2;
+
+    window.set_size(PhysicalSize::new(target_width, target_height))?;
+    window.set_position(PhysicalPosition::new(target_x, target_y))?;
+    Ok(())
+}
+
 fn main() {
     tauri::Builder::default()
+        .setup(|app| {
+            create_main_window(app)?;
+            size_and_center_main_window(app)?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             pick_config_directory,
             validate_config_directory,
