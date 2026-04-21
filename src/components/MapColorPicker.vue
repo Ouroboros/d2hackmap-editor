@@ -144,11 +144,8 @@ function togglePicker(): void {
   }
 }
 
-function closePicker(e: MouseEvent): void {
-  // Close when clicking outside
-  if (!(e.target as HTMLElement).closest('.map-color-picker')) {
-    showPicker.value = false
-  }
+function closePicker(): void {
+  showPicker.value = false
 }
 
 // Handle ESC key to close picker
@@ -194,7 +191,7 @@ function isColorSelected(colorIndex: number): boolean {
     </div>
 
     <Teleport to="body">
-      <div v-if="showPicker" class="picker-overlay" @click="closePicker">
+      <div v-if="showPicker" class="picker-overlay" @mousedown.self="closePicker">
         <div class="picker-popup" @click.stop>
           <div class="picker-header">
             <span>{{ t('mapColor.selectTitle') }}</span>

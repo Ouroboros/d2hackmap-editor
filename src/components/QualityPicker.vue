@@ -111,10 +111,8 @@ function togglePicker(): void {
   }
 }
 
-function closePicker(e: MouseEvent): void {
-  if (!(e.target as HTMLElement).closest('.quality-picker')) {
-    showPicker.value = false
-  }
+function closePicker(): void {
+  showPicker.value = false
 }
 </script>
 
@@ -129,7 +127,7 @@ function closePicker(e: MouseEvent): void {
     </div>
 
     <Teleport to="body">
-      <div v-if="showPicker" class="picker-overlay" @click="closePicker">
+      <div v-if="showPicker" class="picker-overlay" @mousedown.self="closePicker">
         <div class="picker-popup" @click.stop>
           <div class="picker-header">
             <span>{{ t('quality.selectTitle') }}</span>

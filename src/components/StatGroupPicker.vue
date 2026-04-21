@@ -10,13 +10,19 @@ interface Props {
   disabled?: boolean
   readonly?: boolean
   placeholder?: string
+  excludeName?: string
+  displayTextOverride?: string
+  compact?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: '',
   disabled: false,
   readonly: false,
-  placeholder: ''
+  placeholder: '',
+  excludeName: '',
+  displayTextOverride: '',
+  compact: false
 })
 
 const emit = defineEmits<{
@@ -85,6 +91,9 @@ const filteredLimits = computed(() => {
 // Filtered stat limit groups
 const filteredGroups = computed(() => {
   let result = statLimitGroups.value
+  if (props.excludeName) {
+    result = result.filter(name => name !== props.excludeName)
+  }
   // Filter by selected only
   if (showSelectedOnly.value) {
     result = result.filter(name => selectedItems.value.has(name))
@@ -147,10 +156,8 @@ function togglePicker(): void {
   }
 }
 
-function closePicker(e: MouseEvent): void {
-  if (!(e.target as HTMLElement).closest('.stat-group-popup')) {
-    showPicker.value = false
-  }
+function closePicker(): void {
+  showPicker.value = false
 }
 
 // Handle ESC key to close picker
@@ -170,6 +177,7 @@ onUnmounted(() => {
 
 // Display text for current value
 const displayText = computed(() => {
+  if (props.displayTextOverride) return props.displayTextOverride
   const count = selectedItems.value.size
   if (count === 0) return ''
   if (count === 1) return Array.from(selectedItems.value)[0]
@@ -178,7 +186,7 @@ const displayText = computed(() => {
 </script>
 
 <template>
-  <div class="stat-group-picker" :class="{ disabled }">
+  <div class="stat-group-picker" :class="{ disabled, compact }">
     <div class="picker-input" @click="togglePicker">
       <input
         type="text"
@@ -191,7 +199,7 @@ const displayText = computed(() => {
     </div>
 
     <Teleport to="body">
-      <div v-if="showPicker" class="picker-overlay" @click="closePicker">
+      <div v-if="showPicker" class="picker-overlay" @mousedown.self="closePicker">
         <div class="stat-group-popup" @click.stop>
           <div class="picker-header">
             <div class="picker-tabs">
@@ -329,6 +337,25 @@ const displayText = computed(() => {
 
 .picker-input input:disabled {
   cursor: not-allowed;
+}
+
+.stat-group-picker.compact .picker-input input {
+  height: auto;
+  padding: 8px 40px 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.stat-group-picker.compact .picker-input input:hover:not(:disabled) {
+  border-color: var(--accent-color);
+  background: var(--bg-secondary);
+}
+
+.stat-group-picker.compact .picker-arrow {
+  right: 14px;
+  color: var(--text-secondary);
 }
 
 .picker-arrow {

@@ -1354,10 +1354,6 @@ const currentFormatter = computed(() => {
 </template>
 
 <style scoped>
-.tab-content {
-  margin-top: 12px;
-}
-
 .color-list {
   max-height: calc(70vh - var(--debug-drawer-height, 0px));
   overflow-y: auto;

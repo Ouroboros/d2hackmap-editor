@@ -70,6 +70,7 @@ import SubTabs from './SubTabs.vue'
 import ConfigHeader from './ConfigHeader.vue'
 import ConfigRow from './ConfigRow.vue'
 import StatPicker from './StatPicker.vue'
+import StatGroupPicker from './StatGroupPicker.vue'
 
 const { t } = useI18n()
 
@@ -230,6 +231,7 @@ function batchCommentStatLimits() {
 // Clear selection when switching tabs
 watch(activeSubTabs, () => {
   selectedStatLimits.value.clear()
+  selectedStatLimitGroups.value.clear()
 }, { deep: true })
 
 // Drag and drop for stat limits
@@ -304,6 +306,124 @@ const statLimitGroups = computed(() => {
   let items = allItems.filter(item => item.isEffective !== false || item.isCommented)
   return filterBySearch(items, 'name', 'comment')
 })
+
+const selectedStatLimitGroups = ref<Set<StatLimitGroupItem>>(new Set())
+const statLimitGroupDragIndex = ref<number | null>(null)
+const statLimitGroupDragOverIndex = ref<number | null>(null)
+
+const selectableStatLimitGroupsCount = computed(() => {
+  return statLimitGroups.value.filter(item => !isItemExtern(item)).length
+})
+
+function toggleStatLimitGroupSelectAll() {
+  const selectableItems = statLimitGroups.value.filter(item => !isItemExtern(item))
+  if (selectedStatLimitGroups.value.size === selectableItems.length && selectableItems.length > 0) {
+    selectedStatLimitGroups.value.clear()
+  } else {
+    selectedStatLimitGroups.value = new Set(selectableItems)
+  }
+}
+
+function toggleStatLimitGroupSelect(item: StatLimitGroupItem) {
+  if (selectedStatLimitGroups.value.has(item)) {
+    selectedStatLimitGroups.value.delete(item)
+  } else {
+    selectedStatLimitGroups.value.add(item)
+  }
+  selectedStatLimitGroups.value = new Set(selectedStatLimitGroups.value)
+}
+
+function isStatLimitGroupSelected(item: StatLimitGroupItem) {
+  return selectedStatLimitGroups.value.has(item)
+}
+
+function hasStatLimitGroupSelection() {
+  return selectedStatLimitGroups.value.size > 0
+}
+
+function batchDeleteStatLimitGroups() {
+  if (isReadOnly.value || !config.value) return
+
+  for (const item of selectedStatLimitGroups.value) {
+    if (!isItemExtern(item)) {
+      deleteTransmuteItemFromFile(item, 'statLimitGroups')
+    }
+  }
+  selectedStatLimitGroups.value.clear()
+  refreshEffectiveStatus(config.value)
+}
+
+function batchRestoreStatLimitGroups() {
+  if (isReadOnly.value || !config.value) return
+
+  for (const item of selectedStatLimitGroups.value) {
+    if (!isItemExtern(item)) {
+      item.isCommented = false
+      item.isDeleted = false
+    }
+  }
+  selectedStatLimitGroups.value.clear()
+  refreshEffectiveStatus(config.value)
+}
+
+function batchCommentStatLimitGroups() {
+  if (isReadOnly.value || !config.value) return
+
+  for (const item of selectedStatLimitGroups.value) {
+    if (!isItemExtern(item) && !item.isCommented) {
+      item.isCommented = true
+    }
+  }
+  selectedStatLimitGroups.value.clear()
+  refreshEffectiveStatus(config.value)
+}
+
+function handleStatLimitGroupDragStart(e: DragEvent, index: number) {
+  statLimitGroupDragIndex.value = index
+  e.dataTransfer!.effectAllowed = 'move'
+  e.dataTransfer!.setData('text/plain', String(index))
+}
+
+function handleStatLimitGroupDragOver(e: DragEvent, index: number) {
+  e.preventDefault()
+  e.dataTransfer!.dropEffect = 'move'
+  statLimitGroupDragOverIndex.value = index
+}
+
+function handleStatLimitGroupDragLeave() {
+  statLimitGroupDragOverIndex.value = null
+}
+
+function handleStatLimitGroupDrop(e: DragEvent, targetIndex: number) {
+  e.preventDefault()
+  if (isReadOnly.value || !config.value) return
+  const sourceIndex = statLimitGroupDragIndex.value
+  if (sourceIndex === null || sourceIndex === targetIndex) {
+    statLimitGroupDragIndex.value = null
+    statLimitGroupDragOverIndex.value = null
+    return
+  }
+
+  const filteredItems = statLimitGroups.value
+  const sourceItem = filteredItems[sourceIndex]
+  if (!sourceItem) return
+
+  const allItems = getAllTransmuteItems<StatLimitGroupItem>('statLimitGroups')
+  const targetItem = filteredItems[targetIndex]
+  const targetMergedIdx = targetItem ? allItems.indexOf(targetItem) : -1
+  if (targetMergedIdx < 0) return
+
+  moveTransmuteItemInFile(config.value, sourceItem, targetMergedIdx, 'statLimitGroups')
+  refreshEffectiveStatus(config.value)
+
+  statLimitGroupDragIndex.value = null
+  statLimitGroupDragOverIndex.value = null
+}
+
+function handleStatLimitGroupDragEnd() {
+  statLimitGroupDragIndex.value = null
+  statLimitGroupDragOverIndex.value = null
+}
 
 // Item Descriptors
 const itemDescriptors = computed(() => {
@@ -578,6 +698,19 @@ function handleStatLimitGroupRestore(group: StatLimitGroupItem) {
   if (!config.value || isReadOnly.value) return
   markRestored(group)
   refreshEffectiveStatus(config.value)
+}
+
+function updateStatLimitGroup(group: StatLimitGroupItem, field: 'name' | 'relation', value: string) {
+  if (!config.value || isReadOnly.value || isItemDisabled(group) || isItemExtern(group)) return
+  group[field] = value
+  refreshEffectiveStatus(config.value)
+}
+
+function updateStatLimitGroupLimits(group: StatLimitGroupItem, value: string) {
+  if (!config.value || isReadOnly.value || isItemDisabled(group) || isItemExtern(group)) return
+  const commentByLimit = new Map(group.limits.map((limit, index) => [limit, group.comments[index] || '']))
+  group.limits = value.split(',').map(limit => limit.trim()).filter(Boolean)
+  group.comments = group.limits.map(limit => commentByLimit.get(limit) || '')
 }
 
 // Comment/Delete/Restore handlers for Item Descriptors
@@ -861,6 +994,14 @@ function copyAllExtern() {
       <template #tabs>
         <SubTabs v-model="activeSubTabs.statLimitGroup" :tabs="subTabsConfig.statLimitGroup" />
       </template>
+      <template #batch-bar>
+        <div v-if="hasStatLimitGroupSelection() && !isReadOnly" class="batch-bar">
+          <span class="batch-info">{{ t('batch.selected', { count: selectedStatLimitGroups.size }) }}</span>
+          <button class="btn btn-small btn-primary" @click="batchRestoreStatLimitGroups">{{ t('btn.restore') }}</button>
+          <button class="btn btn-small btn-secondary" @click="batchCommentStatLimitGroups">{{ t('btn.comment') }}</button>
+          <button class="btn btn-small btn-danger" @click="batchDeleteStatLimitGroups">{{ t('btn.delete') }}</button>
+        </div>
+      </template>
       <template #actions>
         <button
           v-if="hasExternItems() && !isReadOnly"
@@ -873,32 +1014,89 @@ function copyAllExtern() {
       <div v-if="statLimitGroups.length === 0" class="empty-state">
         <p>{{ t('transmute.empty.statLimitGroups') }}</p>
       </div>
-      <div v-else class="config-list stat-limit-groups-list">
-        <div v-for="(group, index) in statLimitGroups" :key="index" class="config-row flex-col" :class="getItemRowClasses(group)" :data-index="index">
-          <div class="flex items-center gap-sm">
-            <span class="col-index">{{ index + 1 }}</span>
-            <span class="label" style="min-width: 150px;">{{ group.name }}</span>
-            <span>{{ t(`relation.${group.relation}`) }}</span>
-            <div class="col-actions">
-              <template v-if="isItemExtern(group)">
-                <button v-if="!isReadOnly" class="btn btn-small btn-accent" @click="duplicateStatLimitGroupToMain(group)" :title="t('action.copyToMain')">+</button>
-                <span class="status-tag tag-extern" :title="group.sourceFile">{{ group.sourceFile }}</span>
-              </template>
-              <template v-else-if="group.isCommented || group.isDeleted">
-                <button v-if="!isReadOnly" class="btn btn-small btn-primary" @click="handleStatLimitGroupRestore(group)" :title="t('action.restore')">↩</button>
-                <span v-if="group.isCommented" class="status-tag tag-commented">//</span>
-                <span v-if="group.isDeleted" class="status-tag tag-deleted">×</span>
-              </template>
-              <template v-else-if="!isReadOnly">
-                <button class="btn btn-small btn-secondary" @click="handleStatLimitGroupComment(group)" :title="t('action.comment')">//</button>
-                <button class="btn btn-small btn-danger" @click="handleStatLimitGroupDelete(group)" :title="t('action.delete')">×</button>
-              </template>
-            </div>
-          </div>
-          <div class="text-muted" style="margin-left: 150px;">
-            {{ group.limits.join(', ') }}
-          </div>
-        </div>
+      <div v-else class="item-list stat-limit-groups-list">
+        <ConfigHeader
+          :show-checkbox="true"
+          :show-index="true"
+          :show-drag="true"
+          :is-all-selected="selectedStatLimitGroups.size === selectableStatLimitGroupsCount && selectableStatLimitGroupsCount > 0"
+          :is-read-only="isReadOnly"
+          @select-all="toggleStatLimitGroupSelectAll"
+        >
+          <span style="width: 360px;">{{ t('transmute.name') }}</span>
+          <span style="width: 180px;">{{ t('transmute.relation') }}</span>
+          <span style="width: 120px;">{{ t('transmute.statLimitList') }}</span>
+          <span style="width: 80px;">{{ t('itemColors.actions') }}</span>
+        </ConfigHeader>
+        <ConfigRow
+          v-for="(group, index) in statLimitGroups"
+          :key="index"
+          :item="group"
+          :index="index"
+          :show-checkbox="true"
+          :show-index="true"
+          :show-drag="true"
+          :is-selected="isStatLimitGroupSelected(group)"
+          :is-disabled="isItemDisabled(group) || isItemExtern(group)"
+          :is-drag-over="statLimitGroupDragOverIndex === index"
+          :is-read-only="isReadOnly"
+          :row-classes="getItemRowClasses(group)"
+          @select="toggleStatLimitGroupSelect(group)"
+          @dragstart="handleStatLimitGroupDragStart($event, index)"
+          @dragover="handleStatLimitGroupDragOver($event, index)"
+          @dragleave="handleStatLimitGroupDragLeave"
+          @drop="handleStatLimitGroupDrop($event, index)"
+          @dragend="handleStatLimitGroupDragEnd"
+        >
+          <input
+            type="text"
+            :value="group.name"
+            :readonly="isItemDisabled(group) || isItemExtern(group)"
+            :disabled="isReadOnly"
+            @change="updateStatLimitGroup(group, 'name', ($event.target as HTMLInputElement).value)"
+            style="width: 360px;"
+          />
+          <select
+            :value="group.relation"
+            :disabled="isReadOnly || isItemDisabled(group) || isItemExtern(group)"
+            @change="updateStatLimitGroup(group, 'relation', ($event.target as HTMLSelectElement).value)"
+            style="width: 180px;"
+          >
+            <option
+              v-for="relation in RELATION_TYPES"
+              :key="relation.value"
+              :value="relation.value"
+            >
+              {{ t(relation.labelKey) }}
+            </option>
+          </select>
+          <StatGroupPicker
+            :modelValue="group.limits.join(',')"
+            :disabled="isReadOnly"
+            :readonly="isItemDisabled(group) || isItemExtern(group)"
+            :excludeName="group.name"
+            :displayTextOverride="t('transmute.limitRefCount', { count: group.limits.filter(Boolean).length })"
+            compact
+            @update:modelValue="updateStatLimitGroupLimits(group, $event)"
+            style="width: 120px;"
+          />
+
+          <template #actions>
+            <template v-if="isItemExtern(group)">
+              <button v-if="!isReadOnly" class="btn btn-small btn-accent" @click="duplicateStatLimitGroupToMain(group)" :title="t('action.copyToMain')">+</button>
+              <span class="status-tag tag-extern" :title="group.sourceFile">{{ group.sourceFile }}</span>
+            </template>
+            <template v-else-if="group.isCommented || group.isDeleted">
+              <button v-if="!isReadOnly" class="btn btn-small btn-primary" @click="handleStatLimitGroupRestore(group)" :title="t('action.restore')">↩</button>
+              <span v-if="group.isCommented" class="status-tag tag-commented">//</span>
+              <span v-if="group.isDeleted" class="status-tag tag-deleted">×</span>
+            </template>
+            <template v-else-if="!isReadOnly">
+              <button class="btn btn-small btn-secondary" @click="handleStatLimitGroupComment(group)" :title="t('action.comment')">//</button>
+              <button class="btn btn-small btn-danger" @click="handleStatLimitGroupDelete(group)" :title="t('action.delete')">×</button>
+            </template>
+          </template>
+        </ConfigRow>
       </div>
     </EditorPanel>
 

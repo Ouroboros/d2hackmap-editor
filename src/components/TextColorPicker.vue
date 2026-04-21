@@ -52,10 +52,8 @@ function togglePicker(): void {
   }
 }
 
-function closePicker(e: MouseEvent): void {
-  if (!(e.target as HTMLElement).closest('.text-color-picker')) {
-    showPicker.value = false
-  }
+function closePicker(): void {
+  showPicker.value = false
 }
 
 // Handle ESC key to close picker
@@ -87,7 +85,7 @@ onUnmounted(() => {
     </div>
 
     <Teleport to="body">
-      <div v-if="showPicker" class="picker-overlay" @click="closePicker">
+      <div v-if="showPicker" class="picker-overlay" @mousedown.self="closePicker">
         <div class="picker-popup" @click.stop>
           <div class="picker-header">
             <span>{{ t('textColor.selectTitle') }}</span>

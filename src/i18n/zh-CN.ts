@@ -205,6 +205,8 @@ const zhCN: Record<string, string> = {
   'transmute.empty.doTasks': '没有执行任务配置',
   'transmute.empty.keyBindings': '没有按键绑定配置',
   'transmute.newLimit': '新限制',
+  'transmute.limitRefCount': '{count} 条限制',
+  'transmute.emptyLimitRefs': '没有引用属性限制',
 
   // Validation
   'validation.title': '配置验证',
