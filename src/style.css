@@ -226,6 +226,7 @@ body {
 .content .toggle-editor,
 .content .item-color-editor,
 .content .import-item-editor,
+.content .stat-limit-editor,
 .content .transmute-editor {
   display: flex;
   flex: 1 1 auto;
@@ -344,6 +345,7 @@ label {
 }
 
 .sub-tab {
+  width: 120px;
   padding: 6px 16px;
   font-size: 13px;
   background: var(--bg-tertiary);
@@ -351,6 +353,8 @@ label {
   border-radius: 4px;
   cursor: pointer;
   color: var(--text-secondary);
+  text-align: center;
+  white-space: nowrap;
 }
 
 .sub-tab:hover {

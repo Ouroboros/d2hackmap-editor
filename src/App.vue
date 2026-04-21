@@ -18,7 +18,10 @@ import { useI18n } from './i18n'
 import ToggleEditor from './components/ToggleEditor.vue'
 import ItemColorEditor from './components/ItemColorEditor.vue'
 import ImportItemEditor from './components/ImportItemEditor.vue'
+import StatLimitEditor from './components/StatLimitEditor.vue'
 import TransmuteEditor from './components/TransmuteEditor.vue'
+import KeyBindingEditor from './components/KeyBindingEditor.vue'
+import ValidationEditor from './components/ValidationEditor.vue'
 import ConfigChainDialog from './components/ConfigChainDialog.vue'
 import HelpGuide from './components/HelpGuide.vue'
 
@@ -76,7 +79,12 @@ const activeTab = ref<string>('toggles')
 
 // Watch activeTab changes and save to localStorage
 watch(activeTab, (newTab) => {
-  saveActiveTab(newTab)
+  const normalizedTab = normalizeActiveTab(newTab)
+  if (normalizedTab !== newTab) {
+    activeTab.value = normalizedTab
+    return
+  }
+  saveActiveTab(normalizedTab)
 })
 const searchQuery = ref<string>('')
 
@@ -85,12 +93,15 @@ const tabs = computed(() => [
   { id: 'itemColors', label: t('tab.itemColors') },
   { id: 'importItems', label: t('tab.importItems') },
   { id: 'statLimitGroup', label: t('tab.statLimitGroup') },
-  { id: 'itemDescriptors', label: t('tab.itemDescriptors') },
   { id: 'autoTransmute', label: t('tab.autoTransmute') },
   { id: 'keyBindings', label: t('tab.keyBindings') },
   { id: 'validation', label: t('tab.validation') },
   { id: 'help', label: t('tab.help') },
 ])
+
+function normalizeActiveTab(tab: string): string {
+  return tab === 'itemDescriptors' ? 'autoTransmute' : tab
+}
 
 // Open directory and parse config chain
 async function handleOpenDirectoryClick() {
@@ -249,7 +260,7 @@ async function handleRestoreDirectory() {
         } else {
           await loadConfigFromDirectory(dirHandle)
         }
-        activeTab.value = loadActiveTab()
+        activeTab.value = normalizeActiveTab(loadActiveTab())
         showRestorePrompt.value = false
       } else {
         if (result.error === 'no_permission') {
@@ -318,7 +329,7 @@ onMounted(async () => {
             await loadConfigFromDirectory(dirHandle)
           }
           // Restore active tab
-          activeTab.value = loadActiveTab()
+          activeTab.value = normalizeActiveTab(loadActiveTab())
         } else {
           // Directory no longer valid or no permission, show prompt
           showRestorePrompt.value = true
@@ -391,11 +402,10 @@ onUnmounted(() => {
         <ToggleEditor v-show="activeTab === 'toggles'" :searchQuery="searchQuery" />
         <ItemColorEditor v-show="activeTab === 'itemColors'" :searchQuery="searchQuery" />
         <ImportItemEditor v-show="activeTab === 'importItems'" :searchQuery="searchQuery" />
-        <TransmuteEditor
-          v-show="['statLimitGroup', 'itemDescriptors', 'autoTransmute', 'keyBindings', 'validation'].includes(activeTab)"
-          :searchQuery="searchQuery"
-          :activeSection="activeTab"
-        />
+        <StatLimitEditor v-show="activeTab === 'statLimitGroup'" :searchQuery="searchQuery" />
+        <TransmuteEditor v-show="activeTab === 'autoTransmute'" :searchQuery="searchQuery" />
+        <KeyBindingEditor v-show="activeTab === 'keyBindings'" :searchQuery="searchQuery" />
+        <ValidationEditor v-show="activeTab === 'validation'" />
         <HelpGuide v-show="activeTab === 'help'" />
       </template>
       <HelpGuide v-if="!config && activeTab === 'help'" />

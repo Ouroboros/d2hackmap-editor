@@ -29,13 +29,13 @@ import DebugDrawer from './debug/DebugDrawer.vue'
 import FlatListView from './debug/FlatListView.vue'
 import EditorPanel from './EditorPanel.vue'
 import SubTabs from './SubTabs.vue'
-import ConfigHeader from './ConfigHeader.vue'
-import ConfigRow from './ConfigRow.vue'
+import ConfigTable from './ConfigTable.vue'
 import ItemPicker from './ItemPicker.vue'
 import RunePicker from './RunePicker.vue'
 import MapColorPicker from './MapColorPicker.vue'
 import TextColorPicker from './TextColorPicker.vue'
 import QualityPicker from './QualityPicker.vue'
+import type { ConfigTableColumn } from './configTable'
 
 const { t } = useI18n()
 
@@ -263,6 +263,38 @@ const goldMapTextWidth = computed(() => {
   const maxLen = Math.max(0, ...items.map(item => (item.mapText || '').length))
   return Math.max(120, maxLen * 8 + 24)
 })
+
+const itemColorColumns = computed<ConfigTableColumn[]>(() => [
+  { key: 'itemId', label: t('itemColors.itemId'), width: '150px' },
+  { key: 'quality', label: t('itemColors.quality'), width: '80px' },
+  { key: 'textColor', label: t('itemColors.textColor'), width: '32px' },
+  { key: 'mapColor', label: t('itemColors.mapColor'), width: '32px' },
+  { key: 'mapText', label: t('itemColors.mapText'), width: `${itemMapTextWidth.value}px` },
+  { key: 'comment', label: t('itemColors.comment'), flex: '1 1 120px', className: 'col-comment' },
+  { key: 'actions', label: t('itemColors.actions'), width: '220px', className: 'col-actions' }
+])
+
+const runeColorColumns = computed<ConfigTableColumn[]>(() => [
+  { key: 'range', label: t('itemColors.runeRange'), width: '120px' },
+  { key: 'textColor', label: t('itemColors.textColor'), width: '32px' },
+  { key: 'mapColor', label: t('itemColors.mapColor'), width: '32px' },
+  { key: 'mapText', label: t('itemColors.mapText'), width: `${runeMapTextWidth.value}px` },
+  { key: 'comment', label: t('itemColors.comment'), flex: '1 1 120px', className: 'col-comment' },
+  { key: 'actions', label: t('itemColors.actions'), width: '220px', className: 'col-actions' }
+])
+
+const goldColorColumns = computed<ConfigTableColumn[]>(() => [
+  { key: 'range', label: t('itemColors.goldRange'), width: '120px' },
+  { key: 'textColor', label: t('itemColors.textColor'), width: '32px' },
+  { key: 'mapColor', label: t('itemColors.mapColor'), width: '32px' },
+  { key: 'mapText', label: t('itemColors.mapText'), width: `${goldMapTextWidth.value}px` },
+  { key: 'comment', label: t('itemColors.comment'), flex: '1 1 120px', className: 'col-comment' },
+  { key: 'actions', label: t('itemColors.actions'), width: '220px', className: 'col-actions' }
+])
+
+function isColorRowDisabled(item: ItemColorItem | RuneColorItem | GoldColorItem): boolean {
+  return isItemDisabled(item) || isItemExtern(item)
+}
 
 // Selectable counts (non-extern items only)
 const selectableItemsCount = computed(() => itemColors.value.filter(item => !isItemExtern(item)).length)
@@ -979,49 +1011,29 @@ const currentFormatter = computed(() => {
 
       <!-- Item Colors Tab -->
       <div v-show="activeTab === TAB_ITEMS" class="tab-content">
-        <div v-if="itemColors.length === 0" class="empty-state">
-          <p>{{ t('itemColors.empty') }}</p>
-        </div>
-
-        <div v-else class="color-list items-color-list">
-          <!-- Header -->
-          <ConfigHeader
-            :show-checkbox="true"
-            :show-index="true"
-            :show-drag="true"
-            :is-all-selected="selectedItems.size === selectableItemsCount && selectableItemsCount > 0"
-            :is-read-only="isReadOnly"
-            @select-all="toggleSelectAll(TAB_ITEMS)"
-          >
-            <span style="width: 150px;">{{ t('itemColors.itemId') }}</span>
-            <span style="width: 80px;">{{ t('itemColors.quality') }}</span>
-            <span style="width: 32px;">{{ t('itemColors.textColor') }}</span>
-            <span style="width: 32px;">{{ t('itemColors.mapColor') }}</span>
-            <span :style="{ width: itemMapTextWidth + 'px' }">{{ t('itemColors.mapText') }}</span>
-            <span class="col-comment">{{ t('itemColors.comment') }}</span>
-            <span class="col-actions">{{ t('itemColors.actions') }}</span>
-          </ConfigHeader>
-          <!-- Rows -->
-          <ConfigRow
-            v-for="(item, index) in itemColors"
-            :key="index"
-            :item="item"
-            :index="index"
-            :show-checkbox="true"
-            :show-index="true"
-            :show-drag="true"
-            :is-selected="isSelected(item, TAB_ITEMS)"
-            :is-disabled="isItemDisabled(item) || isItemExtern(item)"
-            :is-drag-over="dragOverIndex === index"
-            :is-read-only="isReadOnly"
-            :row-classes="getItemRowClasses(item)"
-            @select="toggleSelect(item, TAB_ITEMS)"
-            @dragstart="handleDragStart($event, index, false)"
-            @dragover="handleDragOver($event, index)"
-            @dragleave="handleDragLeave"
-            @drop="handleDrop($event, index, false)"
-            @dragend="handleDragEnd"
-          >
+        <ConfigTable
+          :items="itemColors"
+          :columns="itemColorColumns"
+          :empty-text="t('itemColors.empty')"
+          list-class="color-list items-color-list"
+          show-checkbox
+          show-index
+          show-drag
+          :is-all-selected="selectedItems.size === selectableItemsCount && selectableItemsCount > 0"
+          :is-read-only="isReadOnly"
+          :is-selected="(item) => isSelected(item, TAB_ITEMS)"
+          :is-disabled="isColorRowDisabled"
+          :drag-over-index="dragOverIndex"
+          :row-classes="getItemRowClasses"
+          @select-all="toggleSelectAll(TAB_ITEMS)"
+          @select="(item) => toggleSelect(item, TAB_ITEMS)"
+          @dragstart="(event, index) => handleDragStart(event, index, false)"
+          @dragover="handleDragOver"
+          @dragleave="handleDragLeave"
+          @drop="(event, index) => handleDrop(event, index, false)"
+          @dragend="handleDragEnd"
+        >
+          <template #cell-itemId="{ item, index }">
             <ItemPicker
               :modelValue="item.itemId"
               :placeholder="t('itemColors.itemId')"
@@ -1029,47 +1041,54 @@ const currentFormatter = computed(() => {
               :readonly="isReadonlyColorItem(item)"
               :class="{ 'has-warning': hasInvalidIds(item.itemId) }"
               @update:modelValue="updateItemColor(index, 'itemId', $event)"
-              style="width: 150px;"
             />
+          </template>
+          <template #cell-quality="{ item, index }">
             <QualityPicker
               :modelValue="item.quality"
               :disabled="isReadOnly"
               :readonly="isReadonlyColorItem(item)"
               @update:modelValue="updateItemColor(index, 'quality', $event)"
-              style="width: 80px;"
             />
+          </template>
+          <template #cell-textColor="{ item, index }">
             <TextColorPicker
               :modelValue="item.textColor"
               :disabled="isReadOnly"
               :readonly="isReadonlyColorItem(item)"
               @update:modelValue="updateItemColor(index, 'textColor', $event)"
             />
+          </template>
+          <template #cell-mapColor="{ item, index }">
             <MapColorPicker
               :modelValue="item.mapColor"
               :disabled="isReadOnly"
               :readonly="isReadonlyColorItem(item)"
               @update:modelValue="updateItemColor(index, 'mapColor', $event)"
             />
+          </template>
+          <template #cell-mapText="{ item, index }">
             <input
               type="text"
               :value="item.mapText"
               :readonly="isReadonlyColorItem(item)"
               :disabled="isReadOnly"
-              @input="updateItemColor(index, 'mapText', $event.target.value)"
-              :style="{ width: itemMapTextWidth + 'px' }"
+              @input="updateItemColor(index, 'mapText', ($event.target as HTMLInputElement).value)"
             />
+          </template>
+          <template #cell-comment="{ item, index }">
             <input
               type="text"
-              class="col-comment comment-input"
+              class="comment-input"
               :placeholder="t('itemColors.comment')"
               :value="item.comment"
               :readonly="isReadonlyColorItem(item)"
               :disabled="isReadOnly"
-              @input="updateItemColor(index, 'comment', $event.target.value)"
+              @input="updateItemColor(index, 'comment', ($event.target as HTMLInputElement).value)"
             />
-
-            <template #actions>
-              <template v-if="isItemExtern(item)">
+          </template>
+          <template #cell-actions="{ item, index }">
+            <template v-if="isItemExtern(item)">
                 <button
                   v-if="getItemJumpTarget(item) !== undefined"
                   class="btn btn-small btn-warning"
@@ -1079,7 +1098,7 @@ const currentFormatter = computed(() => {
                 <button v-if="!isReadOnly && getItemJumpTarget(item) === undefined" class="btn btn-small btn-accent" @click="duplicateItemColorToMain(index)" :title="t('action.copyToMain')">
                   +
                 </button>
-                <span class="status-tag tag-extern" :title="item.sourceFile">{{ item.sourceFile }}</span>
+                <span class="status-tag tag-extern" :title="item.sourceFile || undefined">{{ item.sourceFile }}</span>
               </template>
               <template v-else-if="item.isCommented || item.isDeleted">
                 <button v-if="!isReadOnly" class="btn btn-small btn-primary" @click="handleRestoreItemColor(index)" :title="t('action.restore')">
@@ -1099,111 +1118,97 @@ const currentFormatter = computed(() => {
                   ×
                 </button>
               </template>
-            </template>
-          </ConfigRow>
-        </div>
+          </template>
+        </ConfigTable>
       </div>
 
       <!-- Rune Colors Tab -->
       <div v-show="activeTab === TAB_RUNES" class="tab-content">
-        <div v-if="runeColors.length === 0" class="empty-state">
-          <p>{{ t('itemColors.runeEmpty') }}</p>
-        </div>
-
-        <div v-else class="color-list runes-color-list">
-          <!-- Header -->
-          <ConfigHeader
-            :show-checkbox="true"
-            :show-index="true"
-            :show-drag="true"
-            :is-all-selected="selectedRunes.size === selectableRunesCount && selectableRunesCount > 0"
-            :is-read-only="isReadOnly"
-            @select-all="toggleSelectAll(TAB_RUNES)"
-          >
-            <span style="width: 120px;">{{ t('itemColors.runeRange') }}</span>
-            <span style="width: 32px;">{{ t('itemColors.textColor') }}</span>
-            <span style="width: 32px;">{{ t('itemColors.mapColor') }}</span>
-            <span :style="{ width: runeMapTextWidth + 'px' }">{{ t('itemColors.mapText') }}</span>
-            <span class="col-comment">{{ t('itemColors.comment') }}</span>
-            <span class="col-actions">{{ t('itemColors.actions') }}</span>
-          </ConfigHeader>
-          <!-- Rows -->
-          <ConfigRow
-            v-for="(rune, index) in runeColors"
-            :key="index"
-            :item="rune"
-            :index="index"
-            :show-checkbox="true"
-            :show-index="true"
-            :show-drag="true"
-            :is-selected="isSelected(rune, TAB_RUNES)"
-            :is-disabled="isItemDisabled(rune) || isItemExtern(rune)"
-            :is-drag-over="dragOverIndex === index"
-            :is-read-only="isReadOnly"
-            :row-classes="getItemRowClasses(rune)"
-            @select="toggleSelect(rune, TAB_RUNES)"
-            @dragstart="handleDragStart($event, index, true)"
-            @dragover="handleDragOver($event, index)"
-            @dragleave="handleDragLeave"
-            @drop="handleDrop($event, index, true)"
-            @dragend="handleDragEnd"
-          >
+        <ConfigTable
+          :items="runeColors"
+          :columns="runeColorColumns"
+          :empty-text="t('itemColors.runeEmpty')"
+          list-class="color-list runes-color-list"
+          show-checkbox
+          show-index
+          show-drag
+          :is-all-selected="selectedRunes.size === selectableRunesCount && selectableRunesCount > 0"
+          :is-read-only="isReadOnly"
+          :is-selected="(item) => isSelected(item, TAB_RUNES)"
+          :is-disabled="isColorRowDisabled"
+          :drag-over-index="dragOverIndex"
+          :row-classes="getItemRowClasses"
+          @select-all="toggleSelectAll(TAB_RUNES)"
+          @select="(item) => toggleSelect(item, TAB_RUNES)"
+          @dragstart="(event, index) => handleDragStart(event, index, true)"
+          @dragover="handleDragOver"
+          @dragleave="handleDragLeave"
+          @drop="(event, index) => handleDrop(event, index, true)"
+          @dragend="handleDragEnd"
+        >
+          <template #cell-range="{ item, index }">
             <RunePicker
-              :modelValue="rune.range"
+              :modelValue="item.range"
               :disabled="isReadOnly"
-              :readonly="isReadonlyColorItem(rune)"
+              :readonly="isReadonlyColorItem(item)"
               @update:modelValue="updateRuneColor(index, 'range', $event)"
-              style="width: 120px;"
             />
+          </template>
+          <template #cell-textColor="{ item, index }">
             <TextColorPicker
-              :modelValue="rune.textColor"
+              :modelValue="item.textColor"
               :disabled="isReadOnly"
-              :readonly="isReadonlyColorItem(rune)"
+              :readonly="isReadonlyColorItem(item)"
               @update:modelValue="updateRuneColor(index, 'textColor', $event)"
             />
+          </template>
+          <template #cell-mapColor="{ item, index }">
             <MapColorPicker
-              :modelValue="rune.mapColor"
+              :modelValue="item.mapColor"
               :disabled="isReadOnly"
-              :readonly="isReadonlyColorItem(rune)"
+              :readonly="isReadonlyColorItem(item)"
               @update:modelValue="updateRuneColor(index, 'mapColor', $event)"
             />
+          </template>
+          <template #cell-mapText="{ item, index }">
             <input
               type="text"
-              :value="rune.mapText"
-              :readonly="isReadonlyColorItem(rune)"
+              :value="item.mapText"
+              :readonly="isReadonlyColorItem(item)"
               :disabled="isReadOnly"
-              @input="updateRuneColor(index, 'mapText', $event.target.value)"
-              :style="{ width: runeMapTextWidth + 'px' }"
+              @input="updateRuneColor(index, 'mapText', ($event.target as HTMLInputElement).value)"
             />
+          </template>
+          <template #cell-comment="{ item, index }">
             <input
               type="text"
-              class="col-comment comment-input"
+              class="comment-input"
               :placeholder="t('itemColors.comment')"
-              :value="rune.comment"
-              :readonly="isReadonlyColorItem(rune)"
+              :value="item.comment"
+              :readonly="isReadonlyColorItem(item)"
               :disabled="isReadOnly"
-              @input="updateRuneColor(index, 'comment', $event.target.value)"
+              @input="updateRuneColor(index, 'comment', ($event.target as HTMLInputElement).value)"
             />
-
-            <template #actions>
-              <template v-if="isItemExtern(rune)">
+          </template>
+          <template #cell-actions="{ item, index }">
+            <template v-if="isItemExtern(item)">
                 <button
-                  v-if="getRuneJumpTarget(rune) !== undefined"
+                  v-if="getRuneJumpTarget(item) !== undefined"
                   class="btn btn-small btn-warning"
-                  @click="jumpToRuneColor(getRuneJumpTarget(rune)!)"
+                  @click="jumpToRuneColor(getRuneJumpTarget(item)!)"
                   :title="t('action.jumpToMain')"
                 >→</button>
-                <button v-if="!isReadOnly && getRuneJumpTarget(rune) === undefined" class="btn btn-small btn-accent" @click="duplicateRuneColorToMain(index)" :title="t('action.copyToMain')">
+                <button v-if="!isReadOnly && getRuneJumpTarget(item) === undefined" class="btn btn-small btn-accent" @click="duplicateRuneColorToMain(index)" :title="t('action.copyToMain')">
                   +
                 </button>
-                <span class="status-tag tag-extern" :title="rune.sourceFile">{{ rune.sourceFile }}</span>
+                <span class="status-tag tag-extern" :title="item.sourceFile || undefined">{{ item.sourceFile }}</span>
               </template>
-              <template v-else-if="rune.isCommented || rune.isDeleted">
+              <template v-else-if="item.isCommented || item.isDeleted">
                 <button v-if="!isReadOnly" class="btn btn-small btn-primary" @click="handleRestoreRuneColor(index)" :title="t('action.restore')">
                   ↩
                 </button>
-                <span v-if="rune.isCommented" class="status-tag tag-commented">//</span>
-                <span v-if="rune.isDeleted" class="status-tag tag-deleted">×</span>
+                <span v-if="item.isCommented" class="status-tag tag-commented">//</span>
+                <span v-if="item.isDeleted" class="status-tag tag-deleted">×</span>
               </template>
               <template v-else-if="!isReadOnly">
                 <button class="btn btn-small btn-secondary" @click="copyRuneColor(index)" :title="t('action.copy')">
@@ -1216,113 +1221,99 @@ const currentFormatter = computed(() => {
                   ×
                 </button>
               </template>
-            </template>
-          </ConfigRow>
-        </div>
+          </template>
+        </ConfigTable>
       </div>
 
       <!-- Gold Colors Tab -->
       <div v-show="activeTab === TAB_GOLDS" class="tab-content">
-        <div v-if="goldColors.length === 0" class="empty-state">
-          <p>{{ t('itemColors.goldEmpty') }}</p>
-        </div>
-
-        <div v-else class="color-list golds-color-list">
-          <!-- Header -->
-          <ConfigHeader
-            :show-checkbox="true"
-            :show-index="true"
-            :show-drag="true"
-            :is-all-selected="selectedGolds.size === selectableGoldsCount && selectableGoldsCount > 0"
-            :is-read-only="isReadOnly"
-            @select-all="toggleSelectAll(TAB_GOLDS)"
-          >
-            <span style="width: 120px;">{{ t('itemColors.goldRange') }}</span>
-            <span style="width: 32px;">{{ t('itemColors.textColor') }}</span>
-            <span style="width: 32px;">{{ t('itemColors.mapColor') }}</span>
-            <span :style="{ width: goldMapTextWidth + 'px' }">{{ t('itemColors.mapText') }}</span>
-            <span class="col-comment">{{ t('itemColors.comment') }}</span>
-            <span class="col-actions">{{ t('itemColors.actions') }}</span>
-          </ConfigHeader>
-          <!-- Rows -->
-          <ConfigRow
-            v-for="(gold, index) in goldColors"
-            :key="index"
-            :item="gold"
-            :index="index"
-            :show-checkbox="true"
-            :show-index="true"
-            :show-drag="true"
-            :is-selected="isSelected(gold, TAB_GOLDS)"
-            :is-disabled="isItemDisabled(gold) || isItemExtern(gold)"
-            :is-drag-over="dragOverIndex === index"
-            :is-read-only="isReadOnly"
-            :row-classes="getItemRowClasses(gold)"
-            @select="toggleSelect(gold, TAB_GOLDS)"
-            @dragstart="handleDragStartGold($event, index)"
-            @dragover="handleDragOver($event, index)"
-            @dragleave="handleDragLeave"
-            @drop="handleDropGold($event, index)"
-            @dragend="handleDragEnd"
-          >
+        <ConfigTable
+          :items="goldColors"
+          :columns="goldColorColumns"
+          :empty-text="t('itemColors.goldEmpty')"
+          list-class="color-list golds-color-list"
+          show-checkbox
+          show-index
+          show-drag
+          :is-all-selected="selectedGolds.size === selectableGoldsCount && selectableGoldsCount > 0"
+          :is-read-only="isReadOnly"
+          :is-selected="(item) => isSelected(item, TAB_GOLDS)"
+          :is-disabled="isColorRowDisabled"
+          :drag-over-index="dragOverIndex"
+          :row-classes="getItemRowClasses"
+          @select-all="toggleSelectAll(TAB_GOLDS)"
+          @select="(item) => toggleSelect(item, TAB_GOLDS)"
+          @dragstart="(event, index) => handleDragStartGold(event, index)"
+          @dragover="handleDragOver"
+          @dragleave="handleDragLeave"
+          @drop="(event, index) => handleDropGold(event, index)"
+          @dragend="handleDragEnd"
+        >
+          <template #cell-range="{ item, index }">
             <input
               type="text"
               :placeholder="t('itemColors.goldRange')"
-              :value="gold.range"
-              :readonly="isReadonlyColorItem(gold)"
+              :value="item.range"
+              :readonly="isReadonlyColorItem(item)"
               :disabled="isReadOnly"
-              @input="updateGoldColor(index, 'range', $event.target.value)"
-              style="width: 120px;"
+              @input="updateGoldColor(index, 'range', ($event.target as HTMLInputElement).value)"
             />
+          </template>
+          <template #cell-textColor="{ item, index }">
             <TextColorPicker
-              :modelValue="gold.textColor"
+              :modelValue="item.textColor"
               :disabled="isReadOnly"
-              :readonly="isReadonlyColorItem(gold)"
+              :readonly="isReadonlyColorItem(item)"
               @update:modelValue="updateGoldColor(index, 'textColor', $event)"
             />
+          </template>
+          <template #cell-mapColor="{ item, index }">
             <MapColorPicker
-              :modelValue="gold.mapColor"
+              :modelValue="item.mapColor"
               :disabled="isReadOnly"
-              :readonly="isReadonlyColorItem(gold)"
+              :readonly="isReadonlyColorItem(item)"
               @update:modelValue="updateGoldColor(index, 'mapColor', $event)"
             />
+          </template>
+          <template #cell-mapText="{ item, index }">
             <input
               type="text"
-              :value="gold.mapText"
-              :readonly="isReadonlyColorItem(gold)"
+              :value="item.mapText"
+              :readonly="isReadonlyColorItem(item)"
               :disabled="isReadOnly"
-              @input="updateGoldColor(index, 'mapText', $event.target.value)"
-              :style="{ width: goldMapTextWidth + 'px' }"
+              @input="updateGoldColor(index, 'mapText', ($event.target as HTMLInputElement).value)"
             />
+          </template>
+          <template #cell-comment="{ item, index }">
             <input
               type="text"
-              class="col-comment comment-input"
+              class="comment-input"
               :placeholder="t('itemColors.comment')"
-              :value="gold.comment"
-              :readonly="isReadonlyColorItem(gold)"
+              :value="item.comment"
+              :readonly="isReadonlyColorItem(item)"
               :disabled="isReadOnly"
-              @input="updateGoldColor(index, 'comment', $event.target.value)"
+              @input="updateGoldColor(index, 'comment', ($event.target as HTMLInputElement).value)"
             />
-
-            <template #actions>
-              <template v-if="isItemExtern(gold)">
+          </template>
+          <template #cell-actions="{ item, index }">
+            <template v-if="isItemExtern(item)">
                 <button
-                  v-if="getGoldJumpTarget(gold) !== undefined"
+                  v-if="getGoldJumpTarget(item) !== undefined"
                   class="btn btn-small btn-warning"
-                  @click="jumpToGoldColor(getGoldJumpTarget(gold)!)"
+                  @click="jumpToGoldColor(getGoldJumpTarget(item)!)"
                   :title="t('action.jumpToMain')"
                 >→</button>
-                <button v-if="!isReadOnly && getGoldJumpTarget(gold) === undefined" class="btn btn-small btn-accent" @click="duplicateGoldColorToMain(index)" :title="t('action.copyToMain')">
+                <button v-if="!isReadOnly && getGoldJumpTarget(item) === undefined" class="btn btn-small btn-accent" @click="duplicateGoldColorToMain(index)" :title="t('action.copyToMain')">
                   +
                 </button>
-                <span class="status-tag tag-extern" :title="gold.sourceFile">{{ gold.sourceFile }}</span>
+                <span class="status-tag tag-extern" :title="item.sourceFile || undefined">{{ item.sourceFile }}</span>
               </template>
-              <template v-else-if="gold.isCommented || gold.isDeleted">
+              <template v-else-if="item.isCommented || item.isDeleted">
                 <button v-if="!isReadOnly" class="btn btn-small btn-primary" @click="handleRestoreGoldColor(index)" :title="t('action.restore')">
                   ↩
                 </button>
-                <span v-if="gold.isCommented" class="status-tag tag-commented">//</span>
-                <span v-if="gold.isDeleted" class="status-tag tag-deleted">×</span>
+                <span v-if="item.isCommented" class="status-tag tag-commented">//</span>
+                <span v-if="item.isDeleted" class="status-tag tag-deleted">×</span>
               </template>
               <template v-else-if="!isReadOnly">
                 <button class="btn btn-small btn-secondary" @click="copyGoldColor(index)" :title="t('action.copy')">
@@ -1335,9 +1326,8 @@ const currentFormatter = computed(() => {
                   ×
                 </button>
               </template>
-            </template>
-          </ConfigRow>
-        </div>
+          </template>
+        </ConfigTable>
       </div>
     </EditorPanel>
 

@@ -20,9 +20,9 @@ import DebugDrawer from './debug/DebugDrawer.vue'
 import FlatListView from './debug/FlatListView.vue'
 import EditorPanel from './EditorPanel.vue'
 import SubTabs from './SubTabs.vue'
-import ConfigHeader from './ConfigHeader.vue'
-import ConfigRow from './ConfigRow.vue'
+import ConfigTable from './ConfigTable.vue'
 import HotkeyInput from './HotkeyInput.vue'
+import type { ConfigTableColumn } from './configTable'
 
 const { t } = useI18n()
 
@@ -110,6 +110,14 @@ const commentWidth = computed((): number => {
   const maxLen = Math.max(0, ...items.map(item => (item.comment || '').length))
   return Math.max(80, maxLen * 7 + 24)
 })
+
+const toggleColumns = computed<ConfigTableColumn[]>(() => [
+  { key: 'enabled', label: t('toggle.enabled'), width: '40px' },
+  { key: 'name', label: t('toggle.name'), width: `${nameWidth.value}px` },
+  { key: 'hotkey', label: t('toggle.hotkey'), width: `${hotkeyWidth.value + 30}px` },
+  { key: 'comment', label: t('itemColors.comment'), width: `${commentWidth.value}px` },
+  { key: 'actions', label: t('itemColors.actions'), width: '220px', className: 'col-actions' }
+])
 
 function updateToggle(item: ToggleItem, field: string, value: unknown): void {
   if (isReadOnly.value) return
@@ -208,33 +216,19 @@ function formatToggle(item: ToggleItem): string {
         <button class="btn btn-secondary btn-small" @click="handleExport" :title="t('btn.export')">{{ t('btn.export') }}</button>
       </template>
 
-      <div v-if="toggles.length === 0" class="empty-state">
-        <p>{{ t('toggle.empty') }}</p>
-      </div>
-      <div v-else class="toggle-list">
-        <!-- Header -->
-        <ConfigHeader
-          :show-index="true"
-          :is-read-only="isReadOnly"
-        >
-          <span style="width: 40px; flex-shrink: 0;">{{ t('toggle.enabled') }}</span>
-          <span :style="{ width: nameWidth + 'px', flexShrink: 0 }">{{ t('toggle.name') }}</span>
-          <span :style="{ width: (hotkeyWidth + 30) + 'px', flexShrink: 0 }">{{ t('toggle.hotkey') }}</span>
-          <span :style="{ width: commentWidth + 'px', flexShrink: 0 }">{{ t('itemColors.comment') }}</span>
-          <span class="col-actions">{{ t('itemColors.actions') }}</span>
-        </ConfigHeader>
-        <!-- Rows -->
-        <ConfigRow
-          v-for="(toggle, index) in toggles"
-          :key="toggle.name + '-' + index"
-          :item="toggle"
-          :index="index"
-          :show-index="true"
-          :is-disabled="isItemDisabled(toggle)"
-          :is-read-only="isReadOnly"
-          :row-classes="getItemRowClasses(toggle)"
-        >
-          <label style="width: 40px; flex-shrink: 0;">
+      <ConfigTable
+        :items="toggles"
+        :columns="toggleColumns"
+        :empty-text="t('toggle.empty')"
+        list-class="toggle-list"
+        show-index
+        :is-read-only="isReadOnly"
+        :is-disabled="isItemDisabled"
+        :row-classes="getItemRowClasses"
+        :row-key="(toggle, index) => `${toggle.name}-${index}`"
+      >
+        <template #cell-enabled="{ item: toggle }">
+          <label>
             <input
               type="checkbox"
               :checked="toggle.enabled"
@@ -242,13 +236,19 @@ function formatToggle(item: ToggleItem): string {
               @change="updateToggle(toggle, 'enabled', ($event.target as HTMLInputElement).checked)"
             />
           </label>
-          <span class="col-name" :style="{ width: nameWidth + 'px', flexShrink: 0 }">{{ toggle.name }}</span>
+        </template>
+        <template #cell-name="{ item: toggle }">
+          <span class="col-name">{{ toggle.name }}</span>
+        </template>
+        <template #cell-hotkey="{ item: toggle }">
           <HotkeyInput
             :model-value="toggle.hotkey"
             :disabled="isItemDisabled(toggle) || isItemExtern(toggle) || isReadOnly"
             :input-width="hotkeyWidth"
             @update:model-value="updateToggle(toggle, 'hotkey', $event)"
           />
+        </template>
+        <template #cell-comment="{ item: toggle }">
           <input
             type="text"
             class="comment-input"
@@ -256,11 +256,10 @@ function formatToggle(item: ToggleItem): string {
             :value="toggle.comment"
             :disabled="isItemDisabled(toggle) || isItemExtern(toggle) || isReadOnly"
             @input="updateToggle(toggle, 'comment', ($event.target as HTMLInputElement).value)"
-            :style="{ width: commentWidth + 'px', flexShrink: 0 }"
           />
-
-          <template #actions>
-            <template v-if="isItemExtern(toggle)">
+        </template>
+        <template #cell-actions="{ item: toggle }">
+          <template v-if="isItemExtern(toggle)">
               <button
                 v-if="getToggleJumpTarget(toggle) !== undefined"
                 class="btn btn-small btn-warning"
@@ -287,9 +286,8 @@ function formatToggle(item: ToggleItem): string {
                 ×
               </button>
             </template>
-          </template>
-        </ConfigRow>
-      </div>
+        </template>
+      </ConfigTable>
     </EditorPanel>
 
     <!-- Debug Panel -->

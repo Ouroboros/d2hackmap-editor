@@ -23,11 +23,11 @@ import DebugDrawer from './debug/DebugDrawer.vue'
 import FlatListView from './debug/FlatListView.vue'
 import EditorPanel from './EditorPanel.vue'
 import SubTabs from './SubTabs.vue'
-import ConfigHeader from './ConfigHeader.vue'
-import ConfigRow from './ConfigRow.vue'
+import ConfigTable from './ConfigTable.vue'
 import ItemPicker from './ItemPicker.vue'
 import QualityPicker from './QualityPicker.vue'
 import StatGroupPicker from './StatGroupPicker.vue'
+import type { ConfigTableColumn } from './configTable'
 
 const { t } = useI18n()
 
@@ -118,6 +118,19 @@ function getItemAtIndex(filteredIndex: number): ImportItemItem | undefined {
 function isReadonlyImportItem(item: ImportItemItem): boolean {
   return isReadOnly.value || isItemDisabled(item) || isItemExtern(item)
 }
+
+function isImportRowDisabled(item: ImportItemItem): boolean {
+  return isItemDisabled(item) || isItemExtern(item)
+}
+
+const importItemColumns = computed<ConfigTableColumn[]>(() => [
+  { key: 'itemId', label: t('itemColors.itemId'), width: '150px' },
+  { key: 'quality', label: t('itemColors.quality'), width: '80px' },
+  { key: 'mode', label: t('import.mode'), width: '200px' },
+  { key: 'statGroup', label: t('import.statGroup'), width: '120px' },
+  { key: 'comment', label: t('itemColors.comment'), flex: '1 1 120px', className: 'col-comment' },
+  { key: 'actions', label: t('itemColors.actions'), width: '220px', className: 'col-actions' }
+])
 
 function updateItem(index: number, field: keyof ImportItemItem, value: string): void {
   const item = getItemAtIndex(index)
@@ -446,91 +459,77 @@ const debugImportItems = computed((): ImportItemItem[] => {
         <button class="btn btn-secondary btn-small" @click="handleExport" :title="t('btn.export')">{{ t('btn.export') }}</button>
       </template>
 
-      <div v-if="importItems.length === 0" class="empty-state">
-        <p>{{ t('import.empty') }}</p>
-      </div>
-      <div v-else class="item-list import-items-list">
-        <!-- Header -->
-        <ConfigHeader
-          :show-checkbox="true"
-          :show-index="true"
-          :show-drag="true"
-          :is-all-selected="isAllSelected"
-          :is-read-only="isReadOnly"
-          @select-all="toggleSelectAll"
-        >
-          <span style="width: 150px;">{{ t('itemColors.itemId') }}</span>
-          <span style="width: 80px;">{{ t('itemColors.quality') }}</span>
-          <span style="width: 200px;">{{ t('import.mode') }}</span>
-          <span style="width: 120px;">{{ t('import.statGroup') }}</span>
-          <span class="col-comment">{{ t('itemColors.comment') }}</span>
-          <span class="col-actions">{{ t('itemColors.actions') }}</span>
-        </ConfigHeader>
-        <!-- Rows -->
-        <ConfigRow
-          v-for="(item, index) in importItems"
-          :key="index"
-          :item="item"
-          :index="index"
-          :show-checkbox="true"
-          :show-index="true"
-          :show-drag="true"
-          :is-selected="isSelected(item)"
-          :is-disabled="isItemDisabled(item) || isItemExtern(item)"
-          :is-drag-over="dragOverIndex === index"
-          :is-read-only="isReadOnly"
-          :row-classes="getItemRowClasses(item)"
-          @select="toggleSelect(item)"
-          @dragstart="handleDragStart"
-          @dragover="handleDragOver"
-          @dragleave="handleDragLeave"
-          @drop="handleDrop"
-          @dragend="handleDragEnd"
-        >
+      <ConfigTable
+        :items="importItems"
+        :columns="importItemColumns"
+        :empty-text="t('import.empty')"
+        list-class="import-items-list"
+        show-checkbox
+        show-index
+        show-drag
+        :is-all-selected="isAllSelected"
+        :is-read-only="isReadOnly"
+        :is-selected="isSelected"
+        :is-disabled="isImportRowDisabled"
+        :drag-over-index="dragOverIndex"
+        :row-classes="getItemRowClasses"
+        @select-all="toggleSelectAll"
+        @select="toggleSelect"
+        @dragstart="handleDragStart"
+        @dragover="handleDragOver"
+        @dragleave="handleDragLeave"
+        @drop="handleDrop"
+        @dragend="handleDragEnd"
+      >
+        <template #cell-itemId="{ item, index }">
           <ItemPicker
             :modelValue="item.itemId"
             :placeholder="t('itemColors.itemId')"
             :disabled="isReadOnly"
             :readonly="isReadonlyImportItem(item)"
             @update:modelValue="updateItem(index, 'itemId', $event)"
-            style="width: 150px;"
           />
+        </template>
+        <template #cell-quality="{ item, index }">
           <QualityPicker
             :modelValue="item.quality"
             :disabled="isReadOnly"
             :readonly="isReadonlyImportItem(item)"
             @update:modelValue="updateItem(index, 'quality', $event)"
-            style="width: 80px;"
           />
+        </template>
+        <template #cell-mode="{ item, index }">
           <select
             :value="item.mode"
             :disabled="isReadonlyImportItem(item)"
             @change="updateItem(index, 'mode', ($event.target as HTMLSelectElement).value)"
-            style="width: 200px;"
           >
             <option v-for="m in PICKUP_MODES" :key="m.value" :value="m.value">
               [{{ m.value }}] {{ t(m.labelKey) }}
             </option>
           </select>
+        </template>
+        <template #cell-statGroup="{ item, index }">
           <StatGroupPicker
             :modelValue="item.statGroup"
             :disabled="isReadOnly"
             :readonly="isReadonlyImportItem(item)"
             @update:modelValue="updateItem(index, 'statGroup', $event)"
-            style="width: 120px;"
           />
+        </template>
+        <template #cell-comment="{ item, index }">
           <input
             type="text"
-            class="col-comment comment-input"
+            class="comment-input"
             :placeholder="t('itemColors.comment')"
             :value="item.comment"
             :readonly="isReadonlyImportItem(item)"
             :disabled="isReadOnly"
             @input="updateItem(index, 'comment', ($event.target as HTMLInputElement).value)"
           />
-
-          <template #actions>
-            <template v-if="isItemExtern(item)">
+        </template>
+        <template #cell-actions="{ item, index }">
+          <template v-if="isItemExtern(item)">
               <button
                 v-if="getItemJumpTarget(item) !== undefined"
                 class="btn btn-small btn-warning"
@@ -560,9 +559,8 @@ const debugImportItems = computed((): ImportItemItem[] => {
                 ×
               </button>
             </template>
-          </template>
-        </ConfigRow>
-      </div>
+        </template>
+      </ConfigTable>
     </EditorPanel>
 
     <!-- Debug Panel -->

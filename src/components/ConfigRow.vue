@@ -13,6 +13,7 @@ const props = defineProps<{
   isDragging?: boolean
   isDragOver?: boolean
   isReadOnly?: boolean
+  showActions?: boolean
   rowClasses?: Record<string, boolean>
 }>()
 
@@ -76,7 +77,7 @@ function handleDragStart(e: DragEvent) {
 
     <slot :item="item" :index="index" :isDisabled="isDisabled" />
 
-    <div class="col-actions">
+    <div v-if="showActions !== false" class="col-actions">
       <slot name="actions" :item="item" :index="index" :isDisabled="isDisabled" />
     </div>
   </div>
