@@ -69,6 +69,8 @@ import EditorPanel from './EditorPanel.vue'
 import SubTabs from './SubTabs.vue'
 import ConfigHeader from './ConfigHeader.vue'
 import ConfigRow from './ConfigRow.vue'
+import ItemPicker from './ItemPicker.vue'
+import QualityPicker from './QualityPicker.vue'
 import StatPicker from './StatPicker.vue'
 import StatGroupPicker from './StatGroupPicker.vue'
 
@@ -232,6 +234,7 @@ function batchCommentStatLimits() {
 watch(activeSubTabs, () => {
   selectedStatLimits.value.clear()
   selectedStatLimitGroups.value.clear()
+  selectedItemDescriptors.value.clear()
 }, { deep: true })
 
 // Drag and drop for stat limits
@@ -432,6 +435,156 @@ const itemDescriptors = computed(() => {
   return filterBySearch(items, 'name', 'itemId', 'comment')
 })
 
+const selectedItemDescriptors = ref<Set<ItemDescriptorItem>>(new Set())
+const itemDescriptorDragIndex = ref<number | null>(null)
+const itemDescriptorDragOverIndex = ref<number | null>(null)
+
+const selectableItemDescriptorsCount = computed(() => {
+  return itemDescriptors.value.filter(item => !isItemExtern(item)).length
+})
+
+function isReadonlyItemDescriptor(desc: ItemDescriptorItem): boolean {
+  return isReadOnly.value || isItemDisabled(desc) || isItemExtern(desc)
+}
+
+function updateItemDescriptor(desc: ItemDescriptorItem, field: keyof ItemDescriptorItem, value: string) {
+  if (!config.value || isReadonlyItemDescriptor(desc)) return
+  ;(desc as ItemDescriptorItem)[field] = value as never
+}
+
+function updateItemDescriptorCount(desc: ItemDescriptorItem, value: string) {
+  if (!config.value || isReadonlyItemDescriptor(desc)) return
+  desc.count = value.replace(/\D+/g, '')
+}
+
+function toggleItemDescriptorSelectAll() {
+  const selectableItems = itemDescriptors.value.filter(item => !isItemExtern(item))
+  if (selectedItemDescriptors.value.size === selectableItems.length && selectableItems.length > 0) {
+    selectedItemDescriptors.value.clear()
+  } else {
+    selectedItemDescriptors.value = new Set(selectableItems)
+  }
+}
+
+function toggleItemDescriptorSelect(item: ItemDescriptorItem) {
+  if (selectedItemDescriptors.value.has(item)) {
+    selectedItemDescriptors.value.delete(item)
+  } else {
+    selectedItemDescriptors.value.add(item)
+  }
+  selectedItemDescriptors.value = new Set(selectedItemDescriptors.value)
+}
+
+function isItemDescriptorSelected(item: ItemDescriptorItem) {
+  return selectedItemDescriptors.value.has(item)
+}
+
+function hasItemDescriptorSelection() {
+  return selectedItemDescriptors.value.size > 0
+}
+
+function batchDeleteItemDescriptors() {
+  if (isReadOnly.value || !config.value) return
+
+  for (const item of selectedItemDescriptors.value) {
+    if (!isItemExtern(item)) {
+      deleteTransmuteItemFromFile(item, 'itemDescriptors')
+    }
+  }
+  selectedItemDescriptors.value.clear()
+  refreshEffectiveStatus(config.value)
+}
+
+function batchRestoreItemDescriptors() {
+  if (isReadOnly.value || !config.value) return
+
+  for (const item of selectedItemDescriptors.value) {
+    if (!isItemExtern(item)) {
+      item.isCommented = false
+      item.isDeleted = false
+    }
+  }
+  selectedItemDescriptors.value.clear()
+  refreshEffectiveStatus(config.value)
+}
+
+function batchCommentItemDescriptors() {
+  if (isReadOnly.value || !config.value) return
+
+  for (const item of selectedItemDescriptors.value) {
+    if (!isItemExtern(item) && !item.isCommented) {
+      item.isCommented = true
+    }
+  }
+  selectedItemDescriptors.value.clear()
+  refreshEffectiveStatus(config.value)
+}
+
+function hasItemDescriptorExternItems() {
+  return itemDescriptors.value.some(item => isItemExtern(item))
+}
+
+function copyAllItemDescriptorExtern() {
+  if (!config.value || isReadOnly.value) return
+  const externItems = itemDescriptors.value.filter(item => isItemExtern(item))
+
+  let copied = 0
+  for (const item of externItems) {
+    if (duplicateItemDescriptorToMain(item, true)) copied++
+  }
+
+  if (copied > 0) {
+    refreshEffectiveStatus(config.value)
+  }
+}
+
+function handleItemDescriptorDragStart(e: DragEvent, index: number) {
+  itemDescriptorDragIndex.value = index
+  e.dataTransfer!.effectAllowed = 'move'
+  e.dataTransfer!.setData('text/plain', String(index))
+}
+
+function handleItemDescriptorDragOver(e: DragEvent, index: number) {
+  e.preventDefault()
+  e.dataTransfer!.dropEffect = 'move'
+  itemDescriptorDragOverIndex.value = index
+}
+
+function handleItemDescriptorDragLeave() {
+  itemDescriptorDragOverIndex.value = null
+}
+
+function handleItemDescriptorDrop(e: DragEvent, targetIndex: number) {
+  e.preventDefault()
+  if (isReadOnly.value || !config.value) return
+  const sourceIndex = itemDescriptorDragIndex.value
+  if (sourceIndex === null || sourceIndex === targetIndex) {
+    itemDescriptorDragIndex.value = null
+    itemDescriptorDragOverIndex.value = null
+    return
+  }
+
+  const filteredItems = itemDescriptors.value
+  const sourceItem = filteredItems[sourceIndex]
+  if (!sourceItem) return
+
+  const allItems = getAllTransmuteItems<ItemDescriptorItem>('itemDescriptors')
+  const targetItem = filteredItems[targetIndex]
+  const targetMergedIdx = targetItem ? allItems.indexOf(targetItem) : -1
+  if (targetMergedIdx < 0) return
+
+  moveTransmuteItemInFile(config.value, sourceItem, targetMergedIdx, 'itemDescriptors')
+  refreshEffectiveStatus(config.value)
+
+  itemDescriptorDragIndex.value = null
+  itemDescriptorDragOverIndex.value = null
+}
+
+function handleItemDescriptorDragEnd() {
+  itemDescriptorDragIndex.value = null
+  itemDescriptorDragOverIndex.value = null
+}
+
 // Cube Formulas
 const cubeFormulas = computed(() => {
   const allItems = getAllTransmuteItems<CubeFormulaItem>('cubeFormulas')
@@ -515,9 +668,9 @@ function duplicateStatLimitGroupToMain(group: StatLimitGroupItem, skipRefresh = 
   return true
 }
 
-function duplicateItemDescriptorToMain(desc: ItemDescriptorItem) {
+function duplicateItemDescriptorToMain(desc: ItemDescriptorItem, skipRefresh = false): boolean {
   if (!config.value || isReadOnly.value) return
-  if (!isItemExtern(desc)) return
+  if (!isItemExtern(desc)) return false
 
   // Add new main item
   const newItem: ItemDescriptorItem = {
@@ -532,8 +685,11 @@ function duplicateItemDescriptorToMain(desc: ItemDescriptorItem) {
     isCommented: false
   }
   addTransmuteItemToEditable('itemDescriptors', newItem)
-  refreshEffectiveStatus(config.value)
-  scrollToMainItemInList(() => itemDescriptors.value, newItem, getItemDescriptorKey, '.item-descriptors-list')
+  if (!skipRefresh) {
+    refreshEffectiveStatus(config.value)
+    scrollToMainItemInList(() => itemDescriptors.value, newItem, getItemDescriptorKey, '.item-descriptors-list')
+  }
+  return true
 }
 
 function duplicateCubeFormulaToMain(formula: CubeFormulaItem) {
@@ -711,6 +867,20 @@ function updateStatLimitGroupLimits(group: StatLimitGroupItem, value: string) {
   const commentByLimit = new Map(group.limits.map((limit, index) => [limit, group.comments[index] || '']))
   group.limits = value.split(',').map(limit => limit.trim()).filter(Boolean)
   group.comments = group.limits.map(limit => commentByLimit.get(limit) || '')
+}
+
+function getStatLimitGroupComment(group: StatLimitGroupItem): string {
+  return group.comments.find(comment => comment.trim()) || ''
+}
+
+function updateStatLimitGroupComment(group: StatLimitGroupItem, value: string) {
+  if (!config.value || isReadOnly.value || isItemDisabled(group) || isItemExtern(group)) return
+  const index = group.comments.findIndex(comment => comment.trim())
+  const targetIndex = index >= 0 ? index : 0
+  while (group.comments.length <= targetIndex) {
+    group.comments.push('')
+  }
+  group.comments[targetIndex] = value
 }
 
 // Comment/Delete/Restore handlers for Item Descriptors
@@ -1026,7 +1196,8 @@ function copyAllExtern() {
           <span style="width: 360px;">{{ t('transmute.name') }}</span>
           <span style="width: 180px;">{{ t('transmute.relation') }}</span>
           <span style="width: 120px;">{{ t('transmute.statLimitList') }}</span>
-          <span style="width: 80px;">{{ t('itemColors.actions') }}</span>
+          <span style="width: 150px;">{{ t('itemColors.comment') }}</span>
+          <span style="width: 220px;">{{ t('itemColors.actions') }}</span>
         </ConfigHeader>
         <ConfigRow
           v-for="(group, index) in statLimitGroups"
@@ -1080,6 +1251,15 @@ function copyAllExtern() {
             @update:modelValue="updateStatLimitGroupLimits(group, $event)"
             style="width: 120px;"
           />
+          <input
+            type="text"
+            class="comment-input stat-group-comment-input"
+            :placeholder="t('itemColors.comment')"
+            :value="getStatLimitGroupComment(group)"
+            :readonly="isItemDisabled(group) || isItemExtern(group)"
+            :disabled="isReadOnly"
+            @input="updateStatLimitGroupComment(group, ($event.target as HTMLInputElement).value)"
+          />
 
           <template #actions>
             <template v-if="isItemExtern(group)">
@@ -1102,23 +1282,117 @@ function copyAllExtern() {
 
     <!-- Item Descriptors -->
     <EditorPanel v-show="activeSection === 'itemDescriptors'">
+      <template #tabs>
+        <SubTabs :tabs="[{ id: 'itemDescriptors', label: t('tab.itemDescriptors') }]" model-value="itemDescriptors" />
+      </template>
+      <template #batch-bar>
+        <div v-if="hasItemDescriptorSelection() && !isReadOnly" class="batch-bar">
+          <span class="batch-info">{{ t('batch.selected', { count: selectedItemDescriptors.size }) }}</span>
+          <button class="btn btn-small btn-primary" @click="batchRestoreItemDescriptors">{{ t('btn.restore') }}</button>
+          <button class="btn btn-small btn-secondary" @click="batchCommentItemDescriptors">{{ t('btn.comment') }}</button>
+          <button class="btn btn-small btn-danger" @click="batchDeleteItemDescriptors">{{ t('btn.delete') }}</button>
+        </div>
+      </template>
       <template #actions>
+        <button
+          v-if="hasItemDescriptorExternItems() && !isReadOnly"
+          class="btn btn-small btn-accent"
+          @click="copyAllItemDescriptorExtern"
+        >{{ t('batch.copyAllExtern') }}</button>
         <button class="btn btn-secondary btn-small" @click="handleExport" :title="t('btn.export')">{{ t('btn.export') }}</button>
       </template>
 
       <div v-if="itemDescriptors.length === 0" class="empty-state">
         <p>{{ t('transmute.empty.itemDescriptors') }}</p>
       </div>
-      <div v-else class="config-list item-descriptors-list">
-        <div v-for="(desc, index) in itemDescriptors" :key="index" class="config-row" :class="getItemRowClasses(desc)" :data-index="index">
-          <span class="col-index">{{ index + 1 }}</span>
-          <span class="label" style="min-width: 150px;">{{ desc.name }}</span>
-          <span>{{ t('transmute.itemId') }}: {{ desc.itemId }}</span>
-          <span v-if="desc.quality">{{ t('itemColors.quality') }}: {{ desc.quality }}</span>
-          <span>{{ t('transmute.limit') }}: {{ desc.limitName }}</span>
-          <span>{{ t('transmute.count') }}: {{ desc.count }}</span>
-          <span v-if="desc.comment" class="comment-text" :title="desc.comment">{{ desc.comment }}</span>
-          <div class="col-actions">
+      <div v-else class="item-list item-descriptors-list">
+        <ConfigHeader
+          :show-checkbox="true"
+          :show-index="true"
+          :show-drag="true"
+          :is-all-selected="selectedItemDescriptors.size === selectableItemDescriptorsCount && selectableItemDescriptorsCount > 0"
+          :is-read-only="isReadOnly"
+          @select-all="toggleItemDescriptorSelectAll"
+        >
+          <span class="item-descriptor-name-col">{{ t('transmute.name') }}</span>
+          <span class="item-descriptor-item-id-col">{{ t('transmute.itemId') }}</span>
+          <span class="item-descriptor-quality-col">{{ t('itemColors.quality') }}</span>
+          <span class="item-descriptor-limit-col">{{ t('import.statGroup') }}</span>
+          <span class="item-descriptor-count-col">{{ t('transmute.count') }}</span>
+          <span class="item-descriptor-comment-col">{{ t('itemColors.comment') }}</span>
+          <span class="item-descriptor-actions-col">{{ t('itemColors.actions') }}</span>
+        </ConfigHeader>
+        <ConfigRow
+          v-for="(desc, index) in itemDescriptors"
+          :key="index"
+          :item="desc"
+          :index="index"
+          :show-checkbox="true"
+          :show-index="true"
+          :show-drag="true"
+          :is-selected="isItemDescriptorSelected(desc)"
+          :is-disabled="isItemDisabled(desc) || isItemExtern(desc)"
+          :is-drag-over="itemDescriptorDragOverIndex === index"
+          :is-read-only="isReadOnly"
+          :row-classes="getItemRowClasses(desc)"
+          @select="toggleItemDescriptorSelect(desc)"
+          @dragstart="handleItemDescriptorDragStart($event, index)"
+          @dragover="handleItemDescriptorDragOver($event, index)"
+          @dragleave="handleItemDescriptorDragLeave"
+          @drop="handleItemDescriptorDrop($event, index)"
+          @dragend="handleItemDescriptorDragEnd"
+        >
+          <input
+            type="text"
+            :value="desc.name"
+            :readonly="isReadonlyItemDescriptor(desc)"
+            :disabled="isReadOnly"
+            @input="updateItemDescriptor(desc, 'name', ($event.target as HTMLInputElement).value)"
+            class="item-descriptor-name-col"
+          />
+          <ItemPicker
+            :modelValue="desc.itemId"
+            :placeholder="t('transmute.itemId')"
+            :disabled="isReadOnly"
+            :readonly="isReadonlyItemDescriptor(desc)"
+            @update:modelValue="updateItemDescriptor(desc, 'itemId', $event)"
+            class="item-descriptor-item-id-col"
+          />
+          <QualityPicker
+            :modelValue="desc.quality"
+            :disabled="isReadOnly"
+            :readonly="isReadonlyItemDescriptor(desc)"
+            @update:modelValue="updateItemDescriptor(desc, 'quality', $event)"
+            class="item-descriptor-quality-col"
+          />
+          <StatGroupPicker
+            :modelValue="desc.limitName"
+            :disabled="isReadOnly"
+            :readonly="isReadonlyItemDescriptor(desc)"
+            @update:modelValue="updateItemDescriptor(desc, 'limitName', $event)"
+            class="item-descriptor-limit-col"
+          />
+          <input
+            type="number"
+            min="0"
+            step="1"
+            :value="desc.count"
+            :readonly="isReadonlyItemDescriptor(desc)"
+            :disabled="isReadOnly"
+            @input="updateItemDescriptorCount(desc, ($event.target as HTMLInputElement).value)"
+            class="item-descriptor-count-col"
+          />
+          <input
+            type="text"
+            class="comment-input item-descriptor-comment-col"
+            :placeholder="t('itemColors.comment')"
+            :value="desc.comment"
+            :readonly="isReadonlyItemDescriptor(desc)"
+            :disabled="isReadOnly"
+            @input="updateItemDescriptor(desc, 'comment', ($event.target as HTMLInputElement).value)"
+          />
+
+          <template #actions>
             <template v-if="isItemExtern(desc)">
               <button v-if="!isReadOnly" class="btn btn-small btn-accent" @click="duplicateItemDescriptorToMain(desc)" :title="t('action.copyToMain')">+</button>
               <span class="status-tag tag-extern" :title="desc.sourceFile">{{ desc.sourceFile }}</span>
@@ -1132,8 +1406,8 @@ function copyAllExtern() {
               <button class="btn btn-small btn-secondary" @click="handleItemDescriptorComment(desc)" :title="t('action.comment')">//</button>
               <button class="btn btn-small btn-danger" @click="handleItemDescriptorDelete(desc)" :title="t('action.delete')">×</button>
             </template>
-          </div>
-        </div>
+          </template>
+        </ConfigRow>
       </div>
     </EditorPanel>
 
@@ -1361,6 +1635,60 @@ function copyAllExtern() {
 
 .comment-input:disabled {
   opacity: 0.6;
+}
+
+.stat-group-comment-input {
+  flex: 0 0 150px;
+  width: 150px;
+}
+
+.stat-limit-groups-list :deep(.col-actions) {
+  flex: 0 0 220px;
+  width: 220px;
+}
+
+.item-descriptors-list .item-descriptor-name-col {
+  flex: 0 0 150px;
+  width: 150px;
+}
+
+.item-descriptors-list .item-descriptor-item-id-col {
+  flex: 0 0 150px;
+  width: 150px;
+}
+
+.item-descriptors-list :deep(.item-descriptor-item-id-col .item-display) {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  box-sizing: border-box;
+}
+
+.item-descriptors-list .item-descriptor-quality-col {
+  flex: 0 0 80px;
+  width: 80px;
+}
+
+.item-descriptors-list .item-descriptor-limit-col {
+  flex: 0 0 120px;
+  width: 120px;
+}
+
+.item-descriptors-list .item-descriptor-count-col {
+  flex: 0 0 80px;
+  width: 80px;
+}
+
+.item-descriptors-list .item-descriptor-comment-col {
+  flex: 0 0 150px;
+  width: 150px;
+  max-width: 150px;
+}
+
+.item-descriptors-list .item-descriptor-actions-col,
+.item-descriptors-list :deep(.col-actions) {
+  flex: 0 0 220px;
+  width: 220px;
 }
 
 .comment-text {
