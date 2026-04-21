@@ -43,6 +43,15 @@ const selectedItems = computed(() => {
   return new Set(props.modelValue.split(',').map(s => s.trim()).filter(s => s))
 })
 
+const hoverText = computed(() => {
+  if (!props.modelValue) return ''
+  return props.modelValue
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+    .join('\n')
+})
+
 // Reset search when picker opens, save original value for cancel
 watch(showPicker, (val) => {
   if (val) {
@@ -187,12 +196,13 @@ const displayText = computed(() => {
 
 <template>
   <div class="stat-group-picker" :class="{ disabled, compact }">
-    <div class="picker-input" @click="togglePicker">
+    <div class="picker-input" :title="hoverText" @click="togglePicker">
       <input
         type="text"
         :value="displayText"
         :placeholder="placeholder || t('statGroup.placeholder')"
         :disabled="disabled"
+        :title="hoverText"
         readonly
       />
       <span class="picker-arrow">▼</span>

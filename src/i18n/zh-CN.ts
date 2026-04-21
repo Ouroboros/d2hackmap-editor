@@ -223,10 +223,10 @@ const zhCN: Record<string, string> = {
   'validation.msg.doTaskFormulaMissing': '执行任务 "{name}" 引用了不存在的合成公式 "{formula}"',
 
   // Relation types
-  'relation.0': 'OR (满足任一)',
-  'relation.1': 'AND (全部满足)',
-  'relation.2': '排除任一',
-  'relation.3': '排除全部',
+  'relation.0': '满足任意一条',
+  'relation.1': '满足全部条件',
+  'relation.2': '满足任意一条则排除',
+  'relation.3': '满足全部条件才排除',
 
   // Action types
   'action.1': '放入魔方',
