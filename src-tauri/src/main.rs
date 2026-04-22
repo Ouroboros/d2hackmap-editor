@@ -463,7 +463,7 @@ fn debug_log_path() -> Result<PathBuf, std::io::Error> {
 fn exe_webview_data_dir() -> Result<PathBuf, std::io::Error> {
     let exe_path = std::env::current_exe()?;
     let exe_dir = exe_path.parent().unwrap_or(Path::new("."));
-    Ok(exe_dir.join("webview-data"))
+    Ok(exe_dir.join("d2hackmap-cfg-editor-data"))
 }
 
 fn create_main_window(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
