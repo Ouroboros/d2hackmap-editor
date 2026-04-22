@@ -14,6 +14,7 @@ import { useTransmuteItems } from '../composables/useTransmuteItems'
 import { moveTransmuteItemInFile } from '../utils/grouping'
 import { fitTextColumnWidth } from '../utils/columnWidth'
 import { useI18n } from '../i18n'
+import { useDebugMode } from '../composables/useDebugMode'
 import { ACTION_TYPES } from '../configDefs'
 import type { BaseConfigItem, CubeFormulaItem, DoTaskItem, ItemDescriptorItem, PreItemTaskItem } from '../types'
 import EditorPanel from './EditorPanel.vue'
@@ -23,6 +24,9 @@ import ItemPicker from './ItemPicker.vue'
 import QualityPicker from './QualityPicker.vue'
 import StatGroupPicker from './StatGroupPicker.vue'
 import DescriptorListPicker from './DescriptorListPicker.vue'
+import NamePicker from './NamePicker.vue'
+import DebugDrawer from './debug/DebugDrawer.vue'
+import FlatListView from './debug/FlatListView.vue'
 import type { ConfigTableColumn } from './configTable'
 
 interface Props {
@@ -36,6 +40,7 @@ const props = withDefaults(defineProps<Props>(), {
 const { t } = useI18n()
 const { config, exportSection, isReadOnly } = useConfig()
 const { saveSubTab, loadSubTab } = useFileStorage()
+const { debugMode } = useDebugMode()
 const {
   markCommented,
   markRestored,
@@ -59,6 +64,7 @@ watch(activeSubTab, (newTab) => {
   selectedItemDescriptors.value.clear()
   selectedCubeFormulas.value.clear()
   selectedPreItemTasks.value.clear()
+  selectedDoTasks.value.clear()
 })
 
 onMounted(() => {
@@ -306,6 +312,18 @@ const itemDescriptorNames = computed(() => {
   return result
 })
 
+const cubeFormulaNames = computed(() => {
+  const result: string[] = []
+  const seen = new Set<string>()
+  for (const item of cubeFormulas.value) {
+    const name = item.name.trim()
+    if (!name || seen.has(name)) continue
+    seen.add(name)
+    result.push(name)
+  }
+  return result
+})
+
 const selectedCubeFormulas = ref<Set<CubeFormulaItem>>(new Set())
 const cubeFormulaDragIndex = ref<number | null>(null)
 const cubeFormulaDragOverIndex = ref<number | null>(null)
@@ -318,6 +336,18 @@ const preItemTasks = computed(() => {
   const allItems = getAllTransmuteItems<PreItemTaskItem>('preItemTasks')
   const items = allItems.filter(item => item.isEffective !== false || item.isCommented)
   return filterBySearch(items, props.searchQuery, 'name', 'itemId', 'comment')
+})
+
+const preItemTaskNames = computed(() => {
+  const result: string[] = []
+  const seen = new Set<string>()
+  for (const item of preItemTasks.value) {
+    const name = item.name.trim()
+    if (!name || seen.has(name)) continue
+    seen.add(name)
+    result.push(name)
+  }
+  return result
 })
 
 const doTasks = computed(() => {
@@ -334,12 +364,20 @@ const preItemTaskLimitWidth = computed(() => {
   return fitTextColumnWidth(preItemTasks.value.map(item => item.limitName), t('import.statGroup'), { min: 120, max: 260 })
 })
 
+const preItemTaskActionWidth = computed(() => {
+  return fitTextColumnWidth(
+    ACTION_TYPES.map(action => `[${action.value}] ${t(action.labelKey)}`),
+    t('transmute.action'),
+    { min: 150, max: 190, padding: 64 }
+  )
+})
+
 const preItemTaskColumns = computed<ConfigTableColumn[]>(() => [
   { key: 'name', label: t('transmute.name'), width: preItemTaskNameWidth.value, className: 'pre-item-task-name-col' },
   { key: 'itemId', label: t('transmute.itemId'), width: '150px', className: 'pre-item-task-item-id-col' },
   { key: 'quality', label: t('itemColors.quality'), width: '80px', className: 'pre-item-task-quality-col' },
   { key: 'limitName', label: t('import.statGroup'), width: preItemTaskLimitWidth.value, className: 'pre-item-task-limit-col' },
-  { key: 'action', label: t('transmute.action'), width: '110px', className: 'pre-item-task-action-col' },
+  { key: 'action', label: t('transmute.action'), width: preItemTaskActionWidth.value, className: 'pre-item-task-action-col' },
   { key: 'comment', label: t('itemColors.comment'), width: '150px', className: 'pre-item-task-comment-col' },
   { key: 'actions', label: t('itemColors.actions'), width: '220px', className: 'pre-item-task-actions-col col-actions' }
 ])
@@ -349,11 +387,18 @@ const doTaskNameWidth = computed(() => {
 })
 
 const doTaskPreTaskWidth = computed(() => {
-  return fitTextColumnWidth(doTasks.value.map(item => item.preTask), t('transmute.preTask'), { min: 120, max: 260 })
+  return fitTextColumnWidth([...doTasks.value.map(item => item.preTask), ...preItemTaskNames.value], t('transmute.preTask'), {
+    min: 150,
+    max: 300
+  })
 })
 
 const doTaskFormulaWidth = computed(() => {
-  return fitTextColumnWidth(doTasks.value.map(item => item.formulas.join(', ')), t('transmute.formulas'), { min: 220, max: 420 })
+  return fitTextColumnWidth(
+    doTasks.value.map(item => t('formulaPicker.count', { count: item.formulas.length })),
+    t('transmute.formulas'),
+    { min: 160, max: 220 }
+  )
 })
 
 const doTaskColumns = computed<ConfigTableColumn[]>(() => [
@@ -369,9 +414,14 @@ const preItemTaskDragOverIndex = ref<number | null>(null)
 const selectedPreItemTasks = ref<Set<PreItemTaskItem>>(new Set())
 const doTaskDragIndex = ref<number | null>(null)
 const doTaskDragOverIndex = ref<number | null>(null)
+const selectedDoTasks = ref<Set<DoTaskItem>>(new Set())
 
 const selectablePreItemTasksCount = computed(() => {
   return preItemTasks.value.filter(item => !isItemExtern(item)).length
+})
+
+const selectableDoTasksCount = computed(() => {
+  return doTasks.value.filter(item => !isItemExtern(item)).length
 })
 
 function nextUniqueName(existingNames: string[], baseName: string): string {
@@ -532,9 +582,9 @@ function duplicatePreItemTaskToMain(task: PreItemTaskItem, skipRefresh = false):
   return true
 }
 
-function duplicateDoTaskToMain(task: DoTaskItem) {
-  if (!config.value || isReadOnly.value) return
-  if (!isItemExtern(task)) return
+function duplicateDoTaskToMain(task: DoTaskItem, skipRefresh = false): boolean {
+  if (!config.value || isReadOnly.value) return false
+  if (!isItemExtern(task)) return false
 
   const newItem: DoTaskItem = {
     name: task.name,
@@ -546,8 +596,11 @@ function duplicateDoTaskToMain(task: DoTaskItem) {
     isCommented: false
   }
   addTransmuteItemToEditable('doTasks', newItem)
-  refreshEffectiveStatus(config.value)
-  scrollToMainItemInList(() => doTasks.value, newItem, getDoTaskKey, '.do-tasks-list')
+  if (!skipRefresh) {
+    refreshEffectiveStatus(config.value)
+    scrollToMainItemInList(() => doTasks.value, newItem, getDoTaskKey, '.do-tasks-list')
+  }
+  return true
 }
 
 function handleItemDescriptorComment(desc: ItemDescriptorItem) {
@@ -940,6 +993,101 @@ function handleDoTaskDragEnd() {
   doTaskDragOverIndex.value = null
 }
 
+function isReadonlyDoTask(task: DoTaskItem): boolean {
+  return isReadOnly.value || isItemDisabled(task) || isItemExtern(task)
+}
+
+function updateDoTask(task: DoTaskItem, field: 'name' | 'preTask' | 'comment', value: string) {
+  if (!config.value || isReadonlyDoTask(task)) return
+  task[field] = value
+}
+
+function updateDoTaskFormulas(task: DoTaskItem, value: string[]) {
+  if (!config.value || isReadonlyDoTask(task)) return
+  task.formulas = [...value]
+}
+
+function toggleDoTaskSelectAll() {
+  const selectableItems = doTasks.value.filter(item => !isItemExtern(item))
+  if (selectedDoTasks.value.size === selectableItems.length && selectableItems.length > 0) {
+    selectedDoTasks.value.clear()
+  } else {
+    selectedDoTasks.value = new Set(selectableItems)
+  }
+}
+
+function toggleDoTaskSelect(item: DoTaskItem) {
+  if (selectedDoTasks.value.has(item)) {
+    selectedDoTasks.value.delete(item)
+  } else {
+    selectedDoTasks.value.add(item)
+  }
+  selectedDoTasks.value = new Set(selectedDoTasks.value)
+}
+
+function isDoTaskSelected(item: DoTaskItem) {
+  return selectedDoTasks.value.has(item)
+}
+
+function hasDoTaskSelection() {
+  return selectedDoTasks.value.size > 0
+}
+
+function batchDeleteDoTasks() {
+  if (isReadOnly.value || !config.value) return
+
+  for (const item of selectedDoTasks.value) {
+    if (!isItemExtern(item)) {
+      deleteTransmuteItemFromFile(item, 'doTasks')
+    }
+  }
+  selectedDoTasks.value.clear()
+  refreshEffectiveStatus(config.value)
+}
+
+function batchRestoreDoTasks() {
+  if (isReadOnly.value || !config.value) return
+
+  for (const item of selectedDoTasks.value) {
+    if (!isItemExtern(item)) {
+      item.isCommented = false
+      item.isDeleted = false
+    }
+  }
+  selectedDoTasks.value.clear()
+  refreshEffectiveStatus(config.value)
+}
+
+function batchCommentDoTasks() {
+  if (isReadOnly.value || !config.value) return
+
+  for (const item of selectedDoTasks.value) {
+    if (!isItemExtern(item) && !item.isCommented) {
+      item.isCommented = true
+    }
+  }
+  selectedDoTasks.value.clear()
+  refreshEffectiveStatus(config.value)
+}
+
+function hasDoTaskExternItems() {
+  return doTasks.value.some(item => isItemExtern(item))
+}
+
+function copyAllDoTaskExtern() {
+  if (!config.value || isReadOnly.value) return
+  const externItems = doTasks.value.filter(item => isItemExtern(item))
+
+  let copied = 0
+  for (const item of externItems) {
+    if (duplicateDoTaskToMain(item, true)) copied++
+  }
+
+  if (copied > 0) {
+    refreshEffectiveStatus(config.value)
+  }
+}
+
 function handlePreItemTaskComment(task: PreItemTaskItem) {
   if (!config.value || isReadOnly.value) return
   markCommented(task)
@@ -978,6 +1126,58 @@ function handleDoTaskRestore(task: DoTaskItem) {
   if (!config.value || isReadOnly.value) return
   markRestored(task)
   refreshEffectiveStatus(config.value)
+}
+
+type TransmuteDebugItem = ItemDescriptorItem | CubeFormulaItem | PreItemTaskItem | DoTaskItem
+
+const currentDebugItems = computed<TransmuteDebugItem[]>(() => {
+  if (activeSubTab.value === 'cubeFormulas') {
+    return getAllTransmuteItems<CubeFormulaItem>('cubeFormulas')
+  }
+  if (activeSubTab.value === 'preItemTasks') {
+    return getAllTransmuteItems<PreItemTaskItem>('preItemTasks')
+  }
+  if (activeSubTab.value === 'doTasks') {
+    return getAllTransmuteItems<DoTaskItem>('doTasks')
+  }
+  return getAllTransmuteItems<ItemDescriptorItem>('itemDescriptors')
+})
+
+const currentDebugTitle = computed(() => {
+  if (activeSubTab.value === 'cubeFormulas') return 'Cube Formulas'
+  if (activeSubTab.value === 'preItemTasks') return 'Pre Item Tasks'
+  if (activeSubTab.value === 'doTasks') return 'Do Tasks'
+  return 'Item Descriptors'
+})
+
+function getCurrentDebugKey(item: TransmuteDebugItem): string {
+  if (activeSubTab.value === 'cubeFormulas') {
+    return getCubeFormulaKey(item as CubeFormulaItem)
+  }
+  if (activeSubTab.value === 'preItemTasks') {
+    return getPreItemTaskKey(item as PreItemTaskItem)
+  }
+  if (activeSubTab.value === 'doTasks') {
+    return getDoTaskKey(item as DoTaskItem)
+  }
+  return getItemDescriptorKey(item as ItemDescriptorItem)
+}
+
+function formatCurrentDebugItem(item: TransmuteDebugItem): string {
+  if (activeSubTab.value === 'cubeFormulas') {
+    const formula = item as CubeFormulaItem
+    return `${formula.name}: ${formula.descriptors.join(', ')}`
+  }
+  if (activeSubTab.value === 'preItemTasks') {
+    const task = item as PreItemTaskItem
+    return `${task.name}: item=${task.itemId}, quality=${task.quality}, limit=${task.limitName}, action=${task.action}`
+  }
+  if (activeSubTab.value === 'doTasks') {
+    const task = item as DoTaskItem
+    return `${task.name}: pre=${task.preTask}, formulas=${task.formulas.join(', ')}`
+  }
+  const desc = item as ItemDescriptorItem
+  return `${desc.name}: item=${desc.itemId}, quality=${desc.quality}, limit=${desc.limitName}, count=${desc.count}`
 }
 </script>
 
@@ -1317,7 +1517,20 @@ function handleDoTaskRestore(task: DoTaskItem) {
       <template #tabs>
         <SubTabs v-model="activeSubTab" :tabs="subTabsConfig" />
       </template>
+      <template #batch-bar>
+        <div v-if="hasDoTaskSelection() && !isReadOnly" class="batch-bar">
+          <span class="batch-info">{{ t('batch.selected', { count: selectedDoTasks.size }) }}</span>
+          <button class="btn btn-small btn-primary" @click="batchRestoreDoTasks">{{ t('btn.restore') }}</button>
+          <button class="btn btn-small btn-secondary" @click="batchCommentDoTasks">{{ t('btn.comment') }}</button>
+          <button class="btn btn-small btn-danger" @click="batchDeleteDoTasks">{{ t('btn.delete') }}</button>
+        </div>
+      </template>
       <template #actions>
+        <button
+          v-if="hasDoTaskExternItems() && !isReadOnly"
+          class="btn btn-small btn-accent"
+          @click="copyAllDoTaskExtern"
+        >{{ t('batch.copyAllExtern') }}</button>
         <button v-if="!isReadOnly" class="btn btn-primary btn-small" @click="addDoTask">{{ t('btn.add') }}</button>
         <button class="btn btn-secondary btn-small" @click="handleExport" :title="t('btn.export')">{{ t('btn.export') }}</button>
       </template>
@@ -1327,13 +1540,18 @@ function handleDoTaskRestore(task: DoTaskItem) {
         :columns="doTaskColumns"
         :empty-text="t('transmute.empty.doTasks')"
         list-class="do-tasks-list"
+        show-checkbox
         show-index
         show-drag
+        :is-all-selected="selectedDoTasks.size === selectableDoTasksCount && selectableDoTasksCount > 0"
         :is-read-only="isReadOnly"
+        :is-selected="isDoTaskSelected"
         :is-disabled="isTransmuteRowDisabled"
         :drag-over-index="doTaskDragOverIndex"
         :row-classes="getItemRowClasses"
         :row-key="(task, index) => `${getDoTaskKey(task)}-${task.sourceFile || 'main'}-${index}`"
+        @select-all="toggleDoTaskSelectAll"
+        @select="toggleDoTaskSelect"
         @dragstart="handleDoTaskDragStart"
         @dragover="handleDoTaskDragOver"
         @dragleave="handleDoTaskDragLeave"
@@ -1341,16 +1559,54 @@ function handleDoTaskRestore(task: DoTaskItem) {
         @dragend="handleDoTaskDragEnd"
       >
         <template #cell-name="{ item: task }">
-          <span class="cell-text strong">{{ task.name }}</span>
+          <input
+            type="text"
+            :value="task.name"
+            :readonly="isReadonlyDoTask(task)"
+            :disabled="isReadOnly"
+            @input="updateDoTask(task, 'name', ($event.target as HTMLInputElement).value)"
+          />
         </template>
         <template #cell-preTask="{ item: task }">
-          <span class="cell-text">{{ task.preTask }}</span>
+          <NamePicker
+            :model-value="task.preTask"
+            :options="preItemTaskNames"
+            :disabled="isReadOnly"
+            :readonly="isReadonlyDoTask(task)"
+            title-key="preTaskPicker.title"
+            placeholder-key="preTaskPicker.placeholder"
+            empty-key="preTaskPicker.empty"
+            no-match-key="preTaskPicker.noMatch"
+            @update:model-value="updateDoTask(task, 'preTask', $event)"
+          />
         </template>
         <template #cell-formulas="{ item: task }">
-          <span class="cell-text" :title="task.formulas.join('\n')">{{ task.formulas.join(', ') }}</span>
+          <DescriptorListPicker
+            :model-value="task.formulas"
+            :options="cubeFormulaNames"
+            :disabled="isReadOnly"
+            :readonly="isReadonlyDoTask(task)"
+            title-key="formulaPicker.title"
+            placeholder-key="formulaPicker.placeholder"
+            available-key="formulaPicker.available"
+            selected-list-key="formulaPicker.selectedList"
+            count-key="formulaPicker.count"
+            empty-key="formulaPicker.empty"
+            no-match-key="formulaPicker.noMatch"
+            no-selection-key="formulaPicker.noSelection"
+            @update:model-value="updateDoTaskFormulas(task, $event)"
+          />
         </template>
         <template #cell-comment="{ item: task }">
-          <span class="cell-text comment-text" :title="task.comment">{{ task.comment }}</span>
+          <input
+            type="text"
+            class="comment-input"
+            :placeholder="t('itemColors.comment')"
+            :value="task.comment"
+            :readonly="isReadonlyDoTask(task)"
+            :disabled="isReadOnly"
+            @input="updateDoTask(task, 'comment', ($event.target as HTMLInputElement).value)"
+          />
         </template>
         <template #cell-actions="{ item: task }">
           <template v-if="isItemExtern(task)">
@@ -1369,6 +1625,15 @@ function handleDoTaskRestore(task: DoTaskItem) {
         </template>
       </ConfigTable>
     </EditorPanel>
+
+    <DebugDrawer v-if="debugMode">
+      <FlatListView
+        :items="currentDebugItems"
+        :title="currentDebugTitle"
+        :get-key="getCurrentDebugKey"
+        :format-item="formatCurrentDebugItem"
+      />
+    </DebugDrawer>
   </div>
 </template>
 

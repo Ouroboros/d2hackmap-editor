@@ -11,6 +11,14 @@ interface Props {
   disabled?: boolean
   readonly?: boolean
   placeholder?: string
+  titleKey?: string
+  placeholderKey?: string
+  availableKey?: string
+  selectedListKey?: string
+  countKey?: string
+  emptyKey?: string
+  noMatchKey?: string
+  noSelectionKey?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -18,7 +26,15 @@ const props = withDefaults(defineProps<Props>(), {
   options: () => [],
   disabled: false,
   readonly: false,
-  placeholder: ''
+  placeholder: '',
+  titleKey: 'descriptorPicker.title',
+  placeholderKey: 'descriptorPicker.placeholder',
+  availableKey: 'descriptorPicker.available',
+  selectedListKey: 'descriptorPicker.selectedList',
+  countKey: 'descriptorPicker.count',
+  emptyKey: 'descriptorPicker.empty',
+  noMatchKey: 'descriptorPicker.noMatch',
+  noSelectionKey: 'descriptorPicker.noSelection'
 })
 
 const emit = defineEmits<{
@@ -58,7 +74,7 @@ const filteredOptions = computed(() => {
 const displayText = computed(() => {
   const count = props.modelValue.length
   if (count === 0) return ''
-  return t('descriptorPicker.count', { count })
+  return t(props.countKey, { count })
 })
 
 const hoverText = computed(() => props.modelValue.filter(Boolean).join('\n'))
@@ -403,7 +419,7 @@ onUnmounted(() => {
       <input
         type="text"
         :value="displayText"
-        :placeholder="placeholder || t('descriptorPicker.placeholder')"
+        :placeholder="placeholder || t(placeholderKey)"
         :disabled="disabled"
         :title="hoverText"
         readonly
@@ -415,7 +431,7 @@ onUnmounted(() => {
       <div v-if="showPicker" class="picker-overlay" @mousedown.self="cancelSelection">
         <div class="descriptor-popup" @mousedown.stop>
           <div class="picker-header">
-            <div class="picker-title">{{ t('descriptorPicker.title') }}</div>
+            <div class="picker-title">{{ t(titleKey) }}</div>
             <span v-if="readonly" class="readonly-badge">{{ t('status.readOnly') }}</span>
           </div>
 
@@ -431,7 +447,7 @@ onUnmounted(() => {
           <div class="picker-body" :class="{ readonly }">
             <section v-if="!readonly" class="picker-panel">
               <div class="panel-title">
-                <span>{{ t('descriptorPicker.available') }}</span>
+                <span>{{ t(availableKey) }}</span>
                 <button
                   type="button"
                   class="panel-action-btn"
@@ -443,7 +459,7 @@ onUnmounted(() => {
               </div>
               <div class="option-list">
                 <div v-if="filteredOptions.length === 0" class="empty-hint">
-                  {{ searchQuery ? t('descriptorPicker.noMatch') : t('descriptorPicker.empty') }}
+                  {{ searchQuery ? t(noMatchKey) : t(emptyKey) }}
                 </div>
                 <button
                   v-for="name in filteredOptions"
@@ -462,8 +478,8 @@ onUnmounted(() => {
             <section class="picker-panel selected-panel">
               <div class="panel-title">
                 <span>
-                  {{ t('descriptorPicker.selectedList') }}
-                  <span class="panel-count">{{ t('descriptorPicker.count', { count: workingItems.length }) }}</span>
+                  {{ t(selectedListKey) }}
+                  <span class="panel-count">{{ t(countKey, { count: workingItems.length }) }}</span>
                 </span>
                 <button
                   v-if="!readonly"
@@ -483,7 +499,7 @@ onUnmounted(() => {
                 @drop.capture="handleListDrop"
               >
                 <div v-if="workingItems.length === 0" class="empty-hint">
-                  {{ t('descriptorPicker.noSelection') }}
+                  {{ t(noSelectionKey) }}
                 </div>
                 <div
                   v-for="(name, index) in workingItems"
@@ -530,7 +546,7 @@ onUnmounted(() => {
           </div>
 
           <div class="picker-footer">
-            <span class="selected-count">{{ t('descriptorPicker.count', { count: workingItems.length }) }}</span>
+            <span class="selected-count">{{ t(countKey, { count: workingItems.length }) }}</span>
             <div class="footer-actions">
               <button class="btn btn-small btn-secondary" @click="cancelSelection">{{ t('itemPicker.cancel') }}</button>
               <button v-if="!readonly" class="btn btn-small btn-primary" @click="confirmSelection">{{ t('itemPicker.confirm') }}</button>

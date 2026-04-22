@@ -10,12 +10,15 @@ import { useTransmuteItems } from '../composables/useTransmuteItems'
 import { moveTransmuteItemInFile } from '../utils/grouping'
 import { fitTextColumnWidthNumber } from '../utils/columnWidth'
 import { useI18n } from '../i18n'
+import { useDebugMode } from '../composables/useDebugMode'
 import type { BaseConfigItem } from '../types'
 import type { KeyBindingItem } from '../types'
 import EditorPanel from './EditorPanel.vue'
 import ConfigTable from './ConfigTable.vue'
 import HotkeyInput from './HotkeyInput.vue'
 import SubTabs from './SubTabs.vue'
+import DebugDrawer from './debug/DebugDrawer.vue'
+import FlatListView from './debug/FlatListView.vue'
 import type { ConfigTableColumn } from './configTable'
 
 interface Props {
@@ -28,6 +31,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { t } = useI18n()
 const { config, exportSection, isReadOnly } = useConfig()
+const { debugMode } = useDebugMode()
 const {
   markCommented,
   markRestored,
@@ -284,6 +288,10 @@ function addKeyBinding() {
   refreshEffectiveStatus(config.value)
   scrollToMainItemInList(() => keyBindings.value, newItem, getKeyBindingKey, '.key-bindings-list')
 }
+
+function formatKeyBinding(binding: KeyBindingItem): string {
+  return `${binding.keyCode}: ${binding.command}${binding.comment ? ` // ${binding.comment}` : ''}`
+}
 </script>
 
 <template>
@@ -377,6 +385,15 @@ function addKeyBinding() {
         </template>
       </ConfigTable>
     </EditorPanel>
+
+    <DebugDrawer v-if="debugMode">
+      <FlatListView
+        :items="getAllTransmuteItems<KeyBindingItem>('keyBindings')"
+        title="Key Bindings"
+        :get-key="getKeyBindingKey"
+        :format-item="formatKeyBinding"
+      />
+    </DebugDrawer>
   </div>
 </template>
 

@@ -1,8 +1,10 @@
 // Debug log collector with reactive state
 import { ref, type Ref } from 'vue'
 import { appendDebugLog, isTauriRuntime } from '../services/tauriApi'
+import { useDebugMode } from '../composables/useDebugMode'
 
 const debugLogs: Ref<string[]> = ref([])
+const { debugMode } = useDebugMode()
 let fileLogFailed = false
 
 export function log(msg: string): void {
@@ -15,7 +17,7 @@ export function log(msg: string): void {
     debugLogs.value.shift()
   }
 
-  if (isTauriRuntime()) {
+  if (debugMode.value && isTauriRuntime()) {
     void appendDebugLog(line).catch((err) => {
       if (fileLogFailed) return
       fileLogFailed = true

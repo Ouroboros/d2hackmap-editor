@@ -12,6 +12,7 @@ import { useTransmuteItems } from '../composables/useTransmuteItems'
 import { moveTransmuteItemInFile } from '../utils/grouping'
 import { fitTextColumnWidth } from '../utils/columnWidth'
 import { useI18n } from '../i18n'
+import { useDebugMode } from '../composables/useDebugMode'
 import { RELATION_TYPES } from '../configDefs'
 import type { BaseConfigItem, StatLimitGroupItem, StatLimitItem } from '../types'
 import EditorPanel from './EditorPanel.vue'
@@ -19,6 +20,8 @@ import SubTabs from './SubTabs.vue'
 import ConfigTable from './ConfigTable.vue'
 import StatPicker from './StatPicker.vue'
 import StatGroupPicker from './StatGroupPicker.vue'
+import DebugDrawer from './debug/DebugDrawer.vue'
+import FlatListView from './debug/FlatListView.vue'
 import type { ConfigTableColumn } from './configTable'
 
 interface Props {
@@ -32,6 +35,7 @@ const props = withDefaults(defineProps<Props>(), {
 const { t } = useI18n()
 const { config, exportSection, isReadOnly } = useConfig()
 const { saveSubTab, loadSubTab } = useFileStorage()
+const { debugMode } = useDebugMode()
 const {
   markCommented,
   markRestored,
@@ -583,6 +587,35 @@ function copyAllExtern() {
     refreshEffectiveStatus(config.value)
   }
 }
+
+type StatDebugItem = StatLimitItem | StatLimitGroupItem
+
+const currentDebugItems = computed<StatDebugItem[]>(() => {
+  if (activeSubTab.value === 'statLimitGroups') {
+    return getAllTransmuteItems<StatLimitGroupItem>('statLimitGroups')
+  }
+  return getAllTransmuteItems<StatLimitItem>('statLimits')
+})
+
+const currentDebugTitle = computed(() => {
+  return activeSubTab.value === 'statLimitGroups' ? 'Stat Limit Groups' : 'Stat Limits'
+})
+
+function getCurrentDebugKey(item: StatDebugItem): string {
+  if (activeSubTab.value === 'statLimitGroups') {
+    return getStatLimitGroupKey(item as StatLimitGroupItem)
+  }
+  return getStatLimitKey(item as StatLimitItem)
+}
+
+function formatCurrentDebugItem(item: StatDebugItem): string {
+  if (activeSubTab.value === 'statLimitGroups') {
+    const group = item as StatLimitGroupItem
+    return `${group.name}: relation=${group.relation}, limits=${group.limits.join(',')}`
+  }
+  const limit = item as StatLimitItem
+  return `${limit.name}: stat=${limit.statId}, param=${limit.param}, min=${limit.min}, max=${limit.max}`
+}
 </script>
 
 <template>
@@ -812,6 +845,15 @@ function copyAllExtern() {
         </template>
       </ConfigTable>
     </EditorPanel>
+
+    <DebugDrawer v-if="debugMode">
+      <FlatListView
+        :items="currentDebugItems"
+        :title="currentDebugTitle"
+        :get-key="getCurrentDebugKey"
+        :format-item="formatCurrentDebugItem"
+      />
+    </DebugDrawer>
   </div>
 </template>
 

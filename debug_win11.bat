@@ -1,4 +1,15 @@
 @echo off
+
+:loop
+set "RESULT=0"
+call :run %*
+echo.
+echo [debug] Finished with RESULT=%RESULT%.
+echo [debug] Press any key to restart debug run, or Ctrl+C to quit.
+pause >nul
+goto :loop
+
+:run
 setlocal
 
 set "PROJECT_DIR=%~dp0"
@@ -11,30 +22,30 @@ if /I "%~1"=="--init" set "FORCE_INIT=1"
 if /I "%~1"=="/init" set "FORCE_INIT=1"
 if /I "%~1"=="--force-init" set "FORCE_INIT=1"
 
-cd /d "%PROJECT_DIR%" || exit /b 1
+cd /d "%PROJECT_DIR%" || (endlocal & set "RESULT=1" & goto :eof)
 
 if not exist "%NODE_ROOT%\node.exe" (
   echo [ERROR] node.exe not found:
   echo         %NODE_ROOT%\node.exe
-  exit /b 1
+  endlocal & set "RESULT=1" & goto :eof
 )
 
 if not exist "%NODE_ROOT%\npm.cmd" (
   echo [ERROR] npm.cmd not found:
   echo         %NODE_ROOT%\npm.cmd
-  exit /b 1
+  endlocal & set "RESULT=1" & goto :eof
 )
 
 if not exist "%CARGO_BIN_DIR%\cargo.exe" (
   echo [ERROR] cargo.exe not found:
   echo         %CARGO_BIN_DIR%\cargo.exe
-  exit /b 1
+  endlocal & set "RESULT=1" & goto :eof
 )
 
 if not exist "%CARGO_BIN_DIR%\rustc.exe" (
   echo [ERROR] rustc.exe not found:
   echo         %CARGO_BIN_DIR%\rustc.exe
-  exit /b 1
+  endlocal & set "RESULT=1" & goto :eof
 )
 
 rem Integrated from D:\Dev\nodejs\nodevars.bat and D:\Dev\Rust\rust_env.ps1.
@@ -50,25 +61,25 @@ echo       Cargo PATH entry: %CARGO_BIN_DIR%
 where node >nul 2>nul
 if errorlevel 1 (
   echo [ERROR] node was not found after configuring PATH.
-  exit /b 1
+  endlocal & set "RESULT=1" & goto :eof
 )
 
 where npm >nul 2>nul
 if errorlevel 1 (
   echo [ERROR] npm was not found after configuring PATH.
-  exit /b 1
+  endlocal & set "RESULT=1" & goto :eof
 )
 
 where cargo >nul 2>nul
 if errorlevel 1 (
   echo [ERROR] cargo was not found after configuring PATH.
-  exit /b 1
+  endlocal & set "RESULT=1" & goto :eof
 )
 
 where rustc >nul 2>nul
 if errorlevel 1 (
   echo [ERROR] rustc was not found after configuring PATH.
-  exit /b 1
+  endlocal & set "RESULT=1" & goto :eof
 )
 
 for /f "delims=" %%v in ('node --version') do echo       node %%v
@@ -81,21 +92,21 @@ if "%FORCE_INIT%"=="1" (
   call npm install
   if errorlevel 1 (
     echo [ERROR] npm install failed.
-    exit /b 1
+    endlocal & set "RESULT=1" & goto :eof
   )
 ) else if not exist "%PROJECT_DIR%node_modules\.bin\vite.cmd" (
   echo [2/3] Installing npm dependencies ^(missing Windows vite.cmd^)...
   call npm install
   if errorlevel 1 (
     echo [ERROR] npm install failed.
-    exit /b 1
+    endlocal & set "RESULT=1" & goto :eof
   )
 ) else if not exist "%PROJECT_DIR%node_modules\.bin\tauri.cmd" (
   echo [2/3] Installing npm dependencies ^(missing Windows tauri.cmd^)...
   call npm install
   if errorlevel 1 (
     echo [ERROR] npm install failed.
-    exit /b 1
+    endlocal & set "RESULT=1" & goto :eof
   )
 ) else (
   echo [2/3] npm dependencies already installed, skipping initialization.
@@ -105,14 +116,14 @@ if not exist "%PROJECT_DIR%node_modules\.bin\vite.cmd" (
   echo [ERROR] vite.cmd is still missing after npm install:
   echo         %PROJECT_DIR%node_modules\.bin\vite.cmd
   echo         Run: debug_win11.bat --force-init
-  exit /b 1
+  endlocal & set "RESULT=1" & goto :eof
 )
 
 if not exist "%PROJECT_DIR%node_modules\.bin\tauri.cmd" (
   echo [ERROR] tauri.cmd is still missing after npm install:
   echo         %PROJECT_DIR%node_modules\.bin\tauri.cmd
   echo         Run: debug_win11.bat --force-init
-  exit /b 1
+  endlocal & set "RESULT=1" & goto :eof
 )
 
 echo [3/3] Starting Tauri dev mode...
@@ -120,8 +131,7 @@ echo       Vue changes reload through Vite HMR. Press Ctrl+C to stop.
 call npm run tauri:dev
 if errorlevel 1 (
   echo [ERROR] Tauri dev failed.
-  exit /b 1
+  endlocal & set "RESULT=1" & goto :eof
 )
 
-endlocal
-exit /b 0
+endlocal & set "RESULT=0" & goto :eof

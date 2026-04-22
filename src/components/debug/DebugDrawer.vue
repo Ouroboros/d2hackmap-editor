@@ -3,6 +3,12 @@ import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { getLogs, clearLogs } from '../../utils/log'
 import { useDebugMode } from '../../composables/useDebugMode'
 
+const props = withDefaults(defineProps<{
+  logsOnly?: boolean
+}>(), {
+  logsOnly: false
+})
+
 const STORAGE_KEY = 'hackmap-editor-debug-height'
 const MIN_HEIGHT = 100
 const MAX_HEIGHT_VH = 80
@@ -15,7 +21,7 @@ watch(height, (val) => {
   document.documentElement.style.setProperty('--debug-drawer-height', val + 'px')
 }, { immediate: true })
 const isResizing = ref(false)
-const activeTab = ref<'items' | 'logs'>('items')
+const activeTab = ref<'items' | 'logs'>(props.logsOnly ? 'logs' : 'items')
 const logs = getLogs()
 
 function close(): void {
@@ -77,6 +83,7 @@ onUnmounted(() => {
     <div class="debug-drawer-header">
       <div class="debug-drawer-tabs">
         <button
+          v-if="!logsOnly"
           class="debug-tab"
           :class="{ active: activeTab === 'items' }"
           @click.stop="activeTab = 'items'"
@@ -95,7 +102,7 @@ onUnmounted(() => {
       <button class="debug-drawer-close" @click="close" title="Close">×</button>
     </div>
     <div class="debug-drawer-content">
-      <div v-show="activeTab === 'items'">
+      <div v-if="!logsOnly" v-show="activeTab === 'items'">
         <slot></slot>
       </div>
       <div v-show="activeTab === 'logs'" class="logs-view">

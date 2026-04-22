@@ -24,9 +24,10 @@ import KeyBindingEditor from './components/KeyBindingEditor.vue'
 import ValidationEditor from './components/ValidationEditor.vue'
 import ConfigChainDialog from './components/ConfigChainDialog.vue'
 import HelpGuide from './components/HelpGuide.vue'
+import DebugDrawer from './components/debug/DebugDrawer.vue'
 
 const { theme, setTheme } = useTheme()
-const { debugMode, toggleDebugMode } = useDebugMode()
+const { debugMode, isDebugUiEnabled, toggleDebugMode } = useDebugMode()
 const { t } = useI18n()
 const { loadReferenceData } = useReferenceData()
 const {
@@ -76,6 +77,15 @@ const {
 const lastUsedHandle = ref<ConfigDirectory | null>(null)  // Remember last directory even after close
 
 const activeTab = ref<string>('toggles')
+const tabsWithLocalDebugDrawer = new Set([
+  'toggles',
+  'itemColors',
+  'importItems',
+  'statLimitGroup',
+  'autoTransmute',
+  'keyBindings'
+])
+const shouldShowGlobalDebugDrawer = computed(() => debugMode.value && !tabsWithLocalDebugDrawer.has(activeTab.value))
 
 // Watch activeTab changes and save to localStorage
 watch(activeTab, (newTab) => {
@@ -445,7 +455,9 @@ onUnmounted(() => {
       </div>
       <div class="status-bar-right">
         <button
+          v-if="isDebugUiEnabled"
           class="debug-btn"
+          :class="{ active: debugMode }"
           @click="toggleDebugMode"
           title="Toggle Debug Panel"
         >[D]</button>
@@ -479,5 +491,6 @@ onUnmounted(() => {
       @selectDir="handleChainSelectDir"
       @skipNode="handleChainSkipNode"
     />
+    <DebugDrawer v-if="shouldShowGlobalDebugDrawer" logs-only />
   </div>
 </template>
