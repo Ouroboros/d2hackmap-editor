@@ -154,9 +154,27 @@ if errorlevel 1 (
   exit /b 1
 )
 
+set "RELEASE_EXE=%PROJECT_DIR%src-tauri\target\release\d2hackmap-cfg-editor.exe"
+set "ROOT_EXE=%PROJECT_DIR%d2hackmap-cfg-editor.exe"
+
+if not exist "%RELEASE_EXE%" (
+  echo [ERROR] Built EXE not found:
+  echo         %RELEASE_EXE%
+  exit /b 1
+)
+
+copy /y "%RELEASE_EXE%" "%ROOT_EXE%" >nul
+if errorlevel 1 (
+  echo [ERROR] Failed to copy EXE to project root.
+  echo         From: %RELEASE_EXE%
+  echo         To:   %ROOT_EXE%
+  exit /b 1
+)
+
 echo.
 echo [OK] Build complete.
-echo      EXE: %PROJECT_DIR%src-tauri\target\release\d2hackmap-cfg-editor.exe
+echo      Release EXE: %RELEASE_EXE%
+echo      Root EXE:    %ROOT_EXE%
 
 endlocal
 exit /b 0
