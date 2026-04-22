@@ -50,3 +50,8 @@ export async function readConfigFile(path: string): Promise<ConfigFileContent> {
 export async function saveEditorOutput(rootPath: string, content: string): Promise<void> {
   return invoke<void>('save_editor_output', { rootPath, content })
 }
+
+export async function appendDebugLog(message: string): Promise<string | null> {
+  if (!isTauriRuntime()) return null
+  return invoke<string>('append_debug_log', { message })
+}

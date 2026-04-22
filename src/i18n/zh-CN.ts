@@ -170,6 +170,23 @@ const zhCN: Record<string, string> = {
   'statGroup.showSelected': '点击筛选已选项',
   'statGroup.noSelection': '未选择',
 
+  // Descriptor list picker
+  'descriptorPicker.title': '选择物品描述',
+  'descriptorPicker.placeholder': '选择物品描述',
+  'descriptorPicker.search': '搜索...',
+  'descriptorPicker.available': '可选物品描述',
+  'descriptorPicker.addAll': '全部添加',
+  'descriptorPicker.selected': '已选',
+  'descriptorPicker.selectedList': '当前公式列表',
+  'descriptorPicker.count': '{count} 个物品描述',
+  'descriptorPicker.empty': '没有定义物品描述',
+  'descriptorPicker.noMatch': '没有匹配的物品描述',
+  'descriptorPicker.noSelection': '未选择物品描述',
+  'descriptorPicker.remove': '移除',
+  'descriptorPicker.removeAll': '全部删除',
+  'descriptorPicker.moveUp': '上移',
+  'descriptorPicker.moveDown': '下移',
+
   // Auto Transmute
   'transmute.statLimit': '属性限制',
   'transmute.statLimitGroup': '属性限制组',
@@ -205,6 +222,11 @@ const zhCN: Record<string, string> = {
   'transmute.empty.doTasks': '没有执行任务配置',
   'transmute.empty.keyBindings': '没有按键绑定配置',
   'transmute.newLimit': '新限制',
+  'transmute.newLimitGroup': '新限制组',
+  'transmute.newItemDescriptor': '新物品描述',
+  'transmute.newCubeFormula': '新合成公式',
+  'transmute.newPreItemTask': '新预处理',
+  'transmute.newDoTask': '新执行任务',
   'transmute.limitRefCount': '{count} 条限制',
   'transmute.emptyLimitRefs': '没有引用属性限制',
 

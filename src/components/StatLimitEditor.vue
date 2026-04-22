@@ -10,6 +10,7 @@ import {
 } from '../composables/useItemActions'
 import { useTransmuteItems } from '../composables/useTransmuteItems'
 import { moveTransmuteItemInFile } from '../utils/grouping'
+import { fitTextColumnWidth } from '../utils/columnWidth'
 import { useI18n } from '../i18n'
 import { RELATION_TYPES } from '../configDefs'
 import type { BaseConfigItem, StatLimitGroupItem, StatLimitItem } from '../types'
@@ -177,10 +178,18 @@ function handleStatLimitDrop(e: DragEvent, targetIndex: number) {
 
   const allItems = getAllTransmuteItems<StatLimitItem>('statLimits')
   const targetItem = filteredItems[targetIndex]
-  const targetMergedIdx = targetItem ? allItems.indexOf(targetItem) : -1
+  let targetMergedIdx = targetItem ? allItems.indexOf(targetItem) : -1
   if (targetMergedIdx < 0) return
+  if (sourceIndex < targetIndex) {
+    targetMergedIdx++
+  }
 
-  moveTransmuteItemInFile(config.value, sourceItem, targetMergedIdx, 'statLimits')
+  const moved = moveTransmuteItemInFile(config.value, sourceItem, targetMergedIdx, 'statLimits')
+  if (!moved) {
+    statLimitDragIndex.value = null
+    statLimitDragOverIndex.value = null
+    return
+  }
   refreshEffectiveStatus(config.value)
 
   statLimitDragIndex.value = null
@@ -193,15 +202,13 @@ function handleStatLimitDragEnd() {
 }
 
 const limitNameWidth = computed(() => {
-  const items = statLimits.value
-  if (!items || items.length === 0) return '80px'
-  let maxLen = 0
-  for (const item of items) {
-    const len = item.name?.length || 0
-    if (len > maxLen) maxLen = len
-  }
-  const width = Math.min(200, Math.max(80, maxLen * 12 + 16))
-  return `${width}px`
+  return fitTextColumnWidth(statLimits.value.map(item => item.name), t('transmute.limitName'), {
+    min: 80,
+    max: 220,
+    padding: 16,
+    asciiWidth: 12,
+    wideWidth: 14
+  })
 })
 
 function isTransmuteRowDisabled(item: BaseConfigItem): boolean {
@@ -335,10 +342,18 @@ function handleStatLimitGroupDrop(e: DragEvent, targetIndex: number) {
 
   const allItems = getAllTransmuteItems<StatLimitGroupItem>('statLimitGroups')
   const targetItem = filteredItems[targetIndex]
-  const targetMergedIdx = targetItem ? allItems.indexOf(targetItem) : -1
+  let targetMergedIdx = targetItem ? allItems.indexOf(targetItem) : -1
   if (targetMergedIdx < 0) return
+  if (sourceIndex < targetIndex) {
+    targetMergedIdx++
+  }
 
-  moveTransmuteItemInFile(config.value, sourceItem, targetMergedIdx, 'statLimitGroups')
+  const moved = moveTransmuteItemInFile(config.value, sourceItem, targetMergedIdx, 'statLimitGroups')
+  if (!moved) {
+    statLimitGroupDragIndex.value = null
+    statLimitGroupDragOverIndex.value = null
+    return
+  }
   refreshEffectiveStatus(config.value)
 
   statLimitGroupDragIndex.value = null
@@ -463,6 +478,33 @@ function addStatLimit() {
   }
   addTransmuteItemToEditable('statLimits', newItem)
   refreshEffectiveStatus(config.value)
+  scrollToMainItemInList(() => statLimits.value, newItem, getStatLimitKey, '.stat-limits-list')
+}
+
+function addStatLimitGroup() {
+  if (!config.value || isReadOnly.value) return
+  const allGroups = getAllTransmuteItems<StatLimitGroupItem>('statLimitGroups')
+
+  const baseName = t('transmute.newLimitGroup')
+  let name = baseName
+  let counter = 1
+  while (allGroups.some(group => group.name === name)) {
+    name = `${baseName}${counter++}`
+  }
+
+  const newItem: StatLimitGroupItem = {
+    name,
+    relation: '0',
+    limits: [],
+    comments: [],
+    comment: '',
+    sourceFile: null,
+    isCommented: false,
+    isNew: true
+  }
+  addTransmuteItemToEditable('statLimitGroups', newItem)
+  refreshEffectiveStatus(config.value)
+  scrollToMainItemInList(() => statLimitGroups.value, newItem, getStatLimitGroupKey, '.stat-limit-groups-list')
 }
 
 function handleStatLimitGroupComment(group: StatLimitGroupItem) {
@@ -681,6 +723,7 @@ function copyAllExtern() {
           class="btn btn-small btn-accent"
           @click="copyAllExtern"
         >{{ t('batch.copyAllExtern') }}</button>
+        <button v-if="!isReadOnly" class="btn btn-small btn-primary" @click="addStatLimitGroup">{{ t('btn.add') }}</button>
         <button class="btn btn-secondary btn-small" @click="handleExport" :title="t('btn.export')">{{ t('btn.export') }}</button>
       </template>
 
@@ -726,7 +769,7 @@ function copyAllExtern() {
               :key="relation.value"
               :value="relation.value"
             >
-              {{ t(relation.labelKey) }}
+              [{{ relation.value }}] {{ t(relation.labelKey) }}
             </option>
           </select>
         </template>

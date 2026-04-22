@@ -1,14 +1,26 @@
 // Debug log collector with reactive state
 import { ref, type Ref } from 'vue'
+import { appendDebugLog, isTauriRuntime } from '../services/tauriApi'
 
 const debugLogs: Ref<string[]> = ref([])
+let fileLogFailed = false
 
 export function log(msg: string): void {
   const timestamp = new Date().toISOString().split('T')[1].slice(0, 12)
-  debugLogs.value.push(`[${timestamp}] ${msg}`)
+  const line = `[${timestamp}] ${msg}`
+
+  debugLogs.value.push(line)
   // Keep last 200 logs
   if (debugLogs.value.length > 200) {
     debugLogs.value.shift()
+  }
+
+  if (isTauriRuntime()) {
+    void appendDebugLog(line).catch((err) => {
+      if (fileLogFailed) return
+      fileLogFailed = true
+      console.warn('Failed to write debug log file:', err)
+    })
   }
 }
 

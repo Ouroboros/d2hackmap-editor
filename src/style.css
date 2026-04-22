@@ -450,6 +450,7 @@ label {
   cursor: grab;
   color: var(--text-muted);
   user-select: none;
+  touch-action: none;
   text-align: center;
   flex-shrink: 0;
 }

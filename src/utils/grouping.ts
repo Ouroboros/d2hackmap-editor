@@ -103,6 +103,8 @@ export function moveTransmuteItemInFile<T extends BaseConfigItem>(
   targetIndex: number,
   arrayName: TransmuteArrayKey
 ): boolean {
+  log(`[moveTransmuteItemInFile] START: arrayName=${arrayName}, targetIndex=${targetIndex}`)
+
   // 1. Find the file containing this item
   let sourceFile: FileConfig | null = null
   let fileArray: T[] | null = null
@@ -116,7 +118,12 @@ export function moveTransmuteItemInFile<T extends BaseConfigItem>(
     }
   }
 
-  if (!sourceFile || !fileArray) return false
+  if (!sourceFile || !fileArray) {
+    log(`[moveTransmuteItemInFile] FAIL: sourceFile or fileArray not found`)
+    return false
+  }
+
+  log(`[moveTransmuteItemInFile] sourceFile=${sourceFile.file}, fileArray.length=${fileArray.length}`)
 
   // 2. Build the merged list
   const allItems: T[] = []
@@ -124,6 +131,8 @@ export function moveTransmuteItemInFile<T extends BaseConfigItem>(
     const array = fileConfig.data.transmute[arrayName] as unknown as T[]
     allItems.push(...array)
   }
+
+  log(`[moveTransmuteItemInFile] allItems.length=${allItems.length}`)
 
   // 3. Calculate target position within the source file
   let fileTargetIndex = 0
@@ -135,19 +144,29 @@ export function moveTransmuteItemInFile<T extends BaseConfigItem>(
 
   // 4. Get current position in file array
   const fromIndex = fileArray.indexOf(draggedItem)
-  if (fromIndex === -1) return false
+  if (fromIndex === -1) {
+    log(`[moveTransmuteItemInFile] FAIL: draggedItem not found in fileArray`)
+    return false
+  }
+
+  log(`[moveTransmuteItemInFile] fromIndex=${fromIndex}, fileTargetIndex=${fileTargetIndex}`)
 
   // Adjust target if dragging downward within file
   if (fromIndex < fileTargetIndex) {
     fileTargetIndex--
+    log(`[moveTransmuteItemInFile] adjusted fileTargetIndex=${fileTargetIndex}`)
   }
 
   // No move needed
-  if (fromIndex === fileTargetIndex) return false
+  if (fromIndex === fileTargetIndex) {
+    log(`[moveTransmuteItemInFile] NO MOVE: fromIndex === fileTargetIndex`)
+    return false
+  }
 
   // 5. Perform the move within file array
   fileArray.splice(fromIndex, 1)
   fileArray.splice(fileTargetIndex, 0, draggedItem)
 
+  log(`[moveTransmuteItemInFile] SUCCESS: moved from ${fromIndex} to ${fileTargetIndex}`)
   return true
 }

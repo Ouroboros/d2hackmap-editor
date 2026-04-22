@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { BaseConfigItem } from '../types'
+import { log } from '../utils/log'
 
 const props = defineProps<{
   item: BaseConfigItem
@@ -24,6 +25,7 @@ const emit = defineEmits<{
   (e: 'dragleave'): void
   (e: 'drop', event: DragEvent, index: number): void
   (e: 'dragend'): void
+  (e: 'pointerdragstart', event: PointerEvent, index: number): void
 }>()
 
 const computedRowClasses = computed(() => ({
@@ -36,12 +38,68 @@ const canDrag = computed(() =>
   props.showDrag && !props.isReadOnly && !props.isDisabled
 )
 
+function logDrag(phase: string, e: DragEvent) {
+  const target = e.target as HTMLElement | null
+  const currentTarget = e.currentTarget as HTMLElement | null
+  const types = e.dataTransfer ? Array.from(e.dataTransfer.types).join(',') : ''
+
+  log(
+    `[drag] ${phase} index=${props.index} showDrag=${!!props.showDrag} readOnly=${!!props.isReadOnly} ` +
+      `disabled=${!!props.isDisabled} canDrag=${canDrag.value} target=${target?.className || target?.tagName || ''} ` +
+      `currentTarget=${currentTarget?.className || currentTarget?.tagName || ''} ` +
+      `effectAllowed=${e.dataTransfer?.effectAllowed || ''} dropEffect=${e.dataTransfer?.dropEffect || ''} types=${types}`
+  )
+}
+
 function handleDragStart(e: DragEvent) {
+  logDrag('start-before', e)
   if (!canDrag.value) {
     e.preventDefault()
+    logDrag('start-prevented', e)
     return
   }
+  e.stopPropagation()
   emit('dragstart', e, props.index)
+  logDrag('start-after', e)
+}
+
+function handleDragOver(e: DragEvent) {
+  logDrag('over-before', e)
+  if (props.showDrag && !props.isReadOnly) {
+    e.preventDefault()
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'move'
+    }
+  }
+  emit('dragover', e, props.index)
+  logDrag('over-after', e)
+}
+
+function handleDragEnter(e: DragEvent) {
+  logDrag('enter-before', e)
+  if (props.showDrag && !props.isReadOnly) {
+    e.preventDefault()
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'move'
+    }
+  }
+  logDrag('enter-after', e)
+}
+
+function handleDrop(e: DragEvent) {
+  logDrag('drop-before', e)
+  if (props.showDrag && !props.isReadOnly) {
+    e.preventDefault()
+  }
+  emit('drop', e, props.index)
+  logDrag('drop-after', e)
+}
+
+function handlePointerDragStart(e: PointerEvent) {
+  if (!canDrag.value) return
+  e.preventDefault()
+  e.stopPropagation()
+  emit('pointerdragstart', e, props.index)
 }
 </script>
 
@@ -50,9 +108,10 @@ function handleDragStart(e: DragEvent) {
     class="config-row"
     :class="computedRowClasses"
     :data-index="index"
-    @dragover="(e) => emit('dragover', e, index)"
+    @dragenter.capture="handleDragEnter"
+    @dragover.capture="handleDragOver"
     @dragleave="emit('dragleave')"
-    @drop="(e) => emit('drop', e, index)"
+    @drop.capture="handleDrop"
     @dragend="emit('dragend')"
   >
     <input
@@ -71,8 +130,9 @@ function handleDragStart(e: DragEvent) {
       v-if="showDrag"
       class="col-drag"
       :class="{ 'drag-hidden': isDisabled || isReadOnly }"
-      :draggable="canDrag"
+      :draggable="false"
       @dragstart="handleDragStart"
+      @pointerdown="handlePointerDragStart"
     >⋮⋮</span>
 
     <slot :item="item" :index="index" :isDisabled="isDisabled" />

@@ -5,12 +5,14 @@ use serde::Serialize;
 use std::{
     collections::HashSet,
     fs,
+    io::Write,
     path::{Path, PathBuf},
 };
 use tauri::WebviewWindowBuilder;
 
 const REQUIRED_FILE: &str = "d2hackmap.default.cfg";
 const EDITOR_OUTPUT_FILE: &str = "d2hackmap.gen.cfg";
+const DEBUG_LOG_FILE: &str = "d2hackmap-editor-debug.log";
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -142,6 +144,21 @@ fn save_editor_output(root_path: String, content: String) -> Result<(), String> 
     write_utf16le_with_bom(&output_path, &content)?;
     ensure_editor_import(&root_dir)?;
     Ok(())
+}
+
+#[tauri::command]
+fn append_debug_log(message: String) -> Result<String, String> {
+    let log_path = debug_log_path().map_err(|e| format!("Failed to resolve debug log path: {e}"))?;
+    let mut file = fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&log_path)
+        .map_err(|e| format!("Failed to open debug log {}: {e}", log_path.display()))?;
+
+    writeln!(file, "{message}")
+        .map_err(|e| format!("Failed to write debug log {}: {e}", log_path.display()))?;
+
+    Ok(path_to_string(&log_path))
 }
 
 fn directory_payload(path: &Path) -> ConfigDirectory {
@@ -437,6 +454,12 @@ fn path_to_string(path: &Path) -> String {
     path.to_string_lossy().replace('\\', "/")
 }
 
+fn debug_log_path() -> Result<PathBuf, std::io::Error> {
+    let exe_path = std::env::current_exe()?;
+    let exe_dir = exe_path.parent().unwrap_or(Path::new("."));
+    Ok(exe_dir.join(DEBUG_LOG_FILE))
+}
+
 fn exe_webview_data_dir() -> Result<PathBuf, std::io::Error> {
     let exe_path = std::env::current_exe()?;
     let exe_dir = exe_path.parent().unwrap_or(Path::new("."));
@@ -479,7 +502,8 @@ fn main() {
             validate_config_directory,
             parse_config_chain,
             read_config_file,
-            save_editor_output
+            save_editor_output,
+            append_debug_log
         ])
         .run(tauri::generate_context!())
         .expect("error while running Tauri application");

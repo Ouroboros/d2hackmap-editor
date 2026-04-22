@@ -270,7 +270,7 @@ const itemColorColumns = computed<ConfigTableColumn[]>(() => [
   { key: 'textColor', label: t('itemColors.textColor'), width: '32px' },
   { key: 'mapColor', label: t('itemColors.mapColor'), width: '32px' },
   { key: 'mapText', label: t('itemColors.mapText'), width: `${itemMapTextWidth.value}px` },
-  { key: 'comment', label: t('itemColors.comment'), flex: '1 1 120px', className: 'col-comment' },
+  { key: 'comment', label: t('itemColors.comment'), width: '180px', className: 'col-comment' },
   { key: 'actions', label: t('itemColors.actions'), width: '220px', className: 'col-actions' }
 ])
 
@@ -279,7 +279,7 @@ const runeColorColumns = computed<ConfigTableColumn[]>(() => [
   { key: 'textColor', label: t('itemColors.textColor'), width: '32px' },
   { key: 'mapColor', label: t('itemColors.mapColor'), width: '32px' },
   { key: 'mapText', label: t('itemColors.mapText'), width: `${runeMapTextWidth.value}px` },
-  { key: 'comment', label: t('itemColors.comment'), flex: '1 1 120px', className: 'col-comment' },
+  { key: 'comment', label: t('itemColors.comment'), width: '180px', className: 'col-comment' },
   { key: 'actions', label: t('itemColors.actions'), width: '220px', className: 'col-actions' }
 ])
 
@@ -288,7 +288,7 @@ const goldColorColumns = computed<ConfigTableColumn[]>(() => [
   { key: 'textColor', label: t('itemColors.textColor'), width: '32px' },
   { key: 'mapColor', label: t('itemColors.mapColor'), width: '32px' },
   { key: 'mapText', label: t('itemColors.mapText'), width: `${goldMapTextWidth.value}px` },
-  { key: 'comment', label: t('itemColors.comment'), flex: '1 1 120px', className: 'col-comment' },
+  { key: 'comment', label: t('itemColors.comment'), width: '180px', className: 'col-comment' },
   { key: 'actions', label: t('itemColors.actions'), width: '220px', className: 'col-actions' }
 ])
 
@@ -604,6 +604,7 @@ function addItemColor() {
   }
   addItemToEditable(config.value, 'itemColors', newItem)
   refreshEffectiveStatus(config.value)
+  scrollToMainItemInList(() => itemColors.value, newItem, getItemColorKey, '.items-color-list')
 }
 
 function handleDeleteItemColor(index: number) {
@@ -650,6 +651,7 @@ function addRuneColor() {
   }
   addItemToEditable(config.value, 'runeColors', newItem)
   refreshEffectiveStatus(config.value)
+  scrollToMainItemInList(() => runeColors.value, newItem, getRuneColorKey, '.runes-color-list')
 }
 
 function updateRuneColor(index: number, field: string, value: string) {
@@ -767,6 +769,7 @@ function addGoldColor() {
   }
   addItemToEditable(config.value, 'goldColors', newItem)
   refreshEffectiveStatus(config.value)
+  scrollToMainItemInList(() => goldColors.value, newItem, getGoldColorKey, '.golds-color-list')
 }
 
 function updateGoldColor(index: number, field: string, value: string) {

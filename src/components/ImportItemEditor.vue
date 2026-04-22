@@ -128,7 +128,7 @@ const importItemColumns = computed<ConfigTableColumn[]>(() => [
   { key: 'quality', label: t('itemColors.quality'), width: '80px' },
   { key: 'mode', label: t('import.mode'), width: '200px' },
   { key: 'statGroup', label: t('import.statGroup'), width: '120px' },
-  { key: 'comment', label: t('itemColors.comment'), flex: '1 1 120px', className: 'col-comment' },
+  { key: 'comment', label: t('itemColors.comment'), width: '180px', className: 'col-comment' },
   { key: 'actions', label: t('itemColors.actions'), width: '220px', className: 'col-actions' }
 ])
 
@@ -158,6 +158,7 @@ function addItem(): void {
   }
   addItemToEditable(config.value, 'importItems', newItem)
   refreshEffectiveStatus(config.value)
+  scrollToMainItemInList(() => importItems.value, newItem, getImportItemKey, '.import-items-list')
 }
 
 function handleDelete(index: number): void {

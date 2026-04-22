@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useConfig } from '../composables/useConfig'
 import {
   useItemActions,
@@ -23,6 +23,8 @@ import SubTabs from './SubTabs.vue'
 import ConfigTable from './ConfigTable.vue'
 import HotkeyInput from './HotkeyInput.vue'
 import type { ConfigTableColumn } from './configTable'
+import { moveItemInFile } from '../utils/grouping'
+import { fitTextColumnWidthNumber } from '../utils/columnWidth'
 
 const { t } = useI18n()
 
@@ -74,6 +76,8 @@ const toggles = computed((): ToggleItem[] => {
 
 // Build map for jump targets from DISPLAYED items (so indices match data-index)
 const togglesJumpMap = computed(() => buildCommentedMainMap(toggles.value, getToggleKey))
+const toggleDragIndex = ref<number | null>(null)
+const toggleDragOverIndex = ref<number | null>(null)
 
 // Get jump target for an item
 function getToggleJumpTarget(item: ToggleItem): number | undefined {
@@ -87,28 +91,33 @@ function jumpToToggle(index: number): void {
 // Calculate dynamic width for name column based on longest text
 const nameWidth = computed((): number => {
   const items = getAllItems<ToggleItem>(config.value, 'toggles')
-  if (!items.length) return 120
-  const maxLen = Math.max(0, ...items.map(item => item.name.length))
-  return Math.max(120, maxLen * 7 + 24)
+  return fitTextColumnWidthNumber(items.map(item => item.name), t('toggle.name'), {
+    min: 120,
+    max: 320,
+    padding: 24,
+    asciiWidth: 7
+  })
 })
 
 // Calculate dynamic width for hotkey column based on longest text
 const hotkeyWidth = computed((): number => {
   const items = getAllItems<ToggleItem>(config.value, 'toggles')
-  if (!items.length) return 160
-  const maxLen = Math.max(0, ...items.map(item => {
-    const hk = item.hotkey || ''
-    return hk === '-1' ? 2 : hk.length
-  }))
-  return Math.max(160, maxLen * 6 + 20)
+  return fitTextColumnWidthNumber(
+    items.map(item => item.hotkey === '-1' ? '无' : item.hotkey),
+    t('toggle.hotkey'),
+    { min: 160, max: 260, padding: 20, asciiWidth: 6 }
+  )
 })
 
 // Calculate dynamic width for comment column based on longest text
 const commentWidth = computed((): number => {
   const items = getAllItems<ToggleItem>(config.value, 'toggles')
-  if (!items.length) return 80
-  const maxLen = Math.max(0, ...items.map(item => (item.comment || '').length))
-  return Math.max(80, maxLen * 7 + 24)
+  return fitTextColumnWidthNumber(items.map(item => item.comment), t('itemColors.comment'), {
+    min: 80,
+    max: 360,
+    padding: 24,
+    asciiWidth: 7
+  })
 })
 
 const toggleColumns = computed<ConfigTableColumn[]>(() => [
@@ -118,6 +127,10 @@ const toggleColumns = computed<ConfigTableColumn[]>(() => [
   { key: 'comment', label: t('itemColors.comment'), width: `${commentWidth.value}px` },
   { key: 'actions', label: t('itemColors.actions'), width: '220px', className: 'col-actions' }
 ])
+
+function isToggleRowDisabled(item: ToggleItem): boolean {
+  return isItemDisabled(item) || isItemExtern(item)
+}
 
 function updateToggle(item: ToggleItem, field: string, value: unknown): void {
   if (isReadOnly.value) return
@@ -142,6 +155,62 @@ function handleRestore(item: ToggleItem): void {
   if (isReadOnly.value || !config.value) return
   markRestored(item)
   refreshEffectiveStatus(config.value)
+}
+
+function handleToggleDragStart(e: DragEvent, index: number): void {
+  toggleDragIndex.value = index
+  e.dataTransfer!.effectAllowed = 'move'
+  e.dataTransfer!.setData('text/plain', String(index))
+}
+
+function handleToggleDragOver(e: DragEvent, index: number): void {
+  e.preventDefault()
+  e.dataTransfer!.dropEffect = 'move'
+  toggleDragOverIndex.value = index
+}
+
+function handleToggleDragLeave(): void {
+  toggleDragOverIndex.value = null
+}
+
+function handleToggleDrop(e: DragEvent, targetIndex: number): void {
+  e.preventDefault()
+  if (isReadOnly.value || !config.value) return
+
+  const sourceIndex = toggleDragIndex.value
+  if (sourceIndex === null || sourceIndex === targetIndex) {
+    toggleDragIndex.value = null
+    toggleDragOverIndex.value = null
+    return
+  }
+
+  const filteredItems = toggles.value
+  const sourceItem = filteredItems[sourceIndex]
+  if (!sourceItem) return
+
+  const allItems = getAllItems<ToggleItem>(config.value, 'toggles')
+  const targetItem = filteredItems[targetIndex]
+  let targetMergedIdx = targetItem ? allItems.indexOf(targetItem) : -1
+  if (targetMergedIdx < 0) return
+  if (sourceIndex < targetIndex) {
+    targetMergedIdx++
+  }
+
+  const moved = moveItemInFile(config.value, sourceItem, targetMergedIdx, 'toggles')
+  if (!moved) {
+    toggleDragIndex.value = null
+    toggleDragOverIndex.value = null
+    return
+  }
+  refreshEffectiveStatus(config.value)
+
+  toggleDragIndex.value = null
+  toggleDragOverIndex.value = null
+}
+
+function handleToggleDragEnd(): void {
+  toggleDragIndex.value = null
+  toggleDragOverIndex.value = null
 }
 
 function duplicateToMain(item: ToggleItem, skipRefresh = false): boolean {
@@ -222,10 +291,17 @@ function formatToggle(item: ToggleItem): string {
         :empty-text="t('toggle.empty')"
         list-class="toggle-list"
         show-index
+        show-drag
         :is-read-only="isReadOnly"
-        :is-disabled="isItemDisabled"
+        :is-disabled="isToggleRowDisabled"
+        :drag-over-index="toggleDragOverIndex"
         :row-classes="getItemRowClasses"
         :row-key="(toggle, index) => `${toggle.name}-${index}`"
+        @dragstart="handleToggleDragStart"
+        @dragover="handleToggleDragOver"
+        @dragleave="handleToggleDragLeave"
+        @drop="handleToggleDrop"
+        @dragend="handleToggleDragEnd"
       >
         <template #cell-enabled="{ item: toggle }">
           <label>

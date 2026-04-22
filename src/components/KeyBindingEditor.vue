@@ -8,6 +8,7 @@ import {
 } from '../composables/useItemActions'
 import { useTransmuteItems } from '../composables/useTransmuteItems'
 import { moveTransmuteItemInFile } from '../utils/grouping'
+import { fitTextColumnWidthNumber } from '../utils/columnWidth'
 import { useI18n } from '../i18n'
 import type { BaseConfigItem } from '../types'
 import type { KeyBindingItem } from '../types'
@@ -49,12 +50,11 @@ const keyBindings = computed(() => {
 })
 
 const hotkeyWidth = computed((): number => {
-  if (!keyBindings.value.length) return 160
-  const maxLen = Math.max(0, ...keyBindings.value.map(item => {
-    const keyCode = item.keyCode || ''
-    return keyCode === '-1' ? 2 : keyCode.length
-  }))
-  return Math.max(160, maxLen * 6 + 20)
+  return fitTextColumnWidthNumber(
+    keyBindings.value.map(item => item.keyCode === '-1' ? '无' : item.keyCode),
+    t('transmute.keyCode'),
+    { min: 160, max: 260, padding: 20, asciiWidth: 6 }
+  )
 })
 
 const keyBindingColumns = computed<ConfigTableColumn[]>(() => [
@@ -188,10 +188,18 @@ function handleKeyBindingDrop(e: DragEvent, targetIndex: number) {
 
   const allItems = getAllTransmuteItems<KeyBindingItem>('keyBindings')
   const targetItem = filteredItems[targetIndex]
-  const targetMergedIdx = targetItem ? allItems.indexOf(targetItem) : -1
+  let targetMergedIdx = targetItem ? allItems.indexOf(targetItem) : -1
   if (targetMergedIdx < 0) return
+  if (sourceIndex < targetIndex) {
+    targetMergedIdx++
+  }
 
-  moveTransmuteItemInFile(config.value, sourceItem, targetMergedIdx, 'keyBindings')
+  const moved = moveTransmuteItemInFile(config.value, sourceItem, targetMergedIdx, 'keyBindings')
+  if (!moved) {
+    keyBindingDragIndex.value = null
+    keyBindingDragOverIndex.value = null
+    return
+  }
   refreshEffectiveStatus(config.value)
 
   keyBindingDragIndex.value = null
@@ -260,6 +268,22 @@ function handleKeyBindingRestore(binding: KeyBindingItem) {
   markRestored(binding)
   refreshEffectiveStatus(config.value)
 }
+
+function addKeyBinding() {
+  if (!config.value || isReadOnly.value) return
+
+  const newItem: KeyBindingItem = {
+    keyCode: '',
+    command: '',
+    comment: '',
+    sourceFile: null,
+    isCommented: false,
+    isNew: true
+  }
+  addTransmuteItemToEditable('keyBindings', newItem)
+  refreshEffectiveStatus(config.value)
+  scrollToMainItemInList(() => keyBindings.value, newItem, getKeyBindingKey, '.key-bindings-list')
+}
 </script>
 
 <template>
@@ -282,6 +306,7 @@ function handleKeyBindingRestore(binding: KeyBindingItem) {
           class="btn btn-small btn-accent"
           @click="copyAllKeyBindingExtern"
         >{{ t('batch.copyAllExtern') }}</button>
+        <button v-if="!isReadOnly" class="btn btn-primary btn-small" @click="addKeyBinding">{{ t('btn.add') }}</button>
         <button class="btn btn-secondary btn-small" @click="handleExport" :title="t('btn.export')">{{ t('btn.export') }}</button>
       </template>
 
