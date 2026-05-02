@@ -94,8 +94,7 @@ const nameWidth = computed((): number => {
   return fitTextColumnWidthNumber(items.map(item => item.name), t('toggle.name'), {
     min: 120,
     max: 320,
-    padding: 24,
-    asciiWidth: 7
+    padding: 24
   })
 })
 
@@ -105,7 +104,7 @@ const hotkeyWidth = computed((): number => {
   return fitTextColumnWidthNumber(
     items.map(item => item.hotkey === '-1' ? '无' : item.hotkey),
     t('toggle.hotkey'),
-    { min: 160, max: 260, padding: 20, asciiWidth: 6 }
+    { min: 160, max: 260, padding: 20 }
   )
 })
 
@@ -115,8 +114,7 @@ const commentWidth = computed((): number => {
   return fitTextColumnWidthNumber(items.map(item => item.comment), t('itemColors.comment'), {
     min: 80,
     max: 360,
-    padding: 24,
-    asciiWidth: 7
+    padding: 24
   })
 })
 

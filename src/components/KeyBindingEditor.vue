@@ -57,7 +57,7 @@ const hotkeyWidth = computed((): number => {
   return fitTextColumnWidthNumber(
     keyBindings.value.map(item => item.keyCode === '-1' ? '无' : item.keyCode),
     t('transmute.keyCode'),
-    { min: 160, max: 260, padding: 20, asciiWidth: 6 }
+    { min: 160, max: 260, padding: 20 }
   )
 })
 

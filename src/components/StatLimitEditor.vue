@@ -211,46 +211,9 @@ const limitNameWidth = computed(() => {
   return fitTextColumnWidth(statLimits.value.map(item => item.name), t('transmute.limitName'), {
     min: 80,
     max: 220,
-    padding: 16,
-    asciiWidth: 12,
-    wideWidth: 14
+    padding: 16
   })
 })
-
-let measureContext: CanvasRenderingContext2D | null = null
-
-function getStatPickerDisplayFont(): string {
-  if (typeof document === 'undefined') {
-    return '400 14px Microsoft YaHei, sans-serif'
-  }
-
-  const sample = document.querySelector('.stat-limits-list .stat-display') as HTMLElement | null
-  const style = window.getComputedStyle(sample ?? document.body)
-  return `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
-}
-
-function measureStatLimitStatIdWidth(values: string[], header: string): string {
-  if (typeof document === 'undefined') {
-    return fitTextColumnWidth(values, header, { min: 150, max: 360 })
-  }
-
-  if (!measureContext) {
-    measureContext = document.createElement('canvas').getContext('2d')
-  }
-
-  if (!measureContext) {
-    return fitTextColumnWidth(values, header, { min: 150, max: 360 })
-  }
-
-  measureContext.font = getStatPickerDisplayFont()
-
-  let widest = measureContext.measureText(header).width
-  for (const value of values) {
-    widest = Math.max(widest, measureContext.measureText(value).width)
-  }
-
-  return `${Math.min(360, Math.max(150, Math.ceil(widest) + 22))}px`
-}
 
 function getStatLimitDisplayText(item: StatLimitItem): string {
   if (!item.statId) return ''
@@ -262,7 +225,12 @@ function getStatLimitDisplayText(item: StatLimitItem): string {
 }
 
 const statLimitStatIdWidth = computed(() => {
-  return measureStatLimitStatIdWidth(statLimits.value.map(getStatLimitDisplayText), t('transmute.statId'))
+  return fitTextColumnWidth(statLimits.value.map(getStatLimitDisplayText), t('transmute.statId'), {
+    min: 150,
+    max: 360,
+    padding: 22,
+    sampleSelector: '.stat-limits-list .stat-display'
+  })
 })
 
 function isTransmuteRowDisabled(item: BaseConfigItem): boolean {
