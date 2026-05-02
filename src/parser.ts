@@ -196,7 +196,7 @@ export function parseConfig(lines: string[], sourceFile: string | null = null): 
     if (setType === SET_IMPORT_CONFIG) {
       // Import Config directive
       const fileName = values[0] || ''
-      if (fileName) {
+      if (!isCommented && fileName) {
         const externItem: ExternItem = { file: fileName, loaded: false }
         config.includes.push(externItem)
       }

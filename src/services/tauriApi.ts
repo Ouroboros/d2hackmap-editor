@@ -11,12 +11,11 @@ export type ValidateResult =
 
 export type ChainStatusType = 'loaded' | 'pending' | 'skipped' | 'missing' | 'circular'
 
-export interface TauriChainNode {
+export interface ResolvedConfigPath {
   file: string
   path: string
   fullPath: string | null
   status: ChainStatusType
-  children: TauriChainNode[]
 }
 
 export interface ConfigFileContent {
@@ -39,12 +38,20 @@ export async function validateConfigDirectoryPath(path: string): Promise<Validat
   return invoke<ValidateResult>('validate_config_directory', { path })
 }
 
-export async function parseConfigChainPath(rootPath: string): Promise<TauriChainNode> {
-  return invoke<TauriChainNode>('parse_config_chain', { rootPath })
-}
-
 export async function readConfigFile(path: string): Promise<ConfigFileContent> {
   return invoke<ConfigFileContent>('read_config_file', { path })
+}
+
+export async function resolveConfigPath(
+  rootPath: string,
+  baseFilePath: string,
+  importPath: string
+): Promise<ResolvedConfigPath> {
+  return invoke<ResolvedConfigPath>('resolve_config_path', {
+    rootPath,
+    baseFilePath,
+    importPath
+  })
 }
 
 export async function saveEditorOutput(rootPath: string, content: string): Promise<void> {

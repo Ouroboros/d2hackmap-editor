@@ -1,9 +1,11 @@
 import { ref, type Ref } from 'vue'
 import {
-  parseConfigChainPath,
+  readConfigFile,
+  resolveConfigPath,
   type ConfigDirectory,
-  type TauriChainNode
+  type ResolvedConfigPath
 } from '../services/tauriApi'
+import { parseConfig } from '../parser'
 
 // Node status constants
 export const ChainStatus = {
@@ -25,26 +27,80 @@ export interface ChainNode {
   children: ChainNode[]
 }
 
+interface QueueItem {
+  node: ChainNode
+}
+
 // Global state
 const chainRoot: Ref<ChainNode | null> = ref(null)
 const rootDirHandle: Ref<ConfigDirectory | null> = ref(null)
 
-function normalizeNode(node: TauriChainNode): ChainNode {
+function createRootNode(dirHandle: ConfigDirectory): ChainNode {
+  const fullPath = `${dirHandle.path.replace(/[\\/]$/, '')}/d2hackmap.default.cfg`
   return {
-    file: node.file,
-    path: node.path,
-    fullPath: node.fullPath,
-    status: node.status as ChainStatusType,
-    children: node.children.map(normalizeNode)
+    file: 'd2hackmap.default.cfg',
+    path: 'd2hackmap.default.cfg',
+    fullPath,
+    status: ChainStatus.LOADED,
+    children: []
   }
+}
+
+function createChildNode(resolved: ResolvedConfigPath, importFile: string): ChainNode {
+  return {
+    file: resolved.file || importFile,
+    path: resolved.path,
+    fullPath: resolved.fullPath,
+    status: resolved.status as ChainStatusType,
+    children: []
+  }
+}
+
+function getSeenKey(path: string): string {
+  return path.replace(/\\/g, '/').toLowerCase()
 }
 
 export function useConfigChain() {
   // Parse config chain starting from d2hackmap.default.cfg
   async function parseConfigChain(dirHandle: ConfigDirectory): Promise<ChainNode> {
     rootDirHandle.value = dirHandle
-    const root = normalizeNode(await parseConfigChainPath(dirHandle.path))
+
+    const root = createRootNode(dirHandle)
     chainRoot.value = root
+
+    const queuedOrLoaded = new Set<string>()
+    if (root.fullPath) {
+      queuedOrLoaded.add(getSeenKey(root.fullPath))
+    }
+
+    const queue: QueueItem[] = [{ node: root }]
+
+    while (queue.length > 0) {
+      const current = queue.shift()!
+      const node = current.node
+      if (node.status !== ChainStatus.LOADED || !node.fullPath) continue
+
+      const file = await readConfigFile(node.fullPath)
+      const parsed = parseConfig(file.lines, node.path)
+
+      for (const inc of parsed.includes) {
+        const resolved = await resolveConfigPath(dirHandle.path, node.fullPath, inc.file)
+        const child = createChildNode(resolved, inc.file)
+        node.children.push(child)
+
+        if (child.status !== ChainStatus.LOADED || !child.fullPath) continue
+
+        const seenKey = getSeenKey(child.fullPath)
+        if (queuedOrLoaded.has(seenKey)) {
+          child.status = ChainStatus.CIRCULAR
+          continue
+        }
+
+        queuedOrLoaded.add(seenKey)
+        queue.push({ node: child })
+      }
+    }
+
     return root
   }
 

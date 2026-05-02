@@ -3,7 +3,6 @@
 use encoding_rs::{GBK, UTF_16BE, UTF_16LE, UTF_8};
 use serde::Serialize;
 use std::{
-    collections::HashSet,
     fs,
     io::Write,
     path::{Path, PathBuf},
@@ -31,12 +30,11 @@ struct ValidateResult {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct ChainNode {
+struct ResolvedConfigPath {
     file: String,
     path: String,
     full_path: Option<String>,
     status: String,
-    children: Vec<ChainNode>,
 }
 
 #[derive(Debug, Serialize)]
@@ -104,21 +102,6 @@ fn validate_config_directory(path: String) -> Result<ValidateResult, String> {
 }
 
 #[tauri::command]
-fn parse_config_chain(root_path: String) -> Result<ChainNode, String> {
-    let root_dir = PathBuf::from(root_path);
-    let root_file = root_dir.join(REQUIRED_FILE);
-    let root_canonical = root_dir.canonicalize().unwrap_or(root_dir.clone());
-    let mut loaded = HashSet::new();
-
-    parse_chain_node(
-        &root_canonical,
-        &root_file,
-        REQUIRED_FILE.to_string(),
-        &mut loaded,
-    )
-}
-
-#[tauri::command]
 fn read_config_file(path: String) -> Result<ConfigFileContent, String> {
     let file_path = PathBuf::from(path);
     let (text, _) = read_text_file(&file_path)?;
@@ -131,6 +114,47 @@ fn read_config_file(path: String) -> Result<ConfigFileContent, String> {
         name,
         path: path_to_string(&file_path),
         lines: split_lines(&text),
+    })
+}
+
+#[tauri::command]
+fn resolve_config_path(
+    root_path: String,
+    base_file_path: String,
+    import_path: String,
+) -> Result<ResolvedConfigPath, String> {
+    let root_input = PathBuf::from(root_path);
+    let root_dir = root_input.canonicalize().unwrap_or(root_input);
+    let base_file = PathBuf::from(base_file_path);
+    let base_dir = base_file.parent().unwrap_or(root_dir.as_path());
+    let resolved = resolve_import_path(base_dir, &import_path);
+    let rendered_path = display_path(&root_dir, &resolved);
+
+    if !resolved.is_file() {
+        return Ok(ResolvedConfigPath {
+            file: import_path,
+            path: rendered_path,
+            full_path: None,
+            status: "missing".to_string(),
+        });
+    }
+
+    let canonical = resolved.canonicalize().map_err(|e| {
+        format!(
+            "Failed to resolve config path {}: {}",
+            resolved.display(),
+            e
+        )
+    })?;
+
+    Ok(ResolvedConfigPath {
+        file: canonical
+            .file_name()
+            .map(|s| s.to_string_lossy().into_owned())
+            .unwrap_or_else(|| import_path.clone()),
+        path: display_path(&root_dir, &canonical),
+        full_path: Some(path_to_string(&canonical)),
+        status: "loaded".to_string(),
     })
 }
 
@@ -187,70 +211,6 @@ fn directory_payload(path: &Path) -> ConfigDirectory {
     }
 }
 
-fn parse_chain_node(
-    root_dir: &Path,
-    file_path: &Path,
-    import_label: String,
-    loaded: &mut HashSet<PathBuf>,
-) -> Result<ChainNode, String> {
-    let rendered_path = display_path(root_dir, file_path);
-
-    if !file_path.is_file() {
-        return Ok(ChainNode {
-            file: import_label,
-            path: rendered_path,
-            full_path: None,
-            status: "missing".to_string(),
-            children: Vec::new(),
-        });
-    }
-
-    let canonical = file_path.canonicalize().map_err(|e| {
-        format!(
-            "Failed to resolve config path {}: {}",
-            file_path.display(),
-            e
-        )
-    })?;
-
-    if loaded.contains(&canonical) {
-        return Ok(ChainNode {
-            file: import_label,
-            path: display_path(root_dir, &canonical),
-            full_path: Some(path_to_string(&canonical)),
-            status: "circular".to_string(),
-            children: Vec::new(),
-        });
-    }
-    loaded.insert(canonical.clone());
-
-    let (content, _) = read_text_file(&canonical)?;
-    let imports = parse_import_configs(&content);
-    let current_dir = canonical.parent().unwrap_or(root_dir);
-    let mut children = Vec::new();
-
-    for import_path in imports {
-        let child_path = resolve_import_path(current_dir, &import_path);
-        children.push(parse_chain_node(
-            root_dir,
-            &child_path,
-            import_path,
-            loaded,
-        )?);
-    }
-
-    Ok(ChainNode {
-        file: canonical
-            .file_name()
-            .map(|s| s.to_string_lossy().into_owned())
-            .unwrap_or(import_label),
-        path: display_path(root_dir, &canonical),
-        full_path: Some(path_to_string(&canonical)),
-        status: "loaded".to_string(),
-        children,
-    })
-}
-
 fn resolve_import_path(base_dir: &Path, import_path: &str) -> PathBuf {
     let normalized = normalize_config_path(import_path);
     let path = PathBuf::from(normalized);
@@ -272,42 +232,6 @@ fn display_path(root_dir: &Path, path: &Path) -> String {
     } else {
         path_to_string(&normalized)
     }
-}
-
-fn parse_import_configs(text: &str) -> Vec<String> {
-    let mut imports = Vec::new();
-
-    for line in text.lines() {
-        let trimmed = line.trim();
-        if trimmed.is_empty() || trimmed.starts_with("//") {
-            continue;
-        }
-
-        let Some((key, rest)) = trimmed.split_once(':') else {
-            continue;
-        };
-        if key.trim() != "Import Config" {
-            continue;
-        }
-
-        let mut value = rest.trim();
-        if let Some((before_comment, _)) = value.split_once("//") {
-            value = before_comment.trim();
-        }
-
-        let unquoted = value
-            .strip_prefix('"')
-            .and_then(|s| s.strip_suffix('"'))
-            .or_else(|| value.strip_prefix('\'').and_then(|s| s.strip_suffix('\'')))
-            .unwrap_or(value)
-            .trim();
-
-        if !unquoted.is_empty() {
-            imports.push(unquoted.to_string());
-        }
-    }
-
-    imports
 }
 
 fn ensure_editor_import(root_dir: &Path) -> Result<(), String> {
@@ -518,8 +442,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             pick_config_directory,
             validate_config_directory,
-            parse_config_chain,
             read_config_file,
+            resolve_config_path,
             save_editor_output,
             append_debug_log,
             read_external_isc_json
