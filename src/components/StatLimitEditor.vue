@@ -13,6 +13,7 @@ import { moveTransmuteItemInFile } from '../utils/grouping'
 import { fitTextColumnWidth } from '../utils/columnWidth'
 import { useI18n } from '../i18n'
 import { useDebugMode } from '../composables/useDebugMode'
+import { useReferenceData } from '../composables/useReferenceData'
 import { RELATION_TYPES } from '../configDefs'
 import type { BaseConfigItem, StatLimitGroupItem, StatLimitItem } from '../types'
 import EditorPanel from './EditorPanel.vue'
@@ -36,6 +37,7 @@ const { t } = useI18n()
 const { config, exportSection, isReadOnly } = useConfig()
 const { saveSubTab, loadSubTab } = useFileStorage()
 const { debugMode } = useDebugMode()
+const { getStatById } = useReferenceData()
 const {
   markCommented,
   markRestored,
@@ -215,13 +217,61 @@ const limitNameWidth = computed(() => {
   })
 })
 
+let measureContext: CanvasRenderingContext2D | null = null
+
+function getStatPickerDisplayFont(): string {
+  if (typeof document === 'undefined') {
+    return '400 14px Microsoft YaHei, sans-serif'
+  }
+
+  const sample = document.querySelector('.stat-limits-list .stat-display') as HTMLElement | null
+  const style = window.getComputedStyle(sample ?? document.body)
+  return `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
+}
+
+function measureStatLimitStatIdWidth(values: string[], header: string): string {
+  if (typeof document === 'undefined') {
+    return fitTextColumnWidth(values, header, { min: 150, max: 360 })
+  }
+
+  if (!measureContext) {
+    measureContext = document.createElement('canvas').getContext('2d')
+  }
+
+  if (!measureContext) {
+    return fitTextColumnWidth(values, header, { min: 150, max: 360 })
+  }
+
+  measureContext.font = getStatPickerDisplayFont()
+
+  let widest = measureContext.measureText(header).width
+  for (const value of values) {
+    widest = Math.max(widest, measureContext.measureText(value).width)
+  }
+
+  return `${Math.min(360, Math.max(150, Math.ceil(widest) + 22))}px`
+}
+
+function getStatLimitDisplayText(item: StatLimitItem): string {
+  if (!item.statId) return ''
+  const stat = getStatById(item.statId)
+  if (stat) {
+    return `${stat.id} - ${stat.name || stat.code || item.statId}`
+  }
+  return item.statId
+}
+
+const statLimitStatIdWidth = computed(() => {
+  return measureStatLimitStatIdWidth(statLimits.value.map(getStatLimitDisplayText), t('transmute.statId'))
+})
+
 function isTransmuteRowDisabled(item: BaseConfigItem): boolean {
   return isItemDisabled(item) || isItemExtern(item)
 }
 
 const statLimitColumns = computed<ConfigTableColumn[]>(() => [
   { key: 'name', label: t('transmute.limitName'), width: limitNameWidth.value },
-  { key: 'statId', label: t('transmute.statId'), width: '150px' },
+  { key: 'statId', label: t('transmute.statId'), width: statLimitStatIdWidth.value },
   { key: 'param', label: t('transmute.param'), width: '60px' },
   { key: 'min', label: t('transmute.min'), width: '80px' },
   { key: 'max', label: t('transmute.max'), width: '80px' },

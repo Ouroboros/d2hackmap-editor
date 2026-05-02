@@ -23,6 +23,7 @@ const emit = defineEmits<{
 
 const showPicker = ref<boolean>(false)
 const isLightTheme = ref<boolean>(false)
+const pickerPosition = ref<{ left: number; top: number }>({ left: 0, top: 0 })
 
 // Quality definitions (1-8)
 const qualities = computed(() => [
@@ -105,8 +106,29 @@ function selectNone(): void {
   emit('update:modelValue', '')
 }
 
-function togglePicker(): void {
+function updatePickerPosition(target: HTMLElement): void {
+  const rect = target.getBoundingClientRect()
+  const popupWidth = 260
+  const popupHeight = 360
+  const gap = 8
+  let left = rect.right + gap
+  let top = rect.top
+
+  if (left + popupWidth > window.innerWidth - gap) {
+    left = rect.left - popupWidth - gap
+  }
+  if (top + popupHeight > window.innerHeight - gap) {
+    top = window.innerHeight - popupHeight - gap
+  }
+  if (top < gap) top = gap
+  if (left < gap) left = gap
+
+  pickerPosition.value = { left, top }
+}
+
+function togglePicker(event: MouseEvent): void {
   if (!props.disabled) {
+    updatePickerPosition(event.currentTarget as HTMLElement)
     showPicker.value = !showPicker.value
   }
 }
@@ -128,7 +150,7 @@ function closePicker(): void {
 
     <Teleport to="body">
       <div v-if="showPicker" class="picker-overlay" @mousedown.self="closePicker">
-        <div class="picker-popup" @click.stop>
+        <div class="picker-popup quality-picker-popup" :style="{ left: `${pickerPosition.left}px`, top: `${pickerPosition.top}px` }" @click.stop>
           <div class="picker-header">
             <span>{{ t('quality.selectTitle') }}</span>
             <span v-if="readonly" class="readonly-badge">{{ t('status.readOnly') }}</span>
@@ -199,13 +221,11 @@ function closePicker(): void {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   z-index: 1000;
 }
 
 .picker-popup {
+  position: fixed;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 8px;

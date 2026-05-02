@@ -147,7 +147,7 @@ const selectedTooltip = computed(() => {
 
     <Teleport to="body">
       <div v-if="showPicker" class="picker-overlay" @mousedown.self="cancelSelection">
-        <div class="picker-popup" @click.stop>
+        <div class="picker-popup stat-picker-popup" @click.stop>
           <div class="picker-header">
             <span>{{ t('statPicker.title') }}</span>
             <span v-if="readonly" class="readonly-badge">{{ t('status.readOnly') }}</span>
@@ -235,6 +235,11 @@ const selectedTooltip = computed(() => {
 .stat-picker.disabled {
   opacity: 0.6;
   pointer-events: none;
+}
+
+.stat-picker-popup {
+  width: min(900px, calc(100vw - 96px));
+  height: min(760px, calc(100vh - 96px));
 }
 
 .stat-display {
@@ -327,10 +332,11 @@ const selectedTooltip = computed(() => {
 .stat-option {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   padding: 8px 10px;
   cursor: pointer;
   border-bottom: 1px solid var(--border-color);
+  min-height: 42px;
 }
 
 .stat-option:last-child {
@@ -367,9 +373,13 @@ const selectedTooltip = computed(() => {
 }
 
 .stat-name {
-  flex: 1;
+  flex: 1 1 280px;
+  min-width: 220px;
   font-size: 14px;
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .stat-range {
@@ -378,6 +388,9 @@ const selectedTooltip = computed(() => {
   padding: 1px 6px;
   background: var(--bg-tertiary);
   border-radius: 3px;
+  flex: 0 0 150px;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .stat-code {
@@ -386,6 +399,10 @@ const selectedTooltip = computed(() => {
   padding: 1px 4px;
   background: var(--bg-tertiary);
   border-radius: 3px;
+  flex: 0 0 230px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .selected-info {
