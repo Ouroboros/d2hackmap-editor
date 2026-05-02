@@ -17,7 +17,7 @@ DEFAULT_STRING_TABLES = [
     r"D:\Dev\Source\d2tools\1.10f\goose\mod_dk2024\center\patchstring.txt",
     r"D:\Dev\Source\d2tools\1.10f\goose\mod_dk2024\center\string.txt",
 ]
-DEFAULT_OUT = "data/stats.json"
+DEFAULT_OUT = "data/isc.json"
 DEFAULT_OVERRIDES = "scripts/stat_name_overrides.json"
 
 
@@ -193,7 +193,7 @@ def generate_stats_with_overrides(
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate data/stats.json from ItemStatCost.txt.")
+    parser = argparse.ArgumentParser(description="Generate data/isc.json from ItemStatCost.txt.")
     parser.add_argument("--isc", default=DEFAULT_ISC, help="Path to ItemStatCost.txt.")
     parser.add_argument(
         "--string-table",

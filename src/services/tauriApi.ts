@@ -55,3 +55,8 @@ export async function appendDebugLog(message: string): Promise<string | null> {
   if (!isTauriRuntime()) return null
   return invoke<string>('append_debug_log', { message })
 }
+
+export async function readExternalIscJson(): Promise<string | null> {
+  if (!isTauriRuntime()) return null
+  return invoke<string | null>('read_external_isc_json')
+}

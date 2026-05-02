@@ -1,6 +1,7 @@
 import { ref, computed, type Ref, type ComputedRef } from 'vue'
 import itemsData from '../../data/items.json'
-import statsData from '../../data/stats.json'
+import statsData from '../../data/isc.json'
+import { appendDebugLog, readExternalIscJson } from '../services/tauriApi'
 
 // Reference item type
 export interface ReferenceItem {
@@ -18,11 +19,12 @@ export interface ReferenceStat {
   [key: string]: unknown
 }
 
-// Reference data state - directly loaded from imported JSON
+// Reference data state - built-in data is loaded first, then EXE-side isc.json can override/append stats.
 const items = ref<ReferenceItem[]>(itemsData as ReferenceItem[])
 const stats = ref<ReferenceStat[]>(statsData as ReferenceStat[])
 const loaded = ref(true)
 const loading = ref(false)
+let externalStatsLoadStarted = false
 
 // Create a Map for fast ID lookup
 const itemsMap: ComputedRef<Map<number, ReferenceItem>> = computed(() => {
@@ -35,9 +37,67 @@ const itemsMap: ComputedRef<Map<number, ReferenceItem>> = computed(() => {
   return map
 })
 
-// Load reference data (now synchronous since data is imported)
+function normalizeStat(stat: unknown): ReferenceStat | null {
+  if (!stat || typeof stat !== 'object') return null
+  const item = stat as Record<string, unknown>
+  const id = Number(item.id)
+  if (!Number.isFinite(id)) return null
+  return {
+    ...item,
+    id
+  } as ReferenceStat
+}
+
+function mergeStats(baseStats: ReferenceStat[], externalStats: ReferenceStat[]): ReferenceStat[] {
+  const merged = [...baseStats]
+  const indexById = new Map<number, number>()
+
+  for (let i = 0; i < merged.length; i++) {
+    if (merged[i].id != null) {
+      indexById.set(Number(merged[i].id), i)
+    }
+  }
+
+  for (const stat of externalStats) {
+    if (stat.id == null) continue
+    const id = Number(stat.id)
+    const index = indexById.get(id)
+    if (index == null) {
+      indexById.set(id, merged.length)
+      merged.push(stat)
+    } else {
+      merged[index] = stat
+    }
+  }
+
+  return merged.sort((a, b) => Number(a.id ?? 0) - Number(b.id ?? 0))
+}
+
+async function loadExternalStats(): Promise<void> {
+  try {
+    const content = await readExternalIscJson()
+    if (!content) return
+
+    const parsed = JSON.parse(content)
+    if (!Array.isArray(parsed)) {
+      throw new Error('isc.json root must be an array')
+    }
+
+    const externalStats = parsed
+      .map(normalizeStat)
+      .filter((stat): stat is ReferenceStat => stat !== null)
+
+    stats.value = mergeStats(statsData as ReferenceStat[], externalStats)
+    await appendDebugLog(`[reference] loaded isc.json: ${externalStats.length} valid stat entries`)
+  } catch (err) {
+    await appendDebugLog(`[reference] failed to load isc.json: ${err instanceof Error ? err.message : String(err)}`)
+  }
+}
+
 function loadReferenceData(): void {
-  // Data already loaded via import
+  if (externalStatsLoadStarted) return
+  externalStatsLoadStarted = true
+  void loadExternalStats()
 }
 
 export function useReferenceData() {

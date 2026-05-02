@@ -13,6 +13,7 @@ use tauri::WebviewWindowBuilder;
 const REQUIRED_FILE: &str = "d2hackmap.default.cfg";
 const EDITOR_OUTPUT_FILE: &str = "d2hackmap.gen.cfg";
 const DEBUG_LOG_FILE: &str = "d2hackmap-editor-debug.log";
+const EXTERNAL_ISC_FILE: &str = "isc.json";
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -148,7 +149,8 @@ fn save_editor_output(root_path: String, content: String) -> Result<(), String> 
 
 #[tauri::command]
 fn append_debug_log(message: String) -> Result<String, String> {
-    let log_path = debug_log_path().map_err(|e| format!("Failed to resolve debug log path: {e}"))?;
+    let log_path =
+        debug_log_path().map_err(|e| format!("Failed to resolve debug log path: {e}"))?;
     let mut file = fs::OpenOptions::new()
         .create(true)
         .append(true)
@@ -159,6 +161,20 @@ fn append_debug_log(message: String) -> Result<String, String> {
         .map_err(|e| format!("Failed to write debug log {}: {e}", log_path.display()))?;
 
     Ok(path_to_string(&log_path))
+}
+
+#[tauri::command]
+fn read_external_isc_json() -> Result<Option<String>, String> {
+    let isc_path = exe_sibling_path(EXTERNAL_ISC_FILE)
+        .map_err(|e| format!("Failed to resolve {EXTERNAL_ISC_FILE} path: {e}"))?;
+
+    if !isc_path.is_file() {
+        return Ok(None);
+    }
+
+    fs::read_to_string(&isc_path)
+        .map(Some)
+        .map_err(|e| format!("Failed to read {}: {e}", isc_path.display()))
 }
 
 fn directory_payload(path: &Path) -> ConfigDirectory {
@@ -455,15 +471,17 @@ fn path_to_string(path: &Path) -> String {
 }
 
 fn debug_log_path() -> Result<PathBuf, std::io::Error> {
-    let exe_path = std::env::current_exe()?;
-    let exe_dir = exe_path.parent().unwrap_or(Path::new("."));
-    Ok(exe_dir.join(DEBUG_LOG_FILE))
+    exe_sibling_path(DEBUG_LOG_FILE)
 }
 
 fn exe_webview_data_dir() -> Result<PathBuf, std::io::Error> {
+    exe_sibling_path("d2hackmap-cfg-editor-data")
+}
+
+fn exe_sibling_path(name: &str) -> Result<PathBuf, std::io::Error> {
     let exe_path = std::env::current_exe()?;
     let exe_dir = exe_path.parent().unwrap_or(Path::new("."));
-    Ok(exe_dir.join("d2hackmap-cfg-editor-data"))
+    Ok(exe_dir.join(name))
 }
 
 fn create_main_window(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
@@ -503,7 +521,8 @@ fn main() {
             parse_config_chain,
             read_config_file,
             save_editor_output,
-            append_debug_log
+            append_debug_log,
+            read_external_isc_json
         ])
         .run(tauri::generate_context!())
         .expect("error while running Tauri application");

@@ -1,7 +1,7 @@
 # ISC 属性列表生成说明
 
 本文档记录如何从 MOD 的 `ItemStatCost.txt` 重新生成编辑器内置的
-`data/stats.json` 属性列表。
+`data/isc.json` 属性列表。
 
 ## 目标
 
@@ -10,7 +10,7 @@
 输出文件：
 
 ```text
-data/stats.json
+data/isc.json
 ```
 
 生成脚本：
@@ -43,7 +43,7 @@ scripts/stat_name_overrides.json
 生成顺序：
 
 ```text
-ISC + string table -> 自动名称 -> OP 后缀 -> override 覆盖 -> data/stats.json
+ISC + string table -> 自动名称 -> OP 后缀 -> override 覆盖 -> data/isc.json
 ```
 
 正式运行时 JSON 只保存 UI 和编辑需要的字段：
@@ -196,7 +196,7 @@ raw 范围 = -256 ~ 255
 
 ## OP 语义
 
-`op` 不写入 `stats.json`。  
+`op` 不写入 `isc.json`。  
 它不是通用的“基于某属性”字段，不能只看 OP 名字就往 `name` 里追加
 “基于精力/体力/力量”。
 
@@ -278,7 +278,7 @@ op stat2 = maxstamina
 
 ## 验证清单
 
-重新生成 `data/stats.json` 后检查：
+重新生成 `data/isc.json` 后检查：
 
 1. 条目数量明显多于旧的 14 条手写列表。
 2. 每条至少有 `id`、`code`、`name`。
@@ -287,4 +287,4 @@ op stat2 = maxstamina
 5. `strength` 范围应为 `-32 ~ 223`。
 6. 不能把 `op stat#` 误当成“基于xxx”的来源属性；只有 `op base` 或文档明确说明的来源才能用于补充名称。
 7. `op=8/9` 不能自动生成“基于精力/基于体力”，因为它们的来源是 `charstats.txt` 换算字段，不是另一个 ISC stat。
-8. `data/stats.json` 能被现有 Vue 代码正常 import。
+8. `data/isc.json` 能被现有 Vue 代码正常 import。
