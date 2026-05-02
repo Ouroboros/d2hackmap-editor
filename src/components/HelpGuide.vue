@@ -98,6 +98,57 @@ const helpEntries = computed<HelpEntry[]>(() => [
     ]
   },
   {
+    id: 'changelog',
+    label: '更新日志',
+    intro: '',
+    blocks: [
+      {
+        title: '2026-05-03',
+        lines: [
+          '支持外部 ISC 参考数据。',
+          '使用 canvas 测量动态列宽。',
+          '更新属性参考数据和选择器布局。'
+        ]
+      },
+      {
+        title: '2026-04-22',
+        lines: [
+          '优化使用说明和 WebView 数据目录。',
+          '将发布版 EXE 复制到工程根目录。',
+          '改进调试流程和使用说明引导的任务编辑。',
+          '优化共享表格编辑流程。'
+        ]
+      },
+      {
+        title: '2026-04-21',
+        lines: [
+          '将编辑器页签重构为共享表格。',
+          '更新自动合成物品描述编辑器布局。',
+          '优化属性组标签和悬浮提示。',
+          '对齐属性限制组编辑控件。',
+          '修复启动窗口大小和属性选择器数据。',
+          '配置 Tauri 启动和应用图标。'
+        ]
+      },
+      {
+        title: '2026-04-19',
+        lines: [
+          '更新应用图标。',
+          '让编辑区域填满内容高度。',
+          '复制到主配置后滚动到新配置项。',
+          '将外部配置项选择器设为只读。',
+          '添加 Tauri 桌面应用。'
+        ]
+      },
+      {
+        title: '2026-04-18',
+        lines: [
+          '初始提交。'
+        ]
+      }
+    ]
+  },
+  {
     id: 'toggles',
     label: t('subTab.toggles'),
     intro: '这一页用来控制各种开关项，比如自动地图、自动拾取、快速施法、自动合成等开关，以及它们的快捷键。',
@@ -510,7 +561,7 @@ watch(activeHelpTab, () => {
         <div ref="helpContentRef" class="help-content">
           <section class="help-hero">
             <h2>{{ activeEntry.label }}</h2>
-            <p>{{ activeEntry.intro }}</p>
+            <p v-if="activeEntry.intro">{{ activeEntry.intro }}</p>
           </section>
 
           <section
