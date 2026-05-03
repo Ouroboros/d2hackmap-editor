@@ -97,6 +97,13 @@ const zhCN: Record<string, string> = {
   'batch.selected': '已选 {count} 项',
   'batch.copyAllExtern': '复制全部外部项',
 
+  // Source
+  'source.title': '来源',
+  'source.profile': 'PROFILE',
+  'source.user': 'USER',
+  'source.extern': 'EXTERN',
+  'source.entry': 'ENTRY',
+
   // Actions
   'action.copy': '复制',
 
@@ -591,6 +598,20 @@ const zhCN: Record<string, string> = {
   'help.keyBindings.operations.1': '添加会创建新的按键绑定，并跳转到新增项。',
   'help.keyBindings.operations.2': '外部按键绑定只读，复制到主配置后才能修改。',
   'help.keyBindings.operations.3': '主配置按键绑定可以批量注释、删除、恢复和拖拽排序。',
+
+  'profile.current': '当前 Profile',
+  'profile.unnamed': '未命名 Profile',
+  'profile.targetUser': '用户配置',
+  'profile.saveUser': '保存用户配置',
+  'profile.saveCurrent': '保存当前 Profile',
+  'profile.saveAs': '保存到新 Profile',
+  'profile.delete': '删除 Profile',
+  'profile.selectTitle': '切换 Profile',
+  'profile.name': 'Profile 名称',
+  'profile.noProfiles': '还没有保存过 Profile',
+  'profile.confirmSwitchUnsaved': '当前有未保存改动，切换 Profile 会丢失未保存内容。是否继续？',
+  'profile.confirmDelete': '确定删除 Profile “{name}” 吗？',
+  'profile.entryNotLinked': '当前目录没有导入 d2hackmap.gen.cfg。编辑器不会修改 d2hackmap.default.cfg，请手动接入入口文件。',
 }
 
 export default zhCN

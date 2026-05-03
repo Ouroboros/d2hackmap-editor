@@ -1101,7 +1101,6 @@ const currentFormatter = computed(() => {
                 <button v-if="!isReadOnly && getItemJumpTarget(item) === undefined" class="btn btn-small btn-accent" @click="duplicateItemColorToMain(index)" :title="t('action.copyToMain')">
                   +
                 </button>
-                <span class="status-tag tag-extern" :title="item.sourceFile || undefined">{{ item.sourceFile }}</span>
               </template>
               <template v-else-if="item.isCommented || item.isDeleted">
                 <button v-if="!isReadOnly" class="btn btn-small btn-primary" @click="handleRestoreItemColor(index)" :title="t('action.restore')">
@@ -1204,7 +1203,6 @@ const currentFormatter = computed(() => {
                 <button v-if="!isReadOnly && getRuneJumpTarget(item) === undefined" class="btn btn-small btn-accent" @click="duplicateRuneColorToMain(index)" :title="t('action.copyToMain')">
                   +
                 </button>
-                <span class="status-tag tag-extern" :title="item.sourceFile || undefined">{{ item.sourceFile }}</span>
               </template>
               <template v-else-if="item.isCommented || item.isDeleted">
                 <button v-if="!isReadOnly" class="btn btn-small btn-primary" @click="handleRestoreRuneColor(index)" :title="t('action.restore')">
@@ -1309,7 +1307,6 @@ const currentFormatter = computed(() => {
                 <button v-if="!isReadOnly && getGoldJumpTarget(item) === undefined" class="btn btn-small btn-accent" @click="duplicateGoldColorToMain(index)" :title="t('action.copyToMain')">
                   +
                 </button>
-                <span class="status-tag tag-extern" :title="item.sourceFile || undefined">{{ item.sourceFile }}</span>
               </template>
               <template v-else-if="item.isCommented || item.isDeleted">
                 <button v-if="!isReadOnly" class="btn btn-small btn-primary" @click="handleRestoreGoldColor(index)" :title="t('action.restore')">

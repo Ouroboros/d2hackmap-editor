@@ -4,6 +4,7 @@
 
 import type { BaseConfigItem, Config, FileConfig } from '../types'
 import { log } from './log'
+import { isEditableLayer } from '../profile/profileLayers'
 
 // Array-type keys of ConfigData (excluding 'transmute' which is an object)
 type ConfigDataArrayKey = 'toggles' | 'itemColors' | 'runeColors' | 'goldColors' | 'importItems' | 'includes'
@@ -37,7 +38,7 @@ export function moveItemInFile<T extends BaseConfigItem>(
     }
   }
 
-  if (!sourceFile || !fileArray) {
+  if (!sourceFile || !fileArray || !isEditableLayer(sourceFile.layer)) {
     log(`[moveItemInFile] FAIL: sourceFile or fileArray not found`)
     return false
   }
@@ -118,7 +119,7 @@ export function moveTransmuteItemInFile<T extends BaseConfigItem>(
     }
   }
 
-  if (!sourceFile || !fileArray) {
+  if (!sourceFile || !fileArray || !isEditableLayer(sourceFile.layer)) {
     log(`[moveTransmuteItemInFile] FAIL: sourceFile or fileArray not found`)
     return false
   }

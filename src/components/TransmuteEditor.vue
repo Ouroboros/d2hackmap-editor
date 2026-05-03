@@ -1286,7 +1286,6 @@ function formatCurrentDebugItem(item: TransmuteDebugItem): string {
         <template #cell-actions="{ item: desc }">
           <template v-if="isItemExtern(desc)">
             <button v-if="!isReadOnly" class="btn btn-small btn-accent" @click="duplicateItemDescriptorToMain(desc)" :title="t('action.copyToMain')">+</button>
-            <span class="status-tag tag-extern" :title="desc.sourceFile || undefined">{{ desc.sourceFile }}</span>
           </template>
           <template v-else-if="desc.isCommented || desc.isDeleted">
             <button v-if="!isReadOnly" class="btn btn-small btn-primary" @click="handleItemDescriptorRestore(desc)" :title="t('action.restore')">↩</button>
@@ -1377,7 +1376,6 @@ function formatCurrentDebugItem(item: TransmuteDebugItem): string {
         <template #cell-actions="{ item: formula }">
           <template v-if="isItemExtern(formula)">
             <button v-if="!isReadOnly" class="btn btn-small btn-accent" @click="duplicateCubeFormulaToMain(formula)" :title="t('action.copyToMain')">+</button>
-            <span class="status-tag tag-extern" :title="formula.sourceFile || undefined">{{ formula.sourceFile }}</span>
           </template>
           <template v-else-if="formula.isCommented || formula.isDeleted">
             <button v-if="!isReadOnly" class="btn btn-small btn-primary" @click="handleCubeFormulaRestore(formula)" :title="t('action.restore')">↩</button>
@@ -1498,7 +1496,6 @@ function formatCurrentDebugItem(item: TransmuteDebugItem): string {
         <template #cell-actions="{ item: task }">
           <template v-if="isItemExtern(task)">
             <button v-if="!isReadOnly" class="btn btn-small btn-accent" @click="duplicatePreItemTaskToMain(task)" :title="t('action.copyToMain')">+</button>
-            <span class="status-tag tag-extern" :title="task.sourceFile || undefined">{{ task.sourceFile }}</span>
           </template>
           <template v-else-if="task.isCommented || task.isDeleted">
             <button v-if="!isReadOnly" class="btn btn-small btn-primary" @click="handlePreItemTaskRestore(task)" :title="t('action.restore')">↩</button>
@@ -1611,7 +1608,6 @@ function formatCurrentDebugItem(item: TransmuteDebugItem): string {
         <template #cell-actions="{ item: task }">
           <template v-if="isItemExtern(task)">
             <button v-if="!isReadOnly" class="btn btn-small btn-accent" @click="duplicateDoTaskToMain(task)" :title="t('action.copyToMain')">+</button>
-            <span class="status-tag tag-extern" :title="task.sourceFile || undefined">{{ task.sourceFile }}</span>
           </template>
           <template v-else-if="task.isCommented || task.isDeleted">
             <button v-if="!isReadOnly" class="btn btn-small btn-primary" @click="handleDoTaskRestore(task)" :title="t('action.restore')">↩</button>

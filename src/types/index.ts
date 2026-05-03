@@ -1,4 +1,6 @@
 export type {
+  ConfigLayer,
+  SaveTarget,
   BaseConfigItem,
   ToggleItem,
   ItemColorItem,

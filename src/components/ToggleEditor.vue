@@ -343,7 +343,6 @@ function formatToggle(item: ToggleItem): string {
               <button v-if="!isReadOnly && getToggleJumpTarget(toggle) === undefined" class="btn btn-small btn-accent" @click="duplicateToMain(toggle)" :title="t('action.copyToMain')">
                 +
               </button>
-              <span class="status-tag tag-extern" :title="toggle.sourceFile || undefined">{{ toggle.sourceFile }}</span>
             </template>
             <template v-else-if="toggle.isDeleted || toggle.isCommented">
               <button v-if="!isReadOnly" class="btn btn-small btn-primary" @click="handleRestore(toggle)" :title="t('action.restore')">

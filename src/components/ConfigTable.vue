@@ -4,6 +4,7 @@ import type { BaseConfigItem } from '../types'
 import type { ConfigTableColumn } from './configTable'
 import ConfigHeader from './ConfigHeader.vue'
 import ConfigRow from './ConfigRow.vue'
+import { useI18n } from '../i18n'
 import { log } from '../utils/log'
 
 const props = withDefaults(defineProps<{
@@ -49,6 +50,7 @@ const emit = defineEmits<{
   (e: 'dragend'): void
 }>()
 
+const { t } = useI18n()
 const listEl = ref<HTMLElement | null>(null)
 const internalDragActive = ref(false)
 const pointerDragActive = ref(false)
@@ -77,6 +79,24 @@ function itemDisabled(item: TItem): boolean {
 
 function itemRowClasses(item: TItem): Record<string, boolean> {
   return props.rowClasses ? props.rowClasses(item) : {}
+}
+
+function sourceLabel(item: BaseConfigItem): string {
+  if (item.layer === 'profile') return t('source.profile')
+  if (item.layer === 'user') return t('source.user')
+  if (item.layer === 'extern') return item.sourceFile || t('source.extern')
+  return t('source.entry')
+}
+
+function sourceTitle(item: BaseConfigItem): string {
+  return item.sourceFile || sourceLabel(item)
+}
+
+function sourceTagClass(item: BaseConfigItem): string {
+  if (item.layer === 'profile') return 'tag-source-profile'
+  if (item.layer === 'user') return 'tag-source-user'
+  if (item.layer === 'extern') return 'tag-source-extern'
+  return 'tag-source-entry'
 }
 
 function getTargetIndexFromPoint(clientX: number, clientY: number): number | null {
@@ -313,6 +333,9 @@ onUnmounted(() => {
       >
         {{ column.label }}
       </span>
+      <span class="config-cell config-header-cell col-source">
+        {{ t('source.title') }}
+      </span>
     </ConfigHeader>
 
     <ConfigRow
@@ -352,6 +375,13 @@ onUnmounted(() => {
           :is-disabled="itemDisabled(item)"
         />
       </div>
+      <div class="config-cell col-source">
+        <span
+          class="status-tag source-tag"
+          :class="sourceTagClass(item)"
+          :title="sourceTitle(item)"
+        >{{ sourceLabel(item) }}</span>
+      </div>
     </ConfigRow>
   </div>
 </template>
@@ -370,6 +400,13 @@ onUnmounted(() => {
 
 .config-cell.col-actions {
   gap: 4px;
+}
+
+.config-cell.col-source {
+  flex: 0 0 140px;
+  width: 140px;
+  margin-left: auto;
+  justify-content: flex-start;
 }
 
 .config-cell :deep(input:not([type="checkbox"]):not([type="radio"])),

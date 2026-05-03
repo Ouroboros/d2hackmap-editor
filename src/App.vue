@@ -8,12 +8,32 @@ import { useReferenceData } from './composables/useReferenceData'
 import { useFileStorage } from './composables/useFileStorage'
 import { useConfigChain } from './composables/useConfigChain'
 import type { ChainNode } from './composables/useConfigChain'
-import { useEditorOutput, EDITOR_OUTPUT_FILENAME, REQUIRED_FILE } from './composables/useEditorOutput'
 import {
+  generateEntryContent,
+  useEditorOutput,
+  EDITOR_OUTPUT_FILENAME,
+  REQUIRED_FILE
+} from './composables/useEditorOutput'
+import {
+  ensureProfileScaffold,
+  deleteEditorProfile,
+  listEditorProfiles,
   pickConfigDirectory,
   readConfigFile,
-  type ConfigDirectory
+  saveActiveProfileToLibrary,
+  saveProfileLayers,
+  switchEditorProfile,
+  type ConfigDirectory,
+  type ProfileInfo
 } from './services/tauriApi'
+import { baseName, classifyConfigFile } from './profile/profileLayers'
+import {
+  ACTIVE_PROFILE_FILENAME,
+  ENTRY_FILENAME,
+  USER_DEFINED_FILENAME
+} from './profile/profileConstants'
+import { parseProfileName, withProfileHeader } from './profile/profileHeader'
+import { parseConfig } from './parser'
 import { useI18n } from './i18n'
 import ToggleEditor from './components/ToggleEditor.vue'
 import ItemColorEditor from './components/ItemColorEditor.vue'
@@ -24,6 +44,7 @@ import KeyBindingEditor from './components/KeyBindingEditor.vue'
 import ValidationEditor from './components/ValidationEditor.vue'
 import ConfigChainDialog from './components/ConfigChainDialog.vue'
 import HelpGuide from './components/HelpGuide.vue'
+import ProfileToolbar from './components/ProfileToolbar.vue'
 import DebugDrawer from './components/debug/DebugDrawer.vue'
 
 const { theme, setTheme } = useTheme()
@@ -35,11 +56,10 @@ const {
   hasUnsavedChanges,
   isReadOnly,
   fileName,
-  saveFile,
   initForDirectoryLoad,
   closeConfig,
   loadConfigText,
-  ensureEditableFile
+  ensureLayerFile
 } = useConfig()
 
 const {
@@ -55,7 +75,11 @@ const {
   dirHandle: editorDirHandle,
   validateConfigDirectory,
   setDirHandle,
-  saveToEditorFile
+  saveUserConfig,
+  saveCurrentProfileConfig,
+  saveMergedProfileAs,
+  resetActiveProfileConfig,
+  hasUnsavedProfileLayers
 } = useEditorOutput()
 
 // Config chain dialog state
@@ -97,6 +121,9 @@ watch(activeTab, (newTab) => {
   saveActiveTab(normalizedTab)
 })
 const searchQuery = ref<string>('')
+const CURRENT_PROFILE_VALUE = '__current_profile__'
+const profileOptions = ref<ProfileInfo[]>([])
+const isProfileMenuOpen = ref(false)
 
 const tabs = computed(() => [
   { id: 'toggles', label: t('tab.toggles') },
@@ -112,6 +139,26 @@ const tabs = computed(() => [
 function normalizeActiveTab(tab: string): string {
   return tab === 'itemDescriptors' ? 'autoTransmute' : tab
 }
+
+const currentProfileName = computed(() =>
+  config.value?.files.find(file => file.layer === 'profile')?.profileName || t('profile.unnamed')
+)
+
+const selectedProfileFile = computed(() =>
+  profileOptions.value.find(profile => profile.name === currentProfileName.value)?.file || CURRENT_PROFILE_VALUE
+)
+
+const selectedProfileInfo = computed(() =>
+  profileOptions.value.find(profile => profile.file === selectedProfileFile.value) || null
+)
+
+const visibleProfileOptions = computed(() => {
+  if (selectedProfileInfo.value) return profileOptions.value
+  return [
+    { name: currentProfileName.value, file: CURRENT_PROFILE_VALUE, path: '' },
+    ...profileOptions.value
+  ]
+})
 
 // Open directory and parse config chain
 async function handleOpenDirectoryClick() {
@@ -138,8 +185,11 @@ async function handleOpenDirectoryClick() {
     setDirHandle(dirHandle)
     lastUsedHandle.value = dirHandle
 
+    await ensureProfileFiles(dirHandle)
+
     // Parse config chain starting from d2hackmap.default.cfg
     await parseConfigChain(dirHandle)
+    warnIfEntryNotLoaded()
 
     // Check if there are pending nodes that need authorization
     if (hasPendingNodes(chainRoot.value)) {
@@ -173,8 +223,8 @@ async function loadConfigFromDirectory(dirHandle: ConfigDirectory) {
       if (!node.fullPath) continue
       const file = await readConfigFile(node.fullPath)
       const displayName = node.path || file.name
-      const isEditable = getBaseName(displayName) === EDITOR_OUTPUT_FILENAME
-      await loadConfigText(displayName, file.lines, isEditable, true)  // skipRefresh=true
+      const layer = classifyConfigFile(displayName)
+      await loadConfigText(displayName, file.lines, layer, true)  // skipRefresh=true
     } catch (e) {
       console.error('Failed to read file:', node.file, e)
       alert(t('error.readFileFailed', { file: node.file }))
@@ -184,7 +234,8 @@ async function loadConfigFromDirectory(dirHandle: ConfigDirectory) {
     }
   }
 
-  ensureEditableFile(EDITOR_OUTPUT_FILENAME)
+  ensureLayerFile(ACTIVE_PROFILE_FILENAME, 'profile')
+  ensureLayerFile(USER_DEFINED_FILENAME, 'user')
 
   // Refresh effective status once after all files loaded
   if (config.value) {
@@ -194,10 +245,87 @@ async function loadConfigFromDirectory(dirHandle: ConfigDirectory) {
 
   // Remember directory for restore
   await saveDirHandle(dirHandle)
+  await refreshProfileOptions()
 }
 
-function getBaseName(path: string): string {
-  return path.split(/[\\/]/).pop() || path
+async function ensureProfileFiles(dirHandle: ConfigDirectory): Promise<void> {
+  const entryContent = generateEntryContent()
+  const scaffold = await ensureProfileScaffold(
+    dirHandle.path,
+    entryContent,
+    withProfileHeader('', t('profile.unnamed')),
+    ''
+  )
+
+  const activeProfile = await readConfigFile(scaffold.activeProfilePath)
+  const userDefined = await readConfigFile(scaffold.userDefinedPath)
+  let profileContent = joinConfigLines(activeProfile.lines)
+  let userContent = joinConfigLines(userDefined.lines)
+  let shouldSaveLayers = false
+
+  if (shouldMigratePreviousEntry(scaffold.previousEntryContent, entryContent)) {
+    userContent = mergePreviousEntryIntoUser(userContent, scaffold.previousEntryContent || '')
+    shouldSaveLayers = true
+  }
+
+  if (parseProfileName(activeProfile.lines) === '默认') {
+    profileContent = withProfileHeader(profileContent, t('profile.unnamed'))
+    shouldSaveLayers = true
+  }
+
+  if (shouldSaveLayers) {
+    await saveProfileLayers(dirHandle.path, entryContent, profileContent, userContent)
+  }
+}
+
+function shouldMigratePreviousEntry(previousEntryContent: string | null, entryContent: string): boolean {
+  if (!previousEntryContent?.trim()) return false
+  if (normalizeConfigText(previousEntryContent) === normalizeConfigText(entryContent)) return false
+
+  const parsed = parseConfig(splitConfigText(previousEntryContent), ENTRY_FILENAME, 'user')
+  return hasConfigItems(parsed)
+}
+
+function hasConfigItems(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    return value.length > 0
+  }
+
+  if (!value || typeof value !== 'object') return false
+
+  return Object.entries(value).some(([key, child]) => {
+    if (key === 'includes') return false
+    return hasConfigItems(child)
+  })
+}
+
+function mergePreviousEntryIntoUser(userContent: string, previousEntryContent: string): string {
+  const previous = previousEntryContent.trim()
+  if (!previous) return userContent
+  if (!userContent.trim()) return `${previous}\r\n`
+
+  return `${userContent.trimEnd()}\r\n\r\n    // ========== migrated from old d2hackmap.gen.cfg ==========\r\n\r\n${previous}\r\n`
+}
+
+function warnIfEntryNotLoaded(): void {
+  const hasEntry = getLoadedNodes(chainRoot.value).some(
+    node => baseName(node.path || node.file).toLowerCase() === ENTRY_FILENAME.toLowerCase()
+  )
+  if (!hasEntry) {
+    alert(t('profile.entryNotLinked'))
+  }
+}
+
+function splitConfigText(text: string): string[] {
+  return text.split(/\r?\n/)
+}
+
+function joinConfigLines(lines: string[]): string {
+  return lines.join('\r\n')
+}
+
+function normalizeConfigText(text: string): string {
+  return splitConfigText(text).map(line => line.trimEnd()).join('\n').trim()
 }
 
 // Handle config chain dialog events
@@ -221,28 +349,109 @@ function handleChainClose() {
   showChainDialog.value = false
 }
 
-// Save to editor output file
-async function handleSave() {
-  if (!config.value || !editorDirHandle.value) {
-    // Fallback to download if no directory handle
-    saveFile()
+async function reloadCurrentDirectory(): Promise<void> {
+  if (!editorDirHandle.value) return
+  await parseConfigChain(editorDirHandle.value)
+  await loadConfigFromDirectory(editorDirHandle.value)
+}
+
+async function refreshUnsavedState(): Promise<void> {
+  if (!config.value || !editorDirHandle.value) return
+  hasUnsavedChanges.value = await hasUnsavedProfileLayers(config.value)
+}
+
+async function refreshProfileOptions(): Promise<void> {
+  try {
+    profileOptions.value = await listEditorProfiles()
+  } catch (e) {
+    console.error('Failed to list profiles:', e)
+    profileOptions.value = []
+  }
+}
+
+function toggleProfileMenu(): void {
+  isProfileMenuOpen.value = !isProfileMenuOpen.value
+}
+
+function closeProfileMenu(): void {
+  isProfileMenuOpen.value = false
+}
+
+async function handleProfileSelect(profile: ProfileInfo): Promise<void> {
+  if (!editorDirHandle.value) return
+  if (!profile.file || profile.file === CURRENT_PROFILE_VALUE || profile.file === selectedProfileFile.value) {
+    closeProfileMenu()
     return
   }
 
+  if (hasUnsavedChanges.value && !confirm(t('profile.confirmSwitchUnsaved'))) {
+    closeProfileMenu()
+    return
+  }
+
+  closeProfileMenu()
+  await switchEditorProfile(editorDirHandle.value.path, profile.file)
+  await reloadCurrentDirectory()
+  await refreshProfileOptions()
+}
+
+async function handleSaveUserConfig(): Promise<void> {
+  if (!editorDirHandle.value || !config.value) return
   try {
-    await saveToEditorFile(config.value)
-    hasUnsavedChanges.value = false
-    // Brief visual feedback
-    const btn = document.activeElement
-    if (btn) {
-      btn.textContent = t('status.saved')
-      setTimeout(() => { btn.textContent = t('btn.save') }, 1500)
-    }
-    // Re-parse and reload config to pick up a newly inserted gen.cfg import.
-    await parseConfigChain(editorDirHandle.value)
-    await loadConfigFromDirectory(editorDirHandle.value)
+    await saveUserConfig(config.value)
+    await refreshUnsavedState()
   } catch (e) {
-    console.error('Failed to save:', e)
+    console.error('Failed to save user config:', e)
+    alert(t('error.saveFailed', { message: (e as Error).message }))
+  }
+}
+
+async function handleSaveCurrentProfile(): Promise<void> {
+  if (!editorDirHandle.value || !config.value) return
+  try {
+    const profileName = config.value.files.find(file => file.layer === 'profile')?.profileName || t('profile.unnamed')
+    await saveCurrentProfileConfig(config.value)
+    await saveActiveProfileToLibrary(editorDirHandle.value.path, profileName)
+    await refreshProfileOptions()
+    await refreshUnsavedState()
+  } catch (e) {
+    console.error('Failed to save current profile:', e)
+    alert(t('error.saveFailed', { message: (e as Error).message }))
+  }
+}
+
+async function handleSaveProfileAs(): Promise<void> {
+  if (!editorDirHandle.value || !config.value) return
+  const profileName = prompt(t('profile.name'), '')
+  if (!profileName?.trim()) return
+  try {
+    const normalizedName = profileName.trim()
+    await saveMergedProfileAs(config.value, normalizedName)
+    await saveActiveProfileToLibrary(editorDirHandle.value.path, normalizedName)
+    await reloadCurrentDirectory()
+    await refreshProfileOptions()
+    await refreshUnsavedState()
+  } catch (e) {
+    console.error('Failed to save new profile:', e)
+    alert(t('error.saveFailed', { message: (e as Error).message }))
+  }
+}
+
+async function handleDeleteProfile(profile: ProfileInfo): Promise<void> {
+  if (!editorDirHandle.value || !config.value || profile.file === CURRENT_PROFILE_VALUE) return
+  if (!confirm(t('profile.confirmDelete', { name: profile.name }))) return
+
+  try {
+    await deleteEditorProfile(profile.file)
+    if (profile.file === selectedProfileFile.value) {
+      await resetActiveProfileConfig(config.value, t('profile.unnamed'))
+      await reloadCurrentDirectory()
+    }
+    await refreshProfileOptions()
+    await refreshUnsavedState()
+    closeProfileMenu()
+  } catch (e) {
+    console.error('Failed to delete profile:', e)
     alert(t('error.saveFailed', { message: (e as Error).message }))
   }
 }
@@ -264,7 +473,9 @@ async function handleRestoreDirectory() {
       if (result.ok) {
         setDirHandle(dirHandle)
         lastUsedHandle.value = dirHandle
+        await ensureProfileFiles(dirHandle)
         await parseConfigChain(dirHandle)
+        warnIfEntryNotLoaded()
         if (hasPendingNodes(chainRoot.value)) {
           showChainDialog.value = true
         } else {
@@ -315,6 +526,7 @@ const rememberedInfo = ref({ mainFile: '', externFiles: [] })
 
 onMounted(async () => {
   window.addEventListener('beforeunload', handleBeforeUnload)
+  window.addEventListener('click', closeProfileMenu)
 
   // Load reference data for ID lookups
   loadReferenceData()
@@ -331,8 +543,10 @@ onMounted(async () => {
         if (result.ok) {
           setDirHandle(dirHandle)
           lastUsedHandle.value = dirHandle
+          await ensureProfileFiles(dirHandle)
           // Parse config chain and load
           await parseConfigChain(dirHandle)
+          warnIfEntryNotLoaded()
           if (hasPendingNodes(chainRoot.value)) {
             showChainDialog.value = true
           } else {
@@ -361,6 +575,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener('beforeunload', handleBeforeUnload)
+  window.removeEventListener('click', closeProfileMenu)
 })
 </script>
 
@@ -374,10 +589,43 @@ onUnmounted(() => {
           <span class="header-separator">|</span>
           <span class="loaded-file">{{ editorDirHandle.name }}</span>
         </template>
+        <div v-if="config" class="header-profile-group" @click.stop>
+          <button
+            class="header-profile-picker"
+            type="button"
+            :title="currentProfileName"
+            @click="toggleProfileMenu"
+          >
+            <span class="header-profile-display">{{ t('profile.current') }}: {{ currentProfileName }}</span>
+          </button>
+          <div v-if="isProfileMenuOpen" class="header-profile-menu">
+            <div
+              v-for="profile in visibleProfileOptions"
+              :key="profile.file || profile.name"
+              class="header-profile-option"
+              :class="{ active: profile.file === selectedProfileFile }"
+              @click="handleProfileSelect(profile)"
+            >
+              <span class="header-profile-option-name">{{ profile.name }}</span>
+              <button
+                v-if="profile.file !== CURRENT_PROFILE_VALUE"
+                class="header-profile-option-delete"
+                type="button"
+                :title="t('profile.delete')"
+                @click.stop="handleDeleteProfile(profile)"
+              >×</button>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="header-actions">
+        <ProfileToolbar
+          v-if="config"
+          @save-user="handleSaveUserConfig"
+          @save-profile="handleSaveCurrentProfile"
+          @save-profile-as="handleSaveProfileAs"
+        />
         <button class="btn btn-secondary" @click="handleOpenDirectoryClick">{{ t('btn.openDir') }}</button>
-        <button class="btn btn-primary" @click="handleSave" :disabled="!config || isReadOnly">{{ t('btn.save') }}</button>
         <button v-if="config" class="btn btn-secondary" @click="handleCloseConfig">{{ t('btn.close') }}</button>
       </div>
     </header>

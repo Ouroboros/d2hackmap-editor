@@ -1,6 +1,11 @@
+export type ConfigLayer = 'entry' | 'extern' | 'profile' | 'user'
+export type SaveTarget = 'profile' | 'user' | null
+
 export interface BaseConfigItem {
   comment: string
   sourceFile: string | null  // null = editable file, string = extern file name
+  layer: ConfigLayer
+  saveTarget: SaveTarget
   isCommented: boolean
   isDeleted?: boolean
   isNew?: boolean
@@ -126,6 +131,8 @@ export interface ConfigData {
 export interface FileConfig {
   file: string         // filename, e.g. "d2hackmap.default.cfg"
   isEditable: boolean  // only main file is editable
+  layer: ConfigLayer
+  profileName?: string
   data: ConfigData
 }
 

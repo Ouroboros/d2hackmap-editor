@@ -371,7 +371,6 @@ function formatKeyBinding(binding: KeyBindingItem): string {
         <template #cell-actions="{ item: binding }">
           <template v-if="isItemExtern(binding)">
             <button v-if="!isReadOnly" class="btn btn-small btn-accent" @click="duplicateKeyBindingToMain(binding)" :title="t('action.copyToMain')">+</button>
-            <span class="status-tag tag-extern" :title="binding.sourceFile || undefined">{{ binding.sourceFile }}</span>
           </template>
           <template v-else-if="binding.isCommented || binding.isDeleted">
             <button v-if="!isReadOnly" class="btn btn-small btn-primary" @click="handleKeyBindingRestore(binding)" :title="t('action.restore')">↩</button>

@@ -11,6 +11,9 @@ use tauri::WebviewWindowBuilder;
 
 const REQUIRED_FILE: &str = "d2hackmap.default.cfg";
 const EDITOR_OUTPUT_FILE: &str = "d2hackmap.gen.cfg";
+const ACTIVE_PROFILE_FILE: &str = "d2hackmap.editor.profile.cfg";
+const USER_DEFINED_FILE: &str = "d2hackmap.editor.user.cfg";
+const PROFILE_DIR: &str = "profiles";
 const DEBUG_LOG_FILE: &str = "d2hackmap-editor-debug.log";
 const EXTERNAL_ISC_FILE: &str = "isc.json";
 
@@ -45,18 +48,28 @@ struct ConfigFileContent {
     lines: Vec<String>,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ProfileScaffoldResult {
+    entry_path: String,
+    active_profile_path: String,
+    user_defined_path: String,
+    previous_entry_content: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ProfileFile {
+    file: String,
+    path: String,
+}
+
 #[derive(Debug, Clone, Copy)]
 enum DetectedEncoding {
     Utf16Le,
     Utf16Be,
     Utf8,
     Gbk,
-}
-
-#[derive(Debug, Clone, Copy)]
-struct DecodedFile {
-    encoding: DetectedEncoding,
-    has_bom: bool,
 }
 
 #[tauri::command]
@@ -104,7 +117,7 @@ fn validate_config_directory(path: String) -> Result<ValidateResult, String> {
 #[tauri::command]
 fn read_config_file(path: String) -> Result<ConfigFileContent, String> {
     let file_path = PathBuf::from(path);
-    let (text, _) = read_text_file(&file_path)?;
+    let text = read_text_file(&file_path)?;
     let name = file_path
         .file_name()
         .map(|s| s.to_string_lossy().into_owned())
@@ -159,16 +172,181 @@ fn resolve_config_path(
 }
 
 #[tauri::command]
-fn save_editor_output(root_path: String, content: String) -> Result<(), String> {
+fn ensure_profile_scaffold(
+    root_path: String,
+    entry_content: String,
+    initial_profile_content: String,
+    initial_user_content: String,
+) -> Result<ProfileScaffoldResult, String> {
     let root_dir = PathBuf::from(root_path);
     if !root_dir.is_dir() {
         return Err("Config directory does not exist".to_string());
     }
 
-    let output_path = root_dir.join(EDITOR_OUTPUT_FILE);
-    write_utf16le_with_bom(&output_path, &content)?;
-    ensure_editor_import(&root_dir)?;
+    let entry_path = root_dir.join(EDITOR_OUTPUT_FILE);
+    let active_profile_path = root_dir.join(ACTIVE_PROFILE_FILE);
+    let user_defined_path = root_dir.join(USER_DEFINED_FILE);
+
+    fs::create_dir_all(
+        editor_profile_dir().map_err(|e| format!("Failed to resolve profile dir: {e}"))?,
+    )
+    .map_err(|e| format!("Failed to create editor profile dir: {e}"))?;
+
+    let previous_entry_content = if entry_path.is_file() {
+        let entry_text = read_text_file(&entry_path)?;
+        Some(entry_text)
+    } else {
+        None
+    };
+
+    write_utf16le_with_bom(&entry_path, &entry_content)?;
+
+    if !active_profile_path.is_file() {
+        write_utf16le_with_bom(&active_profile_path, &initial_profile_content)?;
+    }
+
+    if !user_defined_path.is_file() {
+        write_utf16le_with_bom(&user_defined_path, &initial_user_content)?;
+    }
+
+    Ok(ProfileScaffoldResult {
+        entry_path: path_to_string(&entry_path),
+        active_profile_path: path_to_string(&active_profile_path),
+        user_defined_path: path_to_string(&user_defined_path),
+        previous_entry_content,
+    })
+}
+
+#[tauri::command]
+fn save_profile_layers(
+    root_path: String,
+    entry_content: String,
+    profile_content: String,
+    user_content: String,
+) -> Result<(), String> {
+    let root_dir = PathBuf::from(root_path);
+    if !root_dir.is_dir() {
+        return Err("Config directory does not exist".to_string());
+    }
+
+    write_utf16le_with_bom(&root_dir.join(EDITOR_OUTPUT_FILE), &entry_content)?;
+    write_utf16le_with_bom(&root_dir.join(ACTIVE_PROFILE_FILE), &profile_content)?;
+    write_utf16le_with_bom(&root_dir.join(USER_DEFINED_FILE), &user_content)?;
     Ok(())
+}
+
+#[tauri::command]
+fn list_editor_profiles() -> Result<Vec<ProfileFile>, String> {
+    let profile_dir =
+        editor_profile_dir().map_err(|e| format!("Failed to resolve profile dir: {e}"))?;
+    if !profile_dir.is_dir() {
+        return Ok(Vec::new());
+    }
+
+    let mut profiles = Vec::new();
+    for entry in fs::read_dir(&profile_dir)
+        .map_err(|e| format!("Failed to read profile dir {}: {e}", profile_dir.display()))?
+    {
+        let entry = entry.map_err(|e| format!("Failed to read profile entry: {e}"))?;
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        if path.extension().and_then(|s| s.to_str()) != Some("cfg") {
+            continue;
+        }
+
+        let file = path
+            .file_name()
+            .map(|s| s.to_string_lossy().into_owned())
+            .unwrap_or_default();
+
+        profiles.push(ProfileFile {
+            file,
+            path: path_to_string(&path),
+        });
+    }
+
+    profiles.sort_by(|a, b| a.file.cmp(&b.file));
+    Ok(profiles)
+}
+
+#[tauri::command]
+fn switch_editor_profile(root_path: String, profile_file: String) -> Result<(), String> {
+    let root_dir = PathBuf::from(root_path);
+    if !root_dir.is_dir() {
+        return Err("Config directory does not exist".to_string());
+    }
+
+    let profile_dir =
+        editor_profile_dir().map_err(|e| format!("Failed to resolve profile dir: {e}"))?;
+    let source = safe_profile_path(&profile_dir, &profile_file)?;
+    if !source.is_file() {
+        return Err(format!("Profile does not exist: {}", source.display()));
+    }
+
+    fs::copy(&source, root_dir.join(ACTIVE_PROFILE_FILE))
+        .map_err(|e| format!("Failed to switch profile {}: {e}", source.display()))?;
+    Ok(())
+}
+
+#[tauri::command]
+fn delete_editor_profile(profile_file: String) -> Result<(), String> {
+    let profile_dir =
+        editor_profile_dir().map_err(|e| format!("Failed to resolve profile dir: {e}"))?;
+    let profile_path = safe_profile_path(&profile_dir, &profile_file)?;
+    if !profile_path.is_file() {
+        return Err(format!(
+            "Profile does not exist: {}",
+            profile_path.display()
+        ));
+    }
+
+    fs::remove_file(&profile_path)
+        .map_err(|e| format!("Failed to delete profile {}: {e}", profile_path.display()))?;
+    Ok(())
+}
+
+#[tauri::command]
+fn save_active_profile_to_library(
+    root_path: String,
+    profile_file: String,
+) -> Result<ProfileFile, String> {
+    let root_dir = PathBuf::from(root_path);
+    if !root_dir.is_dir() {
+        return Err("Config directory does not exist".to_string());
+    }
+
+    let source = root_dir.join(ACTIVE_PROFILE_FILE);
+    if !source.is_file() {
+        return Err(format!(
+            "Active profile does not exist: {}",
+            source.display()
+        ));
+    }
+
+    let profile_dir =
+        editor_profile_dir().map_err(|e| format!("Failed to resolve profile dir: {e}"))?;
+    fs::create_dir_all(&profile_dir).map_err(|e| {
+        format!(
+            "Failed to create profile dir {}: {e}",
+            profile_dir.display()
+        )
+    })?;
+
+    let target = safe_profile_path(&profile_dir, &profile_file)?;
+    fs::copy(&source, &target).map_err(|e| {
+        format!(
+            "Failed to save active profile {} to {}: {e}",
+            source.display(),
+            target.display()
+        )
+    })?;
+
+    Ok(ProfileFile {
+        file: profile_file,
+        path: path_to_string(&target),
+    })
 }
 
 #[tauri::command]
@@ -234,97 +412,26 @@ fn display_path(root_dir: &Path, path: &Path) -> String {
     }
 }
 
-fn ensure_editor_import(root_dir: &Path) -> Result<(), String> {
-    let default_path = root_dir.join(REQUIRED_FILE);
-    let (mut default_lines, default_meta) = read_lines_with_meta(&default_path)?;
-
-    if has_gen_import(&default_lines) {
-        return Ok(());
+fn safe_profile_path(profile_dir: &Path, profile_file: &str) -> Result<PathBuf, String> {
+    let requested = PathBuf::from(profile_file);
+    if requested.components().count() != 1 {
+        return Err("Invalid profile file name".to_string());
     }
-
-    let imports = import_config_values(&default_lines);
-    if let Some(first_import) = imports.first() {
-        let first_path = root_dir.join(normalize_config_path(first_import));
-        if first_path.is_file() {
-            let (mut first_lines, first_meta) = read_lines_with_meta(&first_path)?;
-            if !has_gen_import(&first_lines) {
-                insert_gen_import(&mut first_lines);
-                write_lines_with_meta(&first_path, &first_lines, first_meta)?;
-            }
-            return Ok(());
-        }
-    }
-
-    insert_gen_import(&mut default_lines);
-    write_lines_with_meta(&default_path, &default_lines, default_meta)
+    Ok(profile_dir.join(requested))
 }
 
-fn read_lines_with_meta(path: &Path) -> Result<(Vec<String>, DecodedFile), String> {
-    let (text, meta) = read_text_file(path)?;
-    Ok((split_lines(&text), meta))
-}
-
-fn import_config_values(lines: &[String]) -> Vec<String> {
-    let mut imports = Vec::new();
-    for line in lines {
-        let trimmed = line.trim();
-        if trimmed.starts_with("//") || !trimmed.starts_with("Import Config:") {
-            continue;
-        }
-
-        let mut value = trimmed["Import Config:".len()..].trim();
-        if let Some((before_comment, _)) = value.split_once("//") {
-            value = before_comment.trim();
-        }
-
-        let unquoted = value
-            .strip_prefix('"')
-            .and_then(|s| s.strip_suffix('"'))
-            .or_else(|| value.strip_prefix('\'').and_then(|s| s.strip_suffix('\'')))
-            .unwrap_or(value)
-            .trim();
-
-        if !unquoted.is_empty() {
-            imports.push(unquoted.to_string());
-        }
-    }
-    imports
-}
-
-fn has_gen_import(lines: &[String]) -> bool {
-    lines.iter().any(|line| {
-        let trimmed = line.trim();
-        !trimmed.starts_with("//")
-            && trimmed.starts_with("Import Config:")
-            && trimmed.contains(EDITOR_OUTPUT_FILE)
-    })
-}
-
-fn insert_gen_import(lines: &mut Vec<String>) {
-    let import_line = format!("    Import Config: \"{}\"", EDITOR_OUTPUT_FILE);
-    let last_import_index = lines.iter().rposition(|line| {
-        let trimmed = line.trim();
-        !trimmed.starts_with("//") && trimmed.starts_with("Import Config:")
-    });
-
-    match last_import_index {
-        Some(index) => lines.insert(index + 1, import_line),
-        None => lines.insert(0, import_line),
-    }
-}
-
-fn read_text_file(path: &Path) -> Result<(String, DecodedFile), String> {
+fn read_text_file(path: &Path) -> Result<String, String> {
     let bytes = fs::read(path)
         .map_err(|e| format!("Failed to read config file {}: {}", path.display(), e))?;
 
-    let (encoding, has_bom, body) = if bytes.starts_with(&[0xFF, 0xFE]) {
-        (DetectedEncoding::Utf16Le, true, &bytes[2..])
+    let (encoding, body) = if bytes.starts_with(&[0xFF, 0xFE]) {
+        (DetectedEncoding::Utf16Le, &bytes[2..])
     } else if bytes.starts_with(&[0xFE, 0xFF]) {
-        (DetectedEncoding::Utf16Be, true, &bytes[2..])
+        (DetectedEncoding::Utf16Be, &bytes[2..])
     } else if bytes.starts_with(&[0xEF, 0xBB, 0xBF]) {
-        (DetectedEncoding::Utf8, true, &bytes[3..])
+        (DetectedEncoding::Utf8, &bytes[3..])
     } else {
-        (DetectedEncoding::Gbk, false, bytes.as_slice())
+        (DetectedEncoding::Gbk, bytes.as_slice())
     };
 
     let text = match encoding {
@@ -334,27 +441,7 @@ fn read_text_file(path: &Path) -> Result<(String, DecodedFile), String> {
         DetectedEncoding::Gbk => GBK.decode(body).0.into_owned(),
     };
 
-    Ok((text, DecodedFile { encoding, has_bom }))
-}
-
-fn write_lines_with_meta(path: &Path, lines: &[String], meta: DecodedFile) -> Result<(), String> {
-    let content = lines.join("\r\n");
-    let bytes = match meta.encoding {
-        DetectedEncoding::Utf16Le => encode_utf16(&content, true, meta.has_bom),
-        DetectedEncoding::Utf16Be => encode_utf16(&content, false, meta.has_bom),
-        DetectedEncoding::Utf8 => {
-            let mut bytes = Vec::new();
-            if meta.has_bom {
-                bytes.extend_from_slice(&[0xEF, 0xBB, 0xBF]);
-            }
-            bytes.extend_from_slice(content.as_bytes());
-            bytes
-        }
-        DetectedEncoding::Gbk => GBK.encode(&content).0.into_owned(),
-    };
-
-    fs::write(path, bytes)
-        .map_err(|e| format!("Failed to write config file {}: {}", path.display(), e))
+    Ok(text)
 }
 
 fn write_utf16le_with_bom(path: &Path, content: &str) -> Result<(), String> {
@@ -402,6 +489,10 @@ fn exe_webview_data_dir() -> Result<PathBuf, std::io::Error> {
     exe_sibling_path("d2hackmap-cfg-editor-data")
 }
 
+fn editor_profile_dir() -> Result<PathBuf, std::io::Error> {
+    Ok(exe_webview_data_dir()?.join(PROFILE_DIR))
+}
+
 fn exe_sibling_path(name: &str) -> Result<PathBuf, std::io::Error> {
     let exe_path = std::env::current_exe()?;
     let exe_dir = exe_path.parent().unwrap_or(Path::new("."));
@@ -444,7 +535,12 @@ fn main() {
             validate_config_directory,
             read_config_file,
             resolve_config_path,
-            save_editor_output,
+            ensure_profile_scaffold,
+            save_profile_layers,
+            list_editor_profiles,
+            switch_editor_profile,
+            delete_editor_profile,
+            save_active_profile_to_library,
             append_debug_log,
             read_external_isc_json
         ])

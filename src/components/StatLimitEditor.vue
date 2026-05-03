@@ -741,7 +741,6 @@ function formatCurrentDebugItem(item: StatDebugItem): string {
         <template #cell-actions="{ item }">
           <template v-if="isItemExtern(item)">
             <button v-if="!isReadOnly" class="btn btn-small btn-accent" @click="duplicateStatLimitToMain(item)" :title="t('action.copyToMain')">+</button>
-            <span class="status-tag tag-extern" :title="item.sourceFile || undefined">{{ item.sourceFile }}</span>
           </template>
           <template v-else-if="item.isCommented || item.isDeleted">
             <button v-if="!isReadOnly" class="btn btn-small btn-primary" @click="handleStatLimitRestore(item)" :title="t('action.restore')">↩</button>
@@ -849,7 +848,6 @@ function formatCurrentDebugItem(item: StatDebugItem): string {
         <template #cell-actions="{ item: group }">
           <template v-if="isItemExtern(group)">
             <button v-if="!isReadOnly" class="btn btn-small btn-accent" @click="duplicateStatLimitGroupToMain(group)" :title="t('action.copyToMain')">+</button>
-            <span class="status-tag tag-extern" :title="group.sourceFile || undefined">{{ group.sourceFile }}</span>
           </template>
           <template v-else-if="group.isCommented || group.isDeleted">
             <button v-if="!isReadOnly" class="btn btn-small btn-primary" @click="handleStatLimitGroupRestore(group)" :title="t('action.restore')">↩</button>

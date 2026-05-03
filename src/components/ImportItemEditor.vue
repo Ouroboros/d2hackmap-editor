@@ -540,7 +540,6 @@ const debugImportItems = computed((): ImportItemItem[] => {
               <button v-if="!isReadOnly && getItemJumpTarget(item) === undefined" class="btn btn-small btn-accent" @click="duplicateItemToMain(index)" :title="t('action.copyToMain')">
                 +
               </button>
-              <span class="status-tag tag-extern" :title="item.sourceFile ?? undefined">{{ item.sourceFile }}</span>
             </template>
             <template v-else-if="item.isCommented || item.isDeleted">
               <button v-if="!isReadOnly" class="btn btn-small btn-primary" @click="handleRestore(index)" :title="t('action.restore')">

@@ -4,13 +4,16 @@ import { generateConfig } from '../generator'
 import { useI18n } from '../i18n'
 import { refreshEffectiveStatus } from './useItemActions'
 import { log } from '../utils/log'
+import { isEditableLayer } from '../profile/profileLayers'
+import { parseProfileName } from '../profile/profileHeader'
 import {
   createEmptyConfig,
   createEmptyConfigData,
   type Config,
   type ConfigData,
   type FileConfig,
-  type ExternItem
+  type ExternItem,
+  type ConfigLayer
 } from '../types'
 
 // Global config state
@@ -241,10 +244,10 @@ export function useConfig() {
   async function loadConfigText(
     displayName: string,
     lines: string[],
-    isEditable: boolean = false,
+    layer: ConfigLayer = 'extern',
     skipRefresh: boolean = false
   ): Promise<void> {
-    log(`[loadConfigText] file: ${displayName}, isEditable: ${isEditable}, skipRefresh: ${skipRefresh}`)
+    log(`[loadConfigText] file: ${displayName}, layer: ${layer}, skipRefresh: ${skipRefresh}`)
     if (config.value === null) return
     if (loadedFiles.value.has(displayName)) {
       log(`[loadConfigText] skip: ${displayName} already loaded`)
@@ -252,13 +255,14 @@ export function useConfig() {
     }
 
     try {
-      // Parse with sourceFile = filename for extern, null for editable
-      const sourceFile = isEditable ? null : displayName
-      const configData = parseConfig(lines, sourceFile)
+      const sourceFile = displayName
+      const configData = parseConfig(lines, sourceFile, layer)
 
       const fileConfig: FileConfig = {
         file: displayName,
-        isEditable,
+        isEditable: isEditableLayer(layer),
+        layer,
+        profileName: layer === 'profile' ? parseProfileName(lines) : undefined,
         data: configData
       }
 
@@ -295,12 +299,13 @@ export function useConfig() {
     try {
       const lines = await readFile(file)
       // Parse as editable file (sourceFile = null)
-      const configData = parseConfig(lines, null)
+      const configData = parseConfig(lines, file.name, 'user')
 
       // Create new config with this file
       const fileConfig: FileConfig = {
         file: file.name,
         isEditable: true,  // The opened file is always editable
+        layer: 'user',
         data: configData
       }
 
@@ -341,7 +346,7 @@ export function useConfig() {
 
     try {
       const lines = await readFile(file)
-      await loadConfigText(file.name, lines, isEditable, skipRefresh)
+      await loadConfigText(file.name, lines, isEditable ? 'user' : 'extern', skipRefresh)
     } catch (e) {
       console.error('Failed to load extern file:', e)
       const { t } = useI18n()
@@ -376,6 +381,7 @@ export function useConfig() {
     const fileConfig: FileConfig = {
       file: '',
       isEditable: true,
+      layer: 'user',
       data: emptyData
     }
     config.value = {
@@ -398,13 +404,14 @@ export function useConfig() {
     pendingExterns.value = []
   }
 
-  function ensureEditableFile(name: string): void {
+  function ensureLayerFile(name: string, layer: ConfigLayer): void {
     if (!config.value) return
-    if (getEditableFile(config.value)) return
+    if (config.value.files.some(file => file.layer === layer)) return
 
     const fileConfig: FileConfig = {
       file: name,
-      isEditable: true,
+      isEditable: isEditableLayer(layer),
+      layer,
       data: createEmptyConfigData()
     }
     config.value.files.push(fileConfig)
@@ -469,6 +476,6 @@ export function useConfig() {
     loadConfigFile,
     loadConfigFiles,
     loadConfigText,
-    ensureEditableFile
+    ensureLayerFile
   }
 }

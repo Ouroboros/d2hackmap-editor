@@ -23,8 +23,11 @@ import type {
   PreItemTaskItem,
   DoTaskItem,
   KeyBindingItem,
-  ExternItem
+  ExternItem,
+  ConfigLayer,
+  SaveTarget
 } from './types'
+import { saveTargetForLayer } from './profile/profileLayers'
 
 // Parsed config line
 interface ParsedLine {
@@ -147,9 +150,15 @@ function isBlank(line: string): boolean {
 /**
  * Parse config lines into structured ConfigData (single file)
  * @param lines Lines to parse
- * @param sourceFile null for editable file, filename for extern file
+ * @param sourceFile display filename for this file
+ * @param layer source layer for parsed config items
  */
-export function parseConfig(lines: string[], sourceFile: string | null = null): ConfigData {
+export function parseConfig(
+  lines: string[],
+  sourceFile: string | null = null,
+  layer: ConfigLayer = sourceFile === null ? 'user' : 'extern'
+): ConfigData {
+  const saveTarget: SaveTarget = saveTargetForLayer(layer)
   const config: ConfigData = {
     toggles: [],
     itemColors: [],
@@ -187,6 +196,13 @@ export function parseConfig(lines: string[], sourceFile: string | null = null): 
     if (!parsed) continue
 
     const { key, params, values, comment } = parsed
+    const itemMeta = {
+      comment: comment || '',
+      sourceFile,
+      layer,
+      saveTarget,
+      isCommented
+    }
 
     // Get keyword type from registry
     const keyType = getKeywordType(key)
@@ -206,9 +222,7 @@ export function parseConfig(lines: string[], sourceFile: string | null = null): 
         name: key,
         enabled: values[0] === '1' || values[0] === 'true',
         hotkey: values[1] || '-1',
-        comment: comment || '',
-        sourceFile,
-        isCommented
+        ...itemMeta
       }
       config.toggles.push(toggleItem)
     } else if (keyType === TYPE_KEY) {
@@ -217,9 +231,7 @@ export function parseConfig(lines: string[], sourceFile: string | null = null): 
         name: key,
         enabled: true,
         hotkey: values[0] || '-1',
-        comment: comment || '',
-        sourceFile,
-        isCommented
+        ...itemMeta
       }
       config.toggles.push(toggleItem)
     } else if (keyType === TYPE_OPTION) {
@@ -228,9 +240,7 @@ export function parseConfig(lines: string[], sourceFile: string | null = null): 
         name: key,
         enabled: values[0] === '1' || values[0] !== '0',
         hotkey: '-1',
-        comment: comment || '',
-        sourceFile,
-        isCommented
+        ...itemMeta
       }
       config.toggles.push(toggleItem)
     } else if (keyType === TYPE_INTEGER || keyType === TYPE_STRING || keyType === TYPE_COLOR) {
@@ -240,9 +250,7 @@ export function parseConfig(lines: string[], sourceFile: string | null = null): 
         enabled: true,
         value: values[0] || '',
         hotkey: '-1',
-        comment: comment || '',
-        sourceFile,
-        isCommented
+        ...itemMeta
       }
       config.toggles.push(toggleItem)
     } else if (setType === SET_ITEM_COLOR) {
@@ -254,9 +262,7 @@ export function parseConfig(lines: string[], sourceFile: string | null = null): 
         textColor: values[0] || '-1',
         mapColor: values[1] || '-1',
         mapText: values[2] || '',
-        comment: comment || '',
-        sourceFile,
-        isCommented
+        ...itemMeta
       }
       config.itemColors.push(itemColor)
     } else if (setType === SET_RUNE_COLOR) {
@@ -265,9 +271,7 @@ export function parseConfig(lines: string[], sourceFile: string | null = null): 
         textColor: values[0] || '-1',
         mapColor: values[1] || '-1',
         mapText: values[2] || '',
-        comment: comment || '',
-        sourceFile,
-        isCommented
+        ...itemMeta
       }
       config.runeColors.push(runeColor)
     } else if (setType === SET_GOLD_COLOR) {
@@ -276,9 +280,7 @@ export function parseConfig(lines: string[], sourceFile: string | null = null): 
         textColor: values[0] || '-1',
         mapColor: values[1] || '-1',
         mapText: values[2] || '',
-        comment: comment || '',
-        sourceFile,
-        isCommented
+        ...itemMeta
       }
       config.goldColors.push(goldColor)
     } else if (setType === SET_IMPORT_ITEM) {
@@ -291,9 +293,7 @@ export function parseConfig(lines: string[], sourceFile: string | null = null): 
         showInfo: values[1] || '0',
         unused: values[2] || '0',
         statGroup: values[3] || '',
-        comment: comment || '',
-        sourceFile,
-        isCommented
+        ...itemMeta
       }
       config.importItems.push(importItem)
     } else if (setType === SET_STAT_LIMIT) {
@@ -305,9 +305,7 @@ export function parseConfig(lines: string[], sourceFile: string | null = null): 
         param: values[0] || '0',
         min: values[1] || '-1',
         max: values[2] || '-1',
-        comment: comment || '',
-        sourceFile,
-        isCommented
+        ...itemMeta
       }
       config.transmute.statLimits.push(statLimit)
     } else if (setType === SET_STAT_LIMIT_GROUP) {
@@ -321,9 +319,8 @@ export function parseConfig(lines: string[], sourceFile: string | null = null): 
           relation,
           limits: [],
           comments: [],
-          comment: '',
-          sourceFile,
-          isCommented
+          ...itemMeta,
+          comment: ''
         }
         config.transmute.statLimitGroups.push(existingGroup)
       }
@@ -337,9 +334,7 @@ export function parseConfig(lines: string[], sourceFile: string | null = null): 
         quality: params[2] || '',
         limitName: values[0] || '',
         count: values[1] || '1',
-        comment: comment || '',
-        sourceFile,
-        isCommented
+        ...itemMeta
       }
       config.transmute.itemDescriptors.push(itemDescriptor)
     } else if (setType === SET_CUBE_FORMULA) {
@@ -347,9 +342,7 @@ export function parseConfig(lines: string[], sourceFile: string | null = null): 
       const cubeFormula: CubeFormulaItem = {
         name,
         descriptors: values,
-        comment: comment || '',
-        sourceFile,
-        isCommented
+        ...itemMeta
       }
       config.transmute.cubeFormulas.push(cubeFormula)
     } else if (setType === SET_PRE_ITEM_TASK) {
@@ -360,9 +353,7 @@ export function parseConfig(lines: string[], sourceFile: string | null = null): 
         quality: params[2] || '',
         limitName: values[0] || '',
         action: values[1] || '1',
-        comment: comment || '',
-        sourceFile,
-        isCommented
+        ...itemMeta
       }
       config.transmute.preItemTasks.push(preItemTask)
     } else if (setType === SET_DO_TASK) {
@@ -371,9 +362,7 @@ export function parseConfig(lines: string[], sourceFile: string | null = null): 
         name,
         preTask: values[0] || '',
         formulas: values.slice(1),
-        comment: comment || '',
-        sourceFile,
-        isCommented
+        ...itemMeta
       }
       config.transmute.doTasks.push(doTask)
     } else if (setType === SET_KEY_BINDING) {
@@ -381,9 +370,7 @@ export function parseConfig(lines: string[], sourceFile: string | null = null): 
       const keyBinding: KeyBindingItem = {
         keyCode,
         command: values[0] || '',
-        comment: comment || '',
-        sourceFile,
-        isCommented
+        ...itemMeta
       }
       config.transmute.keyBindings.push(keyBinding)
     } else if (keyType === null && setType === null) {

@@ -9,6 +9,7 @@ import type {
   FileConfig,
   BaseConfigItem
 } from '../types'
+import { isEditableItem, isEditableLayer, isExternItem } from '../profile/profileLayers'
 
 export interface ItemGroup<T> {
   key: string
@@ -100,7 +101,7 @@ export function getAllItems<T extends BaseConfigItem>(
  */
 export function getEditableFile(config: Config | null): FileConfig | undefined {
   if (!config) return undefined
-  return config.files.find(f => f.isEditable)
+  return config.files.find(f => f.layer === 'user') ?? config.files.find(f => f.layer === 'profile')
 }
 
 /**
@@ -108,7 +109,11 @@ export function getEditableFile(config: Config | null): FileConfig | undefined {
  * Uses the sourceFile field on the item
  */
 export function isItemExtern(item: BaseConfigItem): boolean {
-  return item.sourceFile !== null
+  return isExternItem(item)
+}
+
+export function canEditItem(item: BaseConfigItem): boolean {
+  return isEditableItem(item)
 }
 
 /**
@@ -124,6 +129,7 @@ export function getItemSourceFile(item: BaseConfigItem): string | null {
 export function getItemRowClasses(item: BaseConfigItem): Record<string, boolean> {
   return {
     'row-extern': isItemExtern(item),
+    'row-profile': item.layer === 'profile',
     'row-commented': item.isCommented,
     'row-deleted': !!item.isDeleted
   }
@@ -137,10 +143,26 @@ export function addItemToEditable<T extends BaseConfigItem>(
   arrayName: ConfigDataArrayKey,
   item: T
 ): boolean {
-  if (!config) return false
-  const editableFile = getEditableFile(config)
-  if (!editableFile) return false
-  const array = editableFile.data[arrayName] as unknown as T[]
+  return addItemToTarget(config, arrayName, 'user', item)
+}
+
+export function getTargetFile(config: Config | null, target: 'profile' | 'user'): FileConfig | undefined {
+  if (!config) return undefined
+  return config.files.find(file => file.layer === target)
+}
+
+export function addItemToTarget<T extends BaseConfigItem>(
+  config: Config | null,
+  arrayName: ConfigDataArrayKey,
+  target: 'profile' | 'user',
+  item: T
+): boolean {
+  const targetFile = getTargetFile(config, target)
+  if (!targetFile) return false
+  item.layer = target
+  item.saveTarget = target
+  item.sourceFile = targetFile.file
+  const array = targetFile.data[arrayName] as unknown as T[]
   array.push(item)
   return true
 }
@@ -160,8 +182,7 @@ export function deleteItemFromFile<T extends BaseConfigItem>(
     const index = array.indexOf(item)
     if (index === -1) continue
 
-    // Can only delete from editable files
-    if (!fileConfig.isEditable) return false
+    if (!isEditableLayer(fileConfig.layer)) return false
 
     if (item.isNew) {
       array.splice(index, 1)
@@ -184,7 +205,7 @@ export function buildCommentedMainMap<T extends BaseConfigItem>(
 ): Map<string, number> {
   const map = new Map<string, number>()
   items.forEach((item, index) => {
-    if (item.sourceFile === null && (item.isCommented || item.isDeleted)) {
+    if (canEditItem(item) && (item.isCommented || item.isDeleted)) {
       const key = getKey(item)
       if (!map.has(key)) {
         map.set(key, index)
@@ -204,8 +225,7 @@ export function getJumpTargetIndex<T extends BaseConfigItem>(
   commentedMainMap: Map<string, number>,
   getKey: (item: T) => string
 ): number | undefined {
-  // Main items don't need jump
-  if (item.sourceFile === null) return undefined
+  if (canEditItem(item)) return undefined
   // Non-effective extern items don't need jump
   if (item.isCommented || item.isDeleted) return undefined
   // Look up in map
