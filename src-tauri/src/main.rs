@@ -131,6 +131,14 @@ fn read_config_file(path: String) -> Result<ConfigFileContent, String> {
 }
 
 #[tauri::command]
+fn write_config_file(path: String, content: String) -> Result<(), String> {
+    let file_path = PathBuf::from(path);
+    let (encoding, with_bom) = detect_text_encoding(&file_path)?;
+    fs::write(&file_path, encode_text(&content, encoding, with_bom))
+        .map_err(|e| format!("Failed to write config file {}: {}", file_path.display(), e))
+}
+
+#[tauri::command]
 fn resolve_config_path(
     root_path: String,
     base_file_path: String,
@@ -424,15 +432,8 @@ fn read_text_file(path: &Path) -> Result<String, String> {
     let bytes = fs::read(path)
         .map_err(|e| format!("Failed to read config file {}: {}", path.display(), e))?;
 
-    let (encoding, body) = if bytes.starts_with(&[0xFF, 0xFE]) {
-        (DetectedEncoding::Utf16Le, &bytes[2..])
-    } else if bytes.starts_with(&[0xFE, 0xFF]) {
-        (DetectedEncoding::Utf16Be, &bytes[2..])
-    } else if bytes.starts_with(&[0xEF, 0xBB, 0xBF]) {
-        (DetectedEncoding::Utf8, &bytes[3..])
-    } else {
-        (DetectedEncoding::Gbk, bytes.as_slice())
-    };
+    let (encoding, with_bom) = detect_encoding_from_bytes(&bytes);
+    let body = if with_bom { strip_bom(&bytes, encoding) } else { bytes.as_slice() };
 
     let text = match encoding {
         DetectedEncoding::Utf16Le => UTF_16LE.decode(body).0.into_owned(),
@@ -442,6 +443,48 @@ fn read_text_file(path: &Path) -> Result<String, String> {
     };
 
     Ok(text)
+}
+
+fn detect_text_encoding(path: &Path) -> Result<(DetectedEncoding, bool), String> {
+    let bytes = fs::read(path)
+        .map_err(|e| format!("Failed to read config file {}: {}", path.display(), e))?;
+    Ok(detect_encoding_from_bytes(&bytes))
+}
+
+fn detect_encoding_from_bytes(bytes: &[u8]) -> (DetectedEncoding, bool) {
+    if bytes.starts_with(&[0xFF, 0xFE]) {
+        (DetectedEncoding::Utf16Le, true)
+    } else if bytes.starts_with(&[0xFE, 0xFF]) {
+        (DetectedEncoding::Utf16Be, true)
+    } else if bytes.starts_with(&[0xEF, 0xBB, 0xBF]) {
+        (DetectedEncoding::Utf8, true)
+    } else {
+        (DetectedEncoding::Gbk, false)
+    }
+}
+
+fn strip_bom(bytes: &[u8], encoding: DetectedEncoding) -> &[u8] {
+    match encoding {
+        DetectedEncoding::Utf16Le | DetectedEncoding::Utf16Be => &bytes[2..],
+        DetectedEncoding::Utf8 => &bytes[3..],
+        DetectedEncoding::Gbk => bytes,
+    }
+}
+
+fn encode_text(content: &str, encoding: DetectedEncoding, with_bom: bool) -> Vec<u8> {
+    match encoding {
+        DetectedEncoding::Utf16Le => encode_utf16(content, true, with_bom),
+        DetectedEncoding::Utf16Be => encode_utf16(content, false, with_bom),
+        DetectedEncoding::Utf8 => {
+            let mut bytes = Vec::new();
+            if with_bom {
+                bytes.extend_from_slice(&[0xEF, 0xBB, 0xBF]);
+            }
+            bytes.extend_from_slice(UTF_8.encode(content).0.as_ref());
+            bytes
+        }
+        DetectedEncoding::Gbk => GBK.encode(content).0.into_owned(),
+    }
 }
 
 fn write_utf16le_with_bom(path: &Path, content: &str) -> Result<(), String> {
@@ -534,6 +577,7 @@ fn main() {
             pick_config_directory,
             validate_config_directory,
             read_config_file,
+            write_config_file,
             resolve_config_path,
             ensure_profile_scaffold,
             save_profile_layers,

@@ -20,18 +20,16 @@ import {
   listEditorProfiles,
   pickConfigDirectory,
   readConfigFile,
+  resolveConfigPath,
   saveActiveProfileToLibrary,
   saveProfileLayers,
   switchEditorProfile,
+  writeConfigFile,
   type ConfigDirectory,
   type ProfileInfo
 } from './services/tauriApi'
-import { baseName, classifyConfigFile } from './profile/profileLayers'
-import {
-  ACTIVE_PROFILE_FILENAME,
-  ENTRY_FILENAME,
-  USER_DEFINED_FILENAME
-} from './profile/profileConstants'
+import { classifyConfigFile } from './profile/profileLayers'
+import { ENTRY_FILENAME } from './profile/profileConstants'
 import { parseProfileName, withProfileHeader } from './profile/profileHeader'
 import { parseConfig } from './parser'
 import { useI18n } from './i18n'
@@ -58,8 +56,7 @@ const {
   fileName,
   initForDirectoryLoad,
   closeConfig,
-  loadConfigText,
-  ensureLayerFile
+  loadConfigText
 } = useConfig()
 
 const {
@@ -189,7 +186,6 @@ async function handleOpenDirectoryClick() {
 
     // Parse config chain starting from d2hackmap.default.cfg
     await parseConfigChain(dirHandle)
-    warnIfEntryNotLoaded()
 
     // Check if there are pending nodes that need authorization
     if (hasPendingNodes(chainRoot.value)) {
@@ -234,9 +230,6 @@ async function loadConfigFromDirectory(dirHandle: ConfigDirectory) {
     }
   }
 
-  ensureLayerFile(ACTIVE_PROFILE_FILENAME, 'profile')
-  ensureLayerFile(USER_DEFINED_FILENAME, 'user')
-
   // Refresh effective status once after all files loaded
   if (config.value) {
     refreshEffectiveStatus(config.value)
@@ -246,6 +239,11 @@ async function loadConfigFromDirectory(dirHandle: ConfigDirectory) {
   // Remember directory for restore
   await saveDirHandle(dirHandle)
   await refreshProfileOptions()
+}
+
+function joinRootConfigPath(rootPath: string, fileName: string): string {
+  const separator = rootPath.includes('\\') ? '\\' : '/'
+  return `${rootPath.replace(/[\\/]+$/, '')}${separator}${fileName}`
 }
 
 async function ensureProfileFiles(dirHandle: ConfigDirectory): Promise<void> {
@@ -276,6 +274,44 @@ async function ensureProfileFiles(dirHandle: ConfigDirectory): Promise<void> {
   if (shouldSaveLayers) {
     await saveProfileLayers(dirHandle.path, entryContent, profileContent, userContent)
   }
+
+  await ensureEditorEntryImported(dirHandle)
+}
+
+async function ensureEditorEntryImported(dirHandle: ConfigDirectory): Promise<void> {
+  const defaultPath = joinRootConfigPath(dirHandle.path, REQUIRED_FILE)
+  const defaultFile = await readConfigFile(defaultPath)
+  const defaultConfig = parseConfig(defaultFile.lines, REQUIRED_FILE, 'extern')
+  const firstImport = defaultConfig.includes[0]?.file
+  if (!firstImport) {
+    throw new Error(`${REQUIRED_FILE} has no Import Config entry`)
+  }
+
+  const target = await resolveConfigPath(dirHandle.path, defaultPath, firstImport)
+  if (target.status !== 'loaded' || !target.fullPath) {
+    throw new Error(`Failed to resolve Import Config target: ${firstImport}`)
+  }
+
+  const targetFile = await readConfigFile(target.fullPath)
+  const targetConfig = parseConfig(targetFile.lines, target.path || targetFile.name, 'extern')
+  if (targetConfig.includes.some(item => isSameImportFile(item.file, ENTRY_FILENAME))) {
+    return
+  }
+
+  const content = appendImportLine(targetFile.lines, `    Import Config: "${ENTRY_FILENAME}"`)
+  await writeConfigFile(target.fullPath, content)
+}
+
+function isSameImportFile(importPath: string, fileName: string): boolean {
+  return importPath.split(/[\\/]/).pop()?.toLowerCase() === fileName.toLowerCase()
+}
+
+function appendImportLine(lines: string[], line: string): string {
+  const nextLines = [...lines]
+  while (nextLines.length > 0 && nextLines[nextLines.length - 1] === '') {
+    nextLines.pop()
+  }
+  return [...nextLines, '', line, ''].join('\r\n')
 }
 
 function shouldMigratePreviousEntry(previousEntryContent: string | null, entryContent: string): boolean {
@@ -305,15 +341,6 @@ function mergePreviousEntryIntoUser(userContent: string, previousEntryContent: s
   if (!userContent.trim()) return `${previous}\r\n`
 
   return `${userContent.trimEnd()}\r\n\r\n    // ========== migrated from old d2hackmap.gen.cfg ==========\r\n\r\n${previous}\r\n`
-}
-
-function warnIfEntryNotLoaded(): void {
-  const hasEntry = getLoadedNodes(chainRoot.value).some(
-    node => baseName(node.path || node.file).toLowerCase() === ENTRY_FILENAME.toLowerCase()
-  )
-  if (!hasEntry) {
-    alert(t('profile.entryNotLinked'))
-  }
 }
 
 function splitConfigText(text: string): string[] {
@@ -475,7 +502,6 @@ async function handleRestoreDirectory() {
         lastUsedHandle.value = dirHandle
         await ensureProfileFiles(dirHandle)
         await parseConfigChain(dirHandle)
-        warnIfEntryNotLoaded()
         if (hasPendingNodes(chainRoot.value)) {
           showChainDialog.value = true
         } else {
@@ -546,7 +572,6 @@ onMounted(async () => {
           await ensureProfileFiles(dirHandle)
           // Parse config chain and load
           await parseConfigChain(dirHandle)
-          warnIfEntryNotLoaded()
           if (hasPendingNodes(chainRoot.value)) {
             showChainDialog.value = true
           } else {

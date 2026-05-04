@@ -61,6 +61,10 @@ export async function readConfigFile(path: string): Promise<ConfigFileContent> {
   return invoke<ConfigFileContent>('read_config_file', { path })
 }
 
+export async function writeConfigFile(path: string, content: string): Promise<void> {
+  return invoke<void>('write_config_file', { path, content })
+}
+
 export async function resolveConfigPath(
   rootPath: string,
   baseFilePath: string,

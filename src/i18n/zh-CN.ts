@@ -611,7 +611,6 @@ const zhCN: Record<string, string> = {
   'profile.noProfiles': '还没有保存过 Profile',
   'profile.confirmSwitchUnsaved': '当前有未保存改动，切换 Profile 会丢失未保存内容。是否继续？',
   'profile.confirmDelete': '确定删除 Profile “{name}” 吗？',
-  'profile.entryNotLinked': '当前目录没有导入 d2hackmap.gen.cfg。编辑器不会修改 d2hackmap.default.cfg，请手动接入入口文件。',
 }
 
 export default zhCN
