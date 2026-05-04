@@ -6,6 +6,7 @@ import {
   refreshEffectiveStatus,
   getImportItemKey,
   getAllItems,
+  canCopyItemToMain,
   addItemToEditable,
   deleteItemFromFile,
   buildCommentedMainMap,
@@ -217,12 +218,12 @@ function copyItem(index: number): void {
 function duplicateItemToMain(index: number, skipRefresh = false): boolean {
   if (!config.value || isReadOnly.value) return false
   const original = getItemAtIndex(index)
-  if (!original || !isItemExtern(original)) return false
+  if (!original || !canCopyItemToMain(original)) return false
 
   // Check for duplicate: skip if main config already has item with same key
   const key = getImportItemKey(original)
   const allItems = getAllItems<ImportItemItem>(config.value, 'importItems')
-  const hasMainItem = allItems.some(item => getImportItemKey(item) === key && item.sourceFile === null)
+  const hasMainItem = allItems.some(item => getImportItemKey(item) === key && item.layer === 'user')
   if (hasMainItem) return false
 
   // Add new main item
@@ -549,6 +550,9 @@ const debugImportItems = computed((): ImportItemItem[] => {
               <span v-if="item.isDeleted" class="status-tag tag-deleted">×</span>
             </template>
             <template v-else-if="!isReadOnly">
+              <button v-if="canCopyItemToMain(item)" class="btn btn-small btn-accent" @click="duplicateItemToMain(index)" :title="t('action.copyToMain')">
+                +
+              </button>
               <button class="btn btn-small btn-secondary" @click="copyItem(index)" :title="t('action.copy')">
                 ⧉
               </button>

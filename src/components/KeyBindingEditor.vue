@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useConfig } from '../composables/useConfig'
 import {
   useItemActions,
+  canCopyItemToMain,
   scrollToMainItemInList,
   getKeyBindingKey
 } from '../composables/useItemActions'
@@ -235,7 +236,7 @@ function copyAllKeyBindingExtern() {
 
 function duplicateKeyBindingToMain(binding: KeyBindingItem, skipRefresh = false): boolean {
   if (!config.value || isReadOnly.value) return false
-  if (!isItemExtern(binding)) return false
+  if (!canCopyItemToMain(binding)) return false
 
   const newItem: KeyBindingItem = {
     keyCode: binding.keyCode,
@@ -378,6 +379,7 @@ function formatKeyBinding(binding: KeyBindingItem): string {
             <span v-if="binding.isDeleted" class="status-tag tag-deleted">×</span>
           </template>
           <template v-else-if="!isReadOnly">
+            <button v-if="canCopyItemToMain(binding)" class="btn btn-small btn-accent" @click="duplicateKeyBindingToMain(binding)" :title="t('action.copyToMain')">+</button>
             <button class="btn btn-small btn-secondary" @click="handleKeyBindingComment(binding)" :title="t('action.comment')">//</button>
             <button class="btn btn-small btn-danger" @click="handleKeyBindingDelete(binding)" :title="t('action.delete')">×</button>
           </template>

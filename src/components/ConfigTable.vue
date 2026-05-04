@@ -377,7 +377,7 @@ onUnmounted(() => {
       </div>
       <div class="config-cell col-source">
         <span
-          class="status-tag source-tag"
+          class="source-tag"
           :class="sourceTagClass(item)"
           :title="sourceTitle(item)"
         >{{ sourceLabel(item) }}</span>
@@ -394,6 +394,26 @@ onUnmounted(() => {
   box-sizing: border-box;
 }
 
+.item-list {
+  overflow-x: auto;
+  scrollbar-gutter: stable;
+}
+
+.item-list :deep(.config-header),
+.item-list :deep(.config-row) {
+  padding-right: 164px;
+}
+
+.item-list :deep(.config-header) {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.item-list :deep(.config-row) {
+  position: relative;
+}
+
 .config-header-cell {
   white-space: nowrap;
 }
@@ -405,8 +425,18 @@ onUnmounted(() => {
 .config-cell.col-source {
   flex: 0 0 140px;
   width: 140px;
-  margin-left: auto;
-  justify-content: flex-start;
+  position: absolute;
+  top: 0;
+  right: 12px;
+  bottom: 0;
+  z-index: 2;
+  background: inherit;
+  justify-content: flex-end;
+  overflow: visible;
+}
+
+.config-header-cell.col-source {
+  z-index: 12;
 }
 
 .config-cell :deep(input:not([type="checkbox"]):not([type="radio"])),

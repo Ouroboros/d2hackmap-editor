@@ -4,6 +4,7 @@ import { useConfig } from '../composables/useConfig'
 import { useFileStorage } from '../composables/useFileStorage'
 import {
   useItemActions,
+  canCopyItemToMain,
   scrollToMainItemInList,
   getItemDescriptorKey,
   getCubeFormulaKey,
@@ -518,7 +519,7 @@ function addDoTask() {
 
 function duplicateItemDescriptorToMain(desc: ItemDescriptorItem, skipRefresh = false): boolean {
   if (!config.value || isReadOnly.value) return false
-  if (!isItemExtern(desc)) return false
+  if (!canCopyItemToMain(desc)) return false
 
   const newItem: ItemDescriptorItem = {
     name: desc.name,
@@ -541,7 +542,7 @@ function duplicateItemDescriptorToMain(desc: ItemDescriptorItem, skipRefresh = f
 
 function duplicateCubeFormulaToMain(formula: CubeFormulaItem, skipRefresh = false): boolean {
   if (!config.value || isReadOnly.value) return false
-  if (!isItemExtern(formula)) return false
+  if (!canCopyItemToMain(formula)) return false
 
   const newItem: CubeFormulaItem = {
     name: formula.name,
@@ -561,7 +562,7 @@ function duplicateCubeFormulaToMain(formula: CubeFormulaItem, skipRefresh = fals
 
 function duplicatePreItemTaskToMain(task: PreItemTaskItem, skipRefresh = false): boolean {
   if (!config.value || isReadOnly.value) return false
-  if (!isItemExtern(task)) return false
+  if (!canCopyItemToMain(task)) return false
 
   const newItem: PreItemTaskItem = {
     name: task.name,
@@ -584,7 +585,7 @@ function duplicatePreItemTaskToMain(task: PreItemTaskItem, skipRefresh = false):
 
 function duplicateDoTaskToMain(task: DoTaskItem, skipRefresh = false): boolean {
   if (!config.value || isReadOnly.value) return false
-  if (!isItemExtern(task)) return false
+  if (!canCopyItemToMain(task)) return false
 
   const newItem: DoTaskItem = {
     name: task.name,
@@ -1293,6 +1294,7 @@ function formatCurrentDebugItem(item: TransmuteDebugItem): string {
             <span v-if="desc.isDeleted" class="status-tag tag-deleted">×</span>
           </template>
           <template v-else-if="!isReadOnly">
+            <button v-if="canCopyItemToMain(desc)" class="btn btn-small btn-accent" @click="duplicateItemDescriptorToMain(desc)" :title="t('action.copyToMain')">+</button>
             <button class="btn btn-small btn-secondary" @click="handleItemDescriptorComment(desc)" :title="t('action.comment')">//</button>
             <button class="btn btn-small btn-danger" @click="handleItemDescriptorDelete(desc)" :title="t('action.delete')">×</button>
           </template>
@@ -1383,6 +1385,7 @@ function formatCurrentDebugItem(item: TransmuteDebugItem): string {
             <span v-if="formula.isDeleted" class="status-tag tag-deleted">×</span>
           </template>
           <template v-else-if="!isReadOnly">
+            <button v-if="canCopyItemToMain(formula)" class="btn btn-small btn-accent" @click="duplicateCubeFormulaToMain(formula)" :title="t('action.copyToMain')">+</button>
             <button class="btn btn-small btn-secondary" @click="handleCubeFormulaComment(formula)" :title="t('action.comment')">//</button>
             <button class="btn btn-small btn-danger" @click="handleCubeFormulaDelete(formula)" :title="t('action.delete')">×</button>
           </template>
@@ -1503,6 +1506,7 @@ function formatCurrentDebugItem(item: TransmuteDebugItem): string {
             <span v-if="task.isDeleted" class="status-tag tag-deleted">×</span>
           </template>
           <template v-else-if="!isReadOnly">
+            <button v-if="canCopyItemToMain(task)" class="btn btn-small btn-accent" @click="duplicatePreItemTaskToMain(task)" :title="t('action.copyToMain')">+</button>
             <button class="btn btn-small btn-secondary" @click="handlePreItemTaskComment(task)" :title="t('action.comment')">//</button>
             <button class="btn btn-small btn-danger" @click="handlePreItemTaskDelete(task)" :title="t('action.delete')">×</button>
           </template>
@@ -1615,6 +1619,7 @@ function formatCurrentDebugItem(item: TransmuteDebugItem): string {
             <span v-if="task.isDeleted" class="status-tag tag-deleted">×</span>
           </template>
           <template v-else-if="!isReadOnly">
+            <button v-if="canCopyItemToMain(task)" class="btn btn-small btn-accent" @click="duplicateDoTaskToMain(task)" :title="t('action.copyToMain')">+</button>
             <button class="btn btn-small btn-secondary" @click="handleDoTaskComment(task)" :title="t('action.comment')">//</button>
             <button class="btn btn-small btn-danger" @click="handleDoTaskDelete(task)" :title="t('action.delete')">×</button>
           </template>

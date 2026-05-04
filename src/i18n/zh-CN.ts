@@ -95,7 +95,7 @@ const zhCN: Record<string, string> = {
 
   // Batch operations
   'batch.selected': '已选 {count} 项',
-  'batch.copyAllExtern': '复制全部外部项',
+  'batch.copyAllExtern': '全部复制到用户配置',
 
   // Source
   'source.title': '来源',
@@ -357,8 +357,8 @@ const zhCN: Record<string, string> = {
   'action.restore': '恢复',
   'action.comment': '注释',
   'action.delete': '删除',
-  'action.copyToMain': '复制到主配置',
-  'action.jumpToMain': '跳转到主配置项',
+  'action.copyToMain': '复制到用户配置',
+  'action.jumpToMain': '跳转到用户配置项',
 
   // Theme
   'theme.light': '浅色',
@@ -431,7 +431,7 @@ const zhCN: Record<string, string> = {
   // Help Guide
   'help.title': '使用说明',
   'help.gettingStarted': '快速开始',
-  'help.gettingStartedContent': '点击"打开目录"按钮，选择配置文件所在的目录。编辑器会自动加载主配置和所有引用的外部配置。编辑完成后点击"保存文件"即可。',
+  'help.gettingStartedContent': '点击"打开目录"按钮，选择配置文件所在的目录。编辑器会自动加载用户配置和所有引用的外部配置。编辑完成后点击"保存文件"即可。',
 
   'help.configChain': '配置继承',
   'help.configChainContent': '配置文件可以引用其他配置文件，编辑器会自动加载所有引用的配置。当多个配置中存在相同的配置项时，你自己的配置优先生效。',
@@ -452,15 +452,15 @@ const zhCN: Record<string, string> = {
   'help.actionComment': '注释（//）：暂时禁用配置项，但保留在文件中。',
   'help.actionDelete': '删除（×）：从配置中移除该项。',
   'help.actionRestore': '恢复（↩）：恢复已注释或已删除的配置项。',
-  'help.actionCopyToMain': '复制到我的配置（+）：将外部配置项复制一份，便于修改或覆盖。',
+  'help.actionCopyToMain': '复制到用户配置（+）：将外部配置项复制一份，便于修改或覆盖。',
   'help.actionJumpToMain': '跳转（→）：当外部项已被你的配置覆盖时，点击可跳转到你的配置项。',
 
   'help.batchOps': '批量操作',
   'help.batchOpsContent': '勾选多个配置项后，可以进行批量设置颜色、批量注释、批量删除、批量恢复等操作。外部配置项不可勾选。',
-  'help.copyAllExtern': '"复制全部外部项"按钮可一次性复制所有外部配置项。',
+  'help.copyAllExtern': '"全部复制到用户配置"按钮可一次性复制当前页可见的外部项和 Profile 项。',
 
   'help.dragDrop': '拖拽排序',
-  'help.dragDropContent': '拖动行首的拖拽手柄（⋮⋮）可调整配置项顺序。仅主配置项可拖拽排序。',
+  'help.dragDropContent': '拖动行首的拖拽手柄（⋮⋮）可调整配置项顺序。仅用户配置项可拖拽排序。',
 
   'help.colorConfig': '颜色配置',
   'help.colorConfigContent': '物品颜色、符文颜色、金币颜色支持设置文字颜色和地图颜色。点击颜色方块选择颜色，选择"无"表示不修改默认颜色。',
@@ -477,18 +477,18 @@ const zhCN: Record<string, string> = {
 
   'help.tab.common': '通用',
   'help.common.workflow': '基础流程',
-  'help.common.workflow.1': '点击“打开目录”选择 HackMap 配置目录，程序按配置引用链加载外部配置和主配置。',
-  'help.common.workflow.2': '编辑的是主配置项；保存时写入底部“输出到”显示的生成配置文件。',
+  'help.common.workflow.1': '点击“打开目录”选择 HackMap 配置目录，程序按配置引用链加载外部配置和用户配置。',
+  'help.common.workflow.2': '编辑的是用户配置项；保存时写入底部“输出到”显示的生成配置文件。',
   'help.common.workflow.3': '顶部搜索框只筛选当前页面，不会删除或改写未显示的配置项。',
   'help.common.itemState': '配置项状态',
-  'help.common.itemState.1': '主配置项可以编辑、注释、删除、拖拽排序。',
-  'help.common.itemState.2': '外部项来自引用文件，只读；需要修改时先点“+”复制到主配置。',
+  'help.common.itemState.1': '用户配置项可以编辑、注释、删除、拖拽排序。',
+  'help.common.itemState.2': '外部项来自引用文件，只读；需要修改时先点“+”复制到用户配置。',
   'help.common.itemState.3': '已注释项保存后仍保留在 CFG 中，但不会生效。',
-  'help.common.itemState.4': '已删除项保存后会从主配置中移除。',
+  'help.common.itemState.4': '已删除项保存后会从用户配置中移除。',
   'help.common.operations': '通用操作',
   'help.common.operations.1': '勾选框用于批量恢复、注释、删除；外部项不能勾选。',
-  'help.common.operations.2': '“复制全部外部项”会把当前页可见外部项复制到主配置。',
-  'help.common.operations.3': '拖拽手柄会真实改变主配置项顺序，保存后顺序写回 CFG。',
+  'help.common.operations.2': '“全部复制到用户配置”会把当前页可见的外部项和 Profile 项复制到用户配置。',
+  'help.common.operations.3': '拖拽手柄会真实改变用户配置项顺序，保存后顺序写回 CFG。',
   'help.common.operations.4': '“导出”用于导出当前配置段，日常保存直接点“保存文件”。',
 
   'help.toggles.fields': '字段',
@@ -496,8 +496,8 @@ const zhCN: Record<string, string> = {
   'help.toggles.fields.2': '名称是开关项名称，用来匹配原 CFG 配置项，不直接编辑。',
   'help.toggles.fields.3': '快捷键列点击后录入按键；清空后显示“无”。注释列写入行尾说明。',
   'help.toggles.operations': '操作',
-  'help.toggles.operations.1': '外部开关只读，点“+”复制到主配置后才能修改。',
-  'help.toggles.operations.2': '主配置开关可以注释、删除、恢复和拖拽排序。',
+  'help.toggles.operations.1': '外部开关只读，点“+”复制到用户配置后才能修改。',
+  'help.toggles.operations.2': '用户配置开关可以注释、删除、恢复和拖拽排序。',
   'help.toggles.operations.3': '开关页没有新增按钮，通常通过复制外部项生成可编辑项。',
 
   'help.itemColors.fields': '字段',
@@ -516,7 +516,7 @@ const zhCN: Record<string, string> = {
   'help.runeColors.fields.3': '注释列写入该符文颜色规则的说明。',
   'help.runeColors.operations': '操作',
   'help.runeColors.operations.1': '可添加、批量注释、批量删除、复制外部项。',
-  'help.runeColors.operations.2': '只有主配置符文规则可以编辑和拖拽排序。',
+  'help.runeColors.operations.2': '只有用户配置符文规则可以编辑和拖拽排序。',
 
   'help.goldColors.fields': '字段',
   'help.goldColors.fields.1': '金币范围填写金币数量或数量范围。',
@@ -524,7 +524,7 @@ const zhCN: Record<string, string> = {
   'help.goldColors.fields.3': '注释列写入该金币颜色规则的说明。',
   'help.goldColors.operations': '操作',
   'help.goldColors.operations.1': '可添加、批量注释、批量删除、复制外部项。',
-  'help.goldColors.operations.2': '只有主配置金币规则可以编辑和拖拽排序。',
+  'help.goldColors.operations.2': '只有用户配置金币规则可以编辑和拖拽排序。',
 
   'help.importItems.fields': '字段',
   'help.importItems.fields.1': '物品ID点击弹出物品选择器，品质点击弹出品质选择器。',
@@ -533,8 +533,8 @@ const zhCN: Record<string, string> = {
   'help.importItems.fields.4': '注释列写入该拾取规则的说明。',
   'help.importItems.operations': '操作',
   'help.importItems.operations.1': '添加会创建新的拾取规则，并跳转到新增项。',
-  'help.importItems.operations.2': '外部拾取规则只读，复制到主配置后才能修改。',
-  'help.importItems.operations.3': '主配置拾取规则可以批量注释、删除、恢复和拖拽排序。',
+  'help.importItems.operations.2': '外部拾取规则只读，复制到用户配置后才能修改。',
+  'help.importItems.operations.3': '用户配置拾取规则可以批量注释、删除、恢复和拖拽排序。',
 
   'help.statLimits.fields': '字段',
   'help.statLimits.fields.1': '限制名是供拾取、物品描述、预处理引用的唯一名称。',
@@ -542,8 +542,8 @@ const zhCN: Record<string, string> = {
   'help.statLimits.fields.3': '注释列写入该属性限制的说明。',
   'help.statLimits.operations': '操作',
   'help.statLimits.operations.1': '添加会创建新的属性限制，并跳转到新增项。',
-  'help.statLimits.operations.2': '外部属性限制只读，复制到主配置后才能修改。',
-  'help.statLimits.operations.3': '主配置属性限制可以批量注释、删除、恢复和拖拽排序。',
+  'help.statLimits.operations.2': '外部属性限制只读，复制到用户配置后才能修改。',
+  'help.statLimits.operations.3': '用户配置属性限制可以批量注释、删除、恢复和拖拽排序。',
 
   'help.statLimitGroups.fields': '字段',
   'help.statLimitGroups.fields.1': '名称是属性限制组名称，供拾取、物品描述、预处理引用。',
@@ -552,7 +552,7 @@ const zhCN: Record<string, string> = {
   'help.statLimitGroups.operations': '操作',
   'help.statLimitGroups.operations.1': '列表按钮的悬浮提示会逐行显示组内元素。',
   'help.statLimitGroups.operations.2': '组的注释显示第一个有效注释，保存时仍按组内 CFG 行生成。',
-  'help.statLimitGroups.operations.3': '主配置限制组可以批量注释、删除、恢复和拖拽排序。',
+  'help.statLimitGroups.operations.3': '用户配置限制组可以批量注释、删除、恢复和拖拽排序。',
 
   'help.itemDescriptors.fields': '字段',
   'help.itemDescriptors.fields.1': '名称是物品描述名称，供合成公式引用。',
@@ -596,8 +596,8 @@ const zhCN: Record<string, string> = {
   'help.keyBindings.fields.3': '注释列写入该按键绑定的说明。',
   'help.keyBindings.operations': '操作',
   'help.keyBindings.operations.1': '添加会创建新的按键绑定，并跳转到新增项。',
-  'help.keyBindings.operations.2': '外部按键绑定只读，复制到主配置后才能修改。',
-  'help.keyBindings.operations.3': '主配置按键绑定可以批量注释、删除、恢复和拖拽排序。',
+  'help.keyBindings.operations.2': '外部按键绑定只读，复制到用户配置后才能修改。',
+  'help.keyBindings.operations.3': '用户配置按键绑定可以批量注释、删除、恢复和拖拽排序。',
 
   'profile.current': '当前 Profile',
   'profile.unnamed': '未命名 Profile',

@@ -4,6 +4,7 @@ import { useConfig } from '../composables/useConfig'
 import { useFileStorage } from '../composables/useFileStorage'
 import {
   useItemActions,
+  canCopyItemToMain,
   scrollToMainItemInList,
   getStatLimitKey,
   getStatLimitGroupKey
@@ -389,11 +390,11 @@ function handleStatLimitGroupDragEnd() {
 
 function duplicateStatLimitToMain(item: StatLimitItem, skipRefresh = false): boolean {
   if (!config.value || isReadOnly.value) return false
-  if (!isItemExtern(item)) return false
+  if (!canCopyItemToMain(item)) return false
 
   const allItems = getAllTransmuteItems<StatLimitItem>('statLimits')
   const hasMainEffective = allItems.some(s =>
-    s.name === item.name && s.sourceFile === null && isItemEffective(s)
+    s.name === item.name && s.layer === 'user' && isItemEffective(s)
   )
   if (hasMainEffective) return false
 
@@ -418,7 +419,7 @@ function duplicateStatLimitToMain(item: StatLimitItem, skipRefresh = false): boo
 
 function duplicateStatLimitGroupToMain(group: StatLimitGroupItem, skipRefresh = false): boolean {
   if (!config.value || isReadOnly.value) return false
-  if (!isItemExtern(group)) return false
+  if (!canCopyItemToMain(group)) return false
 
   const newItem: StatLimitGroupItem = {
     name: group.name,
@@ -748,6 +749,7 @@ function formatCurrentDebugItem(item: StatDebugItem): string {
             <span v-if="item.isDeleted" class="status-tag tag-deleted">×</span>
           </template>
           <template v-else-if="!isReadOnly">
+            <button v-if="canCopyItemToMain(item)" class="btn btn-small btn-accent" @click="duplicateStatLimitToMain(item)" :title="t('action.copyToMain')">+</button>
             <button class="btn btn-small btn-secondary" @click="handleStatLimitComment(item)" :title="t('action.comment')">//</button>
             <button class="btn btn-small btn-danger" @click="handleStatLimitDelete(item)" :title="t('action.delete')">×</button>
           </template>
@@ -855,6 +857,7 @@ function formatCurrentDebugItem(item: StatDebugItem): string {
             <span v-if="group.isDeleted" class="status-tag tag-deleted">×</span>
           </template>
           <template v-else-if="!isReadOnly">
+            <button v-if="canCopyItemToMain(group)" class="btn btn-small btn-accent" @click="duplicateStatLimitGroupToMain(group)" :title="t('action.copyToMain')">+</button>
             <button class="btn btn-small btn-secondary" @click="handleStatLimitGroupComment(group)" :title="t('action.comment')">//</button>
             <button class="btn btn-small btn-danger" @click="handleStatLimitGroupDelete(group)" :title="t('action.delete')">×</button>
           </template>

@@ -9,6 +9,7 @@ import {
   getRuneColorKey,
   getGoldColorKey,
   getAllItems,
+  canCopyItemToMain,
   getEditableFile,
   addItemToEditable,
   deleteItemFromFile,
@@ -694,12 +695,12 @@ function handleRestoreRuneColor(index: number) {
 function duplicateItemColorToMain(index: number, skipRefresh = false): boolean {
   if (!config.value || isReadOnly.value) return false
   const original = getItemAtIndex(index, 'items')
-  if (!original || !isItemExtern(original)) return false
+  if (!original || !canCopyItemToMain(original)) return false
 
   // Check for duplicate: skip if main config already has item with same key
   const key = getItemColorKey(original)
   const allItems = getAllItems<ItemColorItem>(config.value, 'itemColors')
-  const hasMainItem = allItems.some(item => getItemColorKey(item) === key && item.sourceFile === null)
+  const hasMainItem = allItems.some(item => getItemColorKey(item) === key && item.layer === 'user')
   if (hasMainItem) return false
 
   // Add new main item
@@ -727,12 +728,12 @@ function duplicateItemColorToMain(index: number, skipRefresh = false): boolean {
 function duplicateRuneColorToMain(index: number, skipRefresh = false): boolean {
   if (!config.value || isReadOnly.value) return false
   const original = getItemAtIndex(index, 'runes')
-  if (!original || !isItemExtern(original)) return false
+  if (!original || !canCopyItemToMain(original)) return false
 
   // Check for duplicate: skip if main config already has item with same key
   const key = getRuneColorKey(original)
   const allItems = getAllItems<RuneColorItem>(config.value, 'runeColors')
-  const hasMainItem = allItems.some(item => getRuneColorKey(item) === key && item.sourceFile === null)
+  const hasMainItem = allItems.some(item => getRuneColorKey(item) === key && item.layer === 'user')
   if (hasMainItem) return false
 
   // Add new main item
@@ -831,12 +832,12 @@ function copyGoldColor(index: number) {
 function duplicateGoldColorToMain(index: number, skipRefresh = false): boolean {
   if (!config.value || isReadOnly.value) return false
   const original = getItemAtIndex(index, 'golds')
-  if (!original || !isItemExtern(original)) return false
+  if (!original || !canCopyItemToMain(original)) return false
 
   // Check for duplicate: skip if main config already has item with same key
   const key = getGoldColorKey(original)
   const allItems = getAllItems<GoldColorItem>(config.value, 'goldColors')
-  const hasMainItem = allItems.some(item => getGoldColorKey(item) === key && item.sourceFile === null)
+  const hasMainItem = allItems.some(item => getGoldColorKey(item) === key && item.layer === 'user')
   if (hasMainItem) return false
 
   // Add new main item
@@ -1110,6 +1111,9 @@ const currentFormatter = computed(() => {
                 <span v-if="item.isDeleted" class="status-tag tag-deleted">×</span>
               </template>
               <template v-else-if="!isReadOnly">
+                <button v-if="canCopyItemToMain(item)" class="btn btn-small btn-accent" @click="duplicateItemColorToMain(index)" :title="t('action.copyToMain')">
+                  +
+                </button>
                 <button class="btn btn-small btn-secondary" @click="copyItemColor(index)" :title="t('action.copy')">
                   ⧉
                 </button>
@@ -1212,6 +1216,9 @@ const currentFormatter = computed(() => {
                 <span v-if="item.isDeleted" class="status-tag tag-deleted">×</span>
               </template>
               <template v-else-if="!isReadOnly">
+                <button v-if="canCopyItemToMain(item)" class="btn btn-small btn-accent" @click="duplicateRuneColorToMain(index)" :title="t('action.copyToMain')">
+                  +
+                </button>
                 <button class="btn btn-small btn-secondary" @click="copyRuneColor(index)" :title="t('action.copy')">
                   ⧉
                 </button>
@@ -1316,6 +1323,9 @@ const currentFormatter = computed(() => {
                 <span v-if="item.isDeleted" class="status-tag tag-deleted">×</span>
               </template>
               <template v-else-if="!isReadOnly">
+                <button v-if="canCopyItemToMain(item)" class="btn btn-small btn-accent" @click="duplicateGoldColorToMain(index)" :title="t('action.copyToMain')">
+                  +
+                </button>
                 <button class="btn btn-small btn-secondary" @click="copyGoldColor(index)" :title="t('action.copy')">
                   ⧉
                 </button>

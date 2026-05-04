@@ -116,6 +116,10 @@ export function canEditItem(item: BaseConfigItem): boolean {
   return isEditableItem(item)
 }
 
+export function canCopyItemToMain(item: BaseConfigItem): boolean {
+  return item.layer === 'extern' || item.layer === 'profile'
+}
+
 /**
  * Get the source file name for an item
  */
@@ -367,6 +371,6 @@ export function scrollToMainItemInList<T extends BaseConfigItem>(
     getItems,
     item,
     containerSelector,
-    (candidate, target) => candidate.sourceFile === null && getKey(candidate) === getKey(target)
+    (candidate, target) => candidate.layer === 'user' && getKey(candidate) === getKey(target)
   )
 }

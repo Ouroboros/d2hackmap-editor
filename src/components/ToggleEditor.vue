@@ -6,6 +6,7 @@ import {
   refreshEffectiveStatus,
   getToggleKey,
   getAllItems,
+  canCopyItemToMain,
   addItemToEditable,
   deleteItemFromFile,
   buildCommentedMainMap,
@@ -213,12 +214,12 @@ function handleToggleDragEnd(): void {
 
 function duplicateToMain(item: ToggleItem, skipRefresh = false): boolean {
   if (isReadOnly.value || !config.value) return false
-  if (!isItemExtern(item)) return false
+  if (!canCopyItemToMain(item)) return false
 
   // Check for duplicate: skip if main config already has item with same key
   const key = getToggleKey(item)
   const allItems = getAllItems<ToggleItem>(config.value, 'toggles')
-  const hasMainItem = allItems.some(i => getToggleKey(i) === key && i.sourceFile === null)
+  const hasMainItem = allItems.some(i => getToggleKey(i) === key && i.layer === 'user')
   if (hasMainItem) return false
 
   // Add new main item
@@ -352,6 +353,9 @@ function formatToggle(item: ToggleItem): string {
               <span v-if="toggle.isDeleted" class="status-tag tag-deleted">×</span>
             </template>
             <template v-else-if="!isReadOnly">
+              <button v-if="canCopyItemToMain(toggle)" class="btn btn-small btn-accent" @click="duplicateToMain(toggle)" :title="t('action.copyToMain')">
+                +
+              </button>
               <button class="btn btn-small btn-secondary" @click="handleComment(toggle)" :title="t('action.comment')">
                 //
               </button>

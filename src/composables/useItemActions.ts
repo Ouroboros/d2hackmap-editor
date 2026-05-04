@@ -13,6 +13,7 @@ export {
   getItemSourceFile,
   getItemRowClasses,
   canEditItem,
+  canCopyItemToMain,
   getAllItems,
   getEditableFile,
   getTargetFile,

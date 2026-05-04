@@ -1,6 +1,6 @@
 import { ref, watch, computed, type Ref } from 'vue'
 import { parseConfig } from '../parser'
-import { generateConfig } from '../generator'
+import { formatSimpleConfigLine, generateConfig } from '../generator'
 import { useI18n } from '../i18n'
 import { refreshEffectiveStatus } from './useItemActions'
 import { log } from '../utils/log'
@@ -123,16 +123,8 @@ function generateTogglesExport(cfg: Config): string {
     for (const data of fileConfig.data.toggles) {
       if (data.isDeleted) continue
       if (data.isEffective === false) continue
-      if (data.name.endsWith('Key')) {
-        const hotkey = data.hotkey || '-1'
-        const line = data.isCommented ? `// ${data.name}: ${hotkey}` : `${data.name}: ${hotkey}`
-        lines.push(line)
-      } else {
-        const value = data.enabled ? '1' : '0'
-        const hotkey = data.hotkey || '-1'
-        const line = data.isCommented ? `// ${data.name}: ${value}, ${hotkey}` : `${data.name}: ${value}, ${hotkey}`
-        lines.push(line)
-      }
+      const line = formatSimpleConfigLine(data.name, data)
+      lines.push(data.isCommented ? `// ${line}` : line)
     }
   }
   return lines.join('\r\n')

@@ -89,6 +89,7 @@ function parseValues(str: string): string[] {
   let current = ''
   let inQuote = false
   let quoteChar = ''
+  let tokenStarted = false
 
   for (let i = 0; i < str.length; i++) {
     const ch = str[i]
@@ -96,21 +97,28 @@ function parseValues(str: string): string[] {
     if (!inQuote && (ch === '"' || ch === "'")) {
       inQuote = true
       quoteChar = ch
+      tokenStarted = true
     } else if (inQuote && ch === quoteChar) {
       inQuote = false
       quoteChar = ''
     } else if (!inQuote && ch === ',') {
-      values.push(current.trim())
+      if (tokenStarted || current.trim()) {
+        values.push(current.trim())
+      }
       current = ''
+      tokenStarted = false
     } else if (!inQuote && ch === '/' && str[i + 1] === '/') {
       // Comment starts, stop parsing
       break
     } else {
       current += ch
+      if (inQuote || ch.trim()) {
+        tokenStarted = true
+      }
     }
   }
 
-  if (current.trim()) {
+  if (tokenStarted || current.trim()) {
     values.push(current.trim())
   }
 
@@ -222,6 +230,7 @@ export function parseConfig(
         name: key,
         enabled: values[0] === '1' || values[0] === 'true',
         hotkey: values[1] || '-1',
+        value: values[2] || '',
         ...itemMeta
       }
       config.toggles.push(toggleItem)

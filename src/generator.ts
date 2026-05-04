@@ -4,6 +4,24 @@
  */
 
 import { useI18n } from './i18n'
+import {
+  FIELD_BLOB_COLOR,
+  FIELD_BOOL,
+  FIELD_HOTKEY,
+  FIELD_INT,
+  FIELD_DO_ACTION,
+  FIELD_DRAW_MODE,
+  FIELD_MONSTER_TYPE,
+  FIELD_PICKUP_HINT,
+  FIELD_PICKUP_MODE,
+  FIELD_PICKUP_UNUSED,
+  FIELD_STRING,
+  FIELD_TEXT_COLOR,
+  FIELD_UINT,
+  getConfigItemSchema,
+  type ConfigFieldSchema,
+  type FieldType
+} from './keywords'
 import type {
   ConfigData,
   ToggleItem,
@@ -39,6 +57,82 @@ function formatValue(value: string): string {
   return needsQuotes(value) ? `"${value}"` : value
 }
 
+function formatStringValue(value: string): string {
+  return `"${value.replace(/"/g, '\\"')}"`
+}
+
+function formatReferenceValue(value: string): string {
+  return value === '' || /[,"\r\n]/.test(value) ? formatStringValue(value) : value
+}
+
+function formatSchemaValue(value: string, fieldType: FieldType): string {
+  if (fieldType === FIELD_STRING) return formatStringValue(value)
+  if (fieldType === FIELD_BOOL) return value === '1' || value === 'true' ? '1' : '0'
+  if (fieldType === FIELD_HOTKEY) return value || '-1'
+  if (
+    fieldType === FIELD_INT ||
+    fieldType === FIELD_UINT ||
+    fieldType === FIELD_TEXT_COLOR ||
+    fieldType === FIELD_BLOB_COLOR ||
+    fieldType === FIELD_PICKUP_MODE ||
+    fieldType === FIELD_PICKUP_HINT ||
+    fieldType === FIELD_PICKUP_UNUSED ||
+    fieldType === FIELD_DO_ACTION ||
+    fieldType === FIELD_DRAW_MODE ||
+    fieldType === FIELD_MONSTER_TYPE
+  ) {
+    return formatValue(value)
+  }
+
+  return formatReferenceValue(value)
+}
+
+function formatSchemaValues(values: string[], fields: readonly ConfigFieldSchema[]): string[] {
+  const formatted: string[] = []
+  let valueIndex = 0
+  let hasRepeatField = false
+
+  for (const field of fields) {
+    if (field.repeat) {
+      hasRepeatField = true
+      while (valueIndex < values.length) {
+        const value = values[valueIndex++]
+        if (value !== '') formatted.push(formatSchemaValue(value, field.type))
+      }
+      break
+    }
+
+    const value = values[valueIndex++]
+    if (value === undefined) {
+      if (field.optional) continue
+      throw new Error(`Missing required config value: ${field.name}`)
+    }
+    if (field.optional && value === '') continue
+    formatted.push(formatSchemaValue(value, field.type))
+  }
+
+  if (!hasRepeatField && values.slice(valueIndex).some(value => value !== '')) {
+    throw new Error(`Too many config values: expected ${fields.length}, got ${values.length}`)
+  }
+
+  return formatted
+}
+
+function formatSchemaLine(key: string, indexes: string[], values: string[], comment: string): string {
+  const schema = getConfigItemSchema(key)
+  if (!schema) throw new Error(`Unknown config item schema: ${key}`)
+
+  const requiredIndexCount = schema.indexes.filter(field => !field.optional).length
+  if (indexes.length < requiredIndexCount) {
+    throw new Error(`Invalid config indexes for ${key}: expected at least ${requiredIndexCount}, got ${indexes.length}`)
+  }
+
+  const paramStr = indexes.map(value => `[${value}]`).join('')
+  const formattedValues = formatSchemaValues(values, schema.values)
+  const content = `${key}${paramStr}: ${formattedValues.join(', ')}`
+  return formatLine(content, comment)
+}
+
 // Format line with optional comment
 function formatLine(content: string, comment: string): string {
   if (comment) {
@@ -51,15 +145,42 @@ function formatLine(content: string, comment: string): string {
 function formatToggleLine(key: string, data: ToggleItem): string {
   const value = data.enabled ? '1' : '0'
   const hotkey = data.hotkey || '-1'
-  const content = `${key}: ${value}, ${hotkey}`
-  return formatLine(content, data.comment)
+  const values = [value, hotkey]
+  if (data.value) values.push(data.value)
+  return formatSchemaLine(key, [], values, data.comment)
 }
 
 // Format key line (only hotkey)
 function formatKeyLine(key: string, data: ToggleItem): string {
   const hotkey = data.hotkey || '-1'
-  const content = `${key}: ${hotkey}`
-  return formatLine(content, data.comment)
+  return formatSchemaLine(key, [], [hotkey], data.comment)
+}
+
+function formatOptionLine(key: string, data: ToggleItem): string {
+  return formatSchemaLine(key, [], [data.enabled ? '1' : '0'], data.comment)
+}
+
+function formatValueLine(key: string, data: ToggleItem): string {
+  const value = data.value || ''
+  return formatSchemaLine(key, [], [value], data.comment)
+}
+
+export function formatSimpleConfigLine(key: string, data: ToggleItem): string {
+  const schema = getConfigItemSchema(key)
+  if (!schema) throw new Error(`Unknown simple config item schema: ${key}`)
+
+  if (schema.cppClass === 'HMConfigItemToggle') return formatToggleLine(key, data)
+  if (schema.cppClass === 'HMConfigItemKey') return formatKeyLine(key, data)
+  if (schema.cppClass === 'HMConfigItemOption') return formatOptionLine(key, data)
+  if (
+    schema.cppClass === 'HMConfigItemString' ||
+    schema.cppClass === 'HMConfigItemInt' ||
+    schema.cppClass === 'HMConfigItemColorT'
+  ) {
+    return formatValueLine(key, data)
+  }
+
+  throw new Error(`Config item is not a simple item: ${key}`)
 }
 
 // Format Item Colors line
@@ -69,30 +190,17 @@ function formatItemColorLine(item: ItemColorItem): string {
   if (item.ethereal) params.push(item.ethereal)
   if (item.sockets) params.push(item.sockets)
 
-  const paramStr = params.map(p => `[${p}]`).join('')
-  const values: string[] = [formatValue(item.textColor), formatValue(item.mapColor)]
-  if (item.mapText) values.push(`"${item.mapText}"`)
-
-  const content = `Item Colors${paramStr}: ${values.join(', ')}`
-  return formatLine(content, item.comment)
+  return formatSchemaLine('Item Colors', params, [item.textColor, item.mapColor, item.mapText], item.comment)
 }
 
 // Format Rune Colors line
 function formatRuneColorLine(rune: RuneColorItem): string {
-  const values: string[] = [formatValue(rune.textColor), formatValue(rune.mapColor)]
-  if (rune.mapText) values.push(`"${rune.mapText}"`)
-
-  const content = `Rune Colors[${rune.range}]: ${values.join(', ')}`
-  return formatLine(content, rune.comment)
+  return formatSchemaLine('Rune Colors', [rune.range], [rune.textColor, rune.mapColor, rune.mapText], rune.comment)
 }
 
 // Format Gold Colors line
 function formatGoldColorLine(gold: GoldColorItem): string {
-  const values: string[] = [formatValue(gold.textColor), formatValue(gold.mapColor)]
-  if (gold.mapText) values.push(`"${gold.mapText}"`)
-
-  const content = `Gold Colors[${gold.range}]: ${values.join(', ')}`
-  return formatLine(content, gold.comment)
+  return formatSchemaLine('Gold Colors', [gold.range], [gold.textColor, gold.mapColor, gold.mapText], gold.comment)
 }
 
 // Format Import Item line
@@ -102,25 +210,26 @@ function formatImportItemLine(item: ImportItemItem): string {
   if (item.ethereal) params.push(item.ethereal)
   if (item.sockets) params.push(item.sockets)
 
-  const paramStr = params.map(p => `[${p}]`).join('')
   const values: string[] = [item.mode, item.showInfo, item.unused]
-  if (item.statGroup) values.push(`"${item.statGroup}"`)
+  if (item.statGroup) values.push(item.statGroup)
 
-  const content = `Import Item${paramStr}: ${values.join(', ')}`
-  return formatLine(content, item.comment)
+  return formatSchemaLine('Import Item', params, values, item.comment)
 }
 
 // Format Stat Limit line
 function formatStatLimitLine(name: string, stat: StatLimitItem): string {
-  const content = `Auto Transmute Stat Limit[${name}][${stat.statId}]: ${stat.param}, ${stat.min}, ${stat.max}`
-  return formatLine(content, stat.comment)
+  return formatSchemaLine(
+    'Auto Transmute Stat Limit',
+    [name, stat.statId],
+    [stat.param, stat.min, stat.max],
+    stat.comment
+  )
 }
 
 // Format Stat Limit Group line
 function formatStatLimitGroupLine(name: string, relation: string, limitName: string, comment: string): string {
-  const relStr = relation !== '0' ? `[${relation}]` : ''
-  const content = `Auto Transmute Stat Limit Group[${name}]${relStr}: "${limitName}"`
-  return formatLine(content, comment)
+  const indexes = relation !== '0' ? [name, relation] : [name]
+  return formatSchemaLine('Auto Transmute Stat Limit Group', indexes, [limitName], comment)
 }
 
 // Format Item Descriptor line
@@ -128,16 +237,12 @@ function formatItemDescriptorLine(name: string, desc: ItemDescriptorItem): strin
   const params: string[] = [name, desc.itemId]
   if (desc.quality) params.push(desc.quality)
 
-  const paramStr = params.map(p => `[${p}]`).join('')
-  const content = `Auto Transmute Item Descriptor${paramStr}: ${desc.limitName}, ${desc.count}`
-  return formatLine(content, desc.comment)
+  return formatSchemaLine('Auto Transmute Item Descriptor', params, [desc.limitName, desc.count], desc.comment)
 }
 
 // Format Cube Formulas line
 function formatCubeFormulasLine(name: string, formula: CubeFormulaItem): string {
-  const values = formula.descriptors.map(d => `"${d}"`).join(', ')
-  const content = `Auto Transmute Cube Formulas[${name}]: ${values}`
-  return formatLine(content, formula.comment)
+  return formatSchemaLine('Auto Transmute Cube Formulas', [name], formula.descriptors, formula.comment)
 }
 
 // Format Pre Item Task line
@@ -145,22 +250,18 @@ function formatPreItemTaskLine(name: string, task: PreItemTaskItem): string {
   const params: string[] = [name, task.itemId]
   if (task.quality) params.push(task.quality)
 
-  const paramStr = params.map(p => `[${p}]`).join('')
-  const content = `Auto Transmute Pre Item Task${paramStr}: ${task.limitName}, ${task.action}`
-  return formatLine(content, task.comment)
+  return formatSchemaLine('Auto Transmute Pre Item Task', params, [task.limitName, task.action], task.comment)
 }
 
 // Format Do Task line
 function formatDoTaskLine(name: string, task: DoTaskItem): string {
   const values = [task.preTask, ...task.formulas]
-  const content = `Auto Transmute Do Task[${name}]: ${values.join(', ')}`
-  return formatLine(content, task.comment)
+  return formatSchemaLine('Auto Transmute Do Task', [name], values, task.comment)
 }
 
 // Format Key Binding line
 function formatKeyBindingLine(keyCode: string, binding: KeyBindingItem): string {
-  const content = `Auto Transmute Key Binding[${keyCode}]: "${binding.command}"`
-  return formatLine(content, binding.comment)
+  return formatSchemaLine('Auto Transmute Key Binding', [keyCode], [binding.command], binding.comment)
 }
 
 // Check if item should be output (not deleted)
@@ -197,8 +298,7 @@ export function generateConfig(configData: ConfigData): string {
   const toggleLines: string[] = []
   for (const data of configData.toggles) {
     if (shouldOutput(data)) {
-      const formatFn = data.name.endsWith('Key') ? formatKeyLine : formatToggleLine
-      toggleLines.push(outputLine(formatFn(data.name, data), data.isCommented))
+      toggleLines.push(outputLine(formatSimpleConfigLine(data.name, data), data.isCommented))
     }
   }
   if (toggleLines.length > 0) {

@@ -1,5 +1,6 @@
 import { useConfig } from './useConfig'
 import { getEditableFile } from './useItemActions'
+import { getTargetFile } from './useGroupedItems'
 import type { BaseConfigItem } from '../types'
 
 export type TransmuteArrayKey =
@@ -26,8 +27,13 @@ export function useTransmuteItems() {
 
   function addTransmuteItemToEditable<T extends BaseConfigItem>(arrayName: TransmuteArrayKey, item: T): boolean {
     if (!config.value) return false
-    const editableFile = getEditableFile(config.value)
+    const editableFile = getTargetFile(config.value, 'user') ?? getEditableFile(config.value)
     if (!editableFile) return false
+    if (editableFile.layer === 'profile' || editableFile.layer === 'user') {
+      item.layer = editableFile.layer
+      item.saveTarget = editableFile.layer
+      item.sourceFile = editableFile.file
+    }
     const array = editableFile.data.transmute[arrayName] as unknown as T[]
     array.push(item)
     return true
