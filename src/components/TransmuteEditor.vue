@@ -448,6 +448,8 @@ function addItemDescriptor() {
     count: '1',
     comment: '',
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isCommented: false,
     isNew: true
   }
@@ -467,6 +469,8 @@ function addCubeFormula() {
     descriptors: [],
     comment: '',
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isCommented: false,
     isNew: true
   }
@@ -489,6 +493,8 @@ function addPreItemTask() {
     action: '1',
     comment: '',
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isCommented: false,
     isNew: true
   }
@@ -509,6 +515,8 @@ function addDoTask() {
     formulas: [],
     comment: '',
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isCommented: false,
     isNew: true
   }
@@ -529,6 +537,8 @@ function duplicateItemDescriptorToMain(desc: ItemDescriptorItem, skipRefresh = f
     count: desc.count,
     comment: desc.comment,
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isNew: true,
     isCommented: false
   }
@@ -549,6 +559,8 @@ function duplicateCubeFormulaToMain(formula: CubeFormulaItem, skipRefresh = fals
     descriptors: [...formula.descriptors],
     comment: formula.comment,
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isNew: true,
     isCommented: false
   }
@@ -572,6 +584,8 @@ function duplicatePreItemTaskToMain(task: PreItemTaskItem, skipRefresh = false):
     action: task.action,
     comment: task.comment,
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isNew: true,
     isCommented: false
   }
@@ -593,6 +607,8 @@ function duplicateDoTaskToMain(task: DoTaskItem, skipRefresh = false): boolean {
     formulas: [...task.formulas],
     comment: task.comment,
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isNew: true,
     isCommented: false
   }

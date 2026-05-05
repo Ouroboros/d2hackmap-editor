@@ -37,7 +37,7 @@ const displayColor = computed(() => {
 interface ColorOption {
   id: number
   nameKey: string
-  rgb?: string
+  rgb?: string | null
 }
 
 function selectColor(color: ColorOption): void {

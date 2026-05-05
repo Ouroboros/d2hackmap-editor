@@ -243,6 +243,8 @@ function duplicateKeyBindingToMain(binding: KeyBindingItem, skipRefresh = false)
     command: binding.command,
     comment: binding.comment,
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isNew: true,
     isCommented: false
   }
@@ -282,6 +284,8 @@ function addKeyBinding() {
     command: '',
     comment: '',
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isCommented: false,
     isNew: true
   }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useReferenceData } from '../composables/useReferenceData'
+import { useReferenceData, type ReferenceItem } from '../composables/useReferenceData'
 import { useI18n } from '../i18n'
 import { parseRange, buildRange } from '../utils/rangeParser'
 
@@ -26,6 +26,12 @@ const emit = defineEmits<{
 
 const { items, loadReferenceData, getItemById } = useReferenceData()
 
+type ReferenceItemWithId = ReferenceItem & { id: number }
+
+function hasItemId(item: ReferenceItem): item is ReferenceItemWithId {
+  return typeof item.id === 'number'
+}
+
 const showPicker = ref<boolean>(false)
 const searchQuery = ref<string>('')
 const manualInput = ref<string>('')
@@ -44,8 +50,8 @@ watch(showPicker, (val) => {
 })
 
 // Parse selected IDs from manualInput (live editing)
-const selectedIds = computed(() => {
-  if (!manualInput.value) return new Set()
+const selectedIds = computed<Set<number>>(() => {
+  if (!manualInput.value) return new Set<number>()
   return parseRange(manualInput.value, 99999)
 })
 
@@ -56,10 +62,10 @@ const displayText = computed(() => {
 })
 
 // Filtered items based on search and selected filter
-const filteredItems = computed(() => {
+const filteredItems = computed<ReferenceItemWithId[]>(() => {
   if (!items.value || items.value.length === 0) return []
 
-  let result = items.value
+  let result = items.value.filter(hasItemId)
 
   // Filter by selected only
   if (showSelectedOnly.value) {
@@ -87,7 +93,7 @@ function isSelected(id: number): boolean {
 // Toggle item selection
 function toggleItem(id: number): void {
   if (props.readonly) return
-  const selected = new Set(selectedIds.value)
+  const selected = new Set<number>(selectedIds.value)
   if (selected.has(id)) {
     selected.delete(id)
   } else {
@@ -104,7 +110,7 @@ function selectAll(): void {
   if (!searchQuery.value && items.value.length > 0) {
     manualInput.value = '1+'
   } else {
-    const selected = new Set(selectedIds.value)
+    const selected = new Set<number>(selectedIds.value)
     for (const item of filteredItems.value) {
       selected.add(item.id)
     }
@@ -157,7 +163,7 @@ onUnmounted(() => {
 // Get item name by ID for tooltip
 function getItemName(id: number): string {
   const item = getItemById(id)
-  return item ? item.name : `ID: ${id}`
+  return item?.name ?? `ID: ${id}`
 }
 
 // Generate tooltip showing selected item names

@@ -154,6 +154,8 @@ function addItem(): void {
     statGroup: '',
     comment: '',
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isCommented: false,
     isNew: true
   }
@@ -208,6 +210,8 @@ function copyItem(index: number): void {
     statGroup: original.statGroup,
     comment: original.comment,
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isNew: true,
     isCommented: false
   }
@@ -238,6 +242,8 @@ function duplicateItemToMain(index: number, skipRefresh = false): boolean {
     statGroup: original.statGroup,
     comment: original.comment,
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isNew: true,
     isCommented: false
   }

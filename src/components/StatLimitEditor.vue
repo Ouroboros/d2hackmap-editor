@@ -406,6 +406,8 @@ function duplicateStatLimitToMain(item: StatLimitItem, skipRefresh = false): boo
     max: item.max,
     comment: item.comment,
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isNew: true,
     isCommented: false
   }
@@ -428,6 +430,8 @@ function duplicateStatLimitGroupToMain(group: StatLimitGroupItem, skipRefresh = 
     comments: [...(group.comments || [])],
     comment: group.comment,
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isNew: true,
     isCommented: false
   }
@@ -496,6 +500,8 @@ function addStatLimit() {
     max: '',
     comment: '',
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isCommented: false,
     isNew: true
   }
@@ -522,6 +528,8 @@ function addStatLimitGroup() {
     comments: [],
     comment: '',
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isCommented: false,
     isNew: true
   }

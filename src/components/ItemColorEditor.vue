@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, type Ref } from 'vue'
 import { useConfig } from '../composables/useConfig'
 import { useFileStorage } from '../composables/useFileStorage'
 import {
@@ -46,6 +46,7 @@ const TAB_RUNES = 'runes' as const
 const TAB_GOLDS = 'golds' as const
 
 type TabType = typeof TAB_ITEMS | typeof TAB_RUNES | typeof TAB_GOLDS
+type ColorConfigItem = ItemColorItem | RuneColorItem | GoldColorItem
 
 interface Props {
   searchQuery?: string
@@ -71,9 +72,9 @@ const subTabsConfig = computed(() => [
 ])
 
 // Selection state (store item references)
-const selectedItems = ref<Set<ItemColorItem>>(new Set())
-const selectedRunes = ref<Set<RuneColorItem>>(new Set())
-const selectedGolds = ref<Set<GoldColorItem>>(new Set())
+const selectedItems = ref<Set<ColorConfigItem>>(new Set())
+const selectedRunes = ref<Set<ColorConfigItem>>(new Set())
+const selectedGolds = ref<Set<ColorConfigItem>>(new Set())
 
 // Color filter state
 const textColorFilter = ref<string>('')
@@ -94,8 +95,13 @@ watch(activeTab, (newTab) => {
 
 // Load saved sub-tab on mount
 onMounted(() => {
-  activeTab.value = loadSubTab('itemColors', TAB_ITEMS)
+  const savedTab = loadSubTab('itemColors', TAB_ITEMS)
+  activeTab.value = isTabType(savedTab) ? savedTab : TAB_ITEMS
 })
+
+function isTabType(value: string): value is TabType {
+  return value === TAB_ITEMS || value === TAB_RUNES || value === TAB_GOLDS
+}
 
 function handleExport(): void {
   exportSection('itemColors')
@@ -220,27 +226,32 @@ function jumpToGoldColor(index: number): void {
 }
 
 // Get merged display index for drag operations
-function getMergedIndex(filteredIndex: number, type: 'items' | 'runes' | 'golds'): number {
-  const items = type === 'golds' ? goldColors.value
-    : type === 'runes' ? runeColors.value
-    : itemColors.value
+function getMergedIndex(filteredIndex: number, type: TabType): number {
+  if (type === TAB_GOLDS) {
+    const item = goldColors.value[filteredIndex]
+    if (!item) return -1
+    return getAllItems<GoldColorItem>(config.value, 'goldColors').indexOf(item)
+  }
+  if (type === TAB_RUNES) {
+    const item = runeColors.value[filteredIndex]
+    if (!item) return -1
+    return getAllItems<RuneColorItem>(config.value, 'runeColors').indexOf(item)
+  }
 
-  if (filteredIndex < 0 || filteredIndex >= items.length) return -1
-
-  const allItems = type === 'golds' ? getAllItems<GoldColorItem>(config.value, 'goldColors')
-    : type === 'runes' ? getAllItems<RuneColorItem>(config.value, 'runeColors')
-    : getAllItems<ItemColorItem>(config.value, 'itemColors')
-
-  const targetItem = items[filteredIndex]
-  return allItems.indexOf(targetItem)
+  const item = itemColors.value[filteredIndex]
+  if (!item) return -1
+  return getAllItems<ItemColorItem>(config.value, 'itemColors').indexOf(item)
 }
 
 // Get the effective item at filtered index
-function getItemAtIndex(filteredIndex: number, type: 'items' | 'runes' | 'golds') {
-  const items = type === 'golds' ? goldColors.value
-    : type === 'runes' ? runeColors.value
-    : itemColors.value
-  return items[filteredIndex]
+function getItemAtIndex(filteredIndex: number, type: typeof TAB_ITEMS): ItemColorItem | undefined
+function getItemAtIndex(filteredIndex: number, type: typeof TAB_RUNES): RuneColorItem | undefined
+function getItemAtIndex(filteredIndex: number, type: typeof TAB_GOLDS): GoldColorItem | undefined
+function getItemAtIndex(filteredIndex: number, type: TabType): ColorConfigItem | undefined
+function getItemAtIndex(filteredIndex: number, type: TabType): ColorConfigItem | undefined {
+  if (type === TAB_GOLDS) return goldColors.value[filteredIndex]
+  if (type === TAB_RUNES) return runeColors.value[filteredIndex]
+  return itemColors.value[filteredIndex]
 }
 
 // Calculate dynamic width for mapText column based on longest text
@@ -303,17 +314,21 @@ const selectableRunesCount = computed(() => runeColors.value.filter(item => !isI
 const selectableGoldsCount = computed(() => goldColors.value.filter(item => !isItemExtern(item)).length)
 
 // Selection helpers
-function getSelectedSet(tabType) {
+function getSelectedSet(tabType: TabType): Ref<Set<ColorConfigItem>> {
   return tabType === TAB_GOLDS ? selectedGolds
     : tabType === TAB_RUNES ? selectedRunes
     : selectedItems
 }
 
+function getDisplayItems(tabType: TabType): ColorConfigItem[] {
+  if (tabType === TAB_GOLDS) return goldColors.value
+  if (tabType === TAB_RUNES) return runeColors.value
+  return itemColors.value
+}
+
 // Selection functions
-function toggleSelectAll(tabType) {
-  const items = tabType === TAB_GOLDS ? goldColors.value
-    : tabType === TAB_RUNES ? runeColors.value
-    : itemColors.value
+function toggleSelectAll(tabType: TabType): void {
+  const items = getDisplayItems(tabType)
   const selected = getSelectedSet(tabType)
 
   // Only select non-extern items
@@ -322,11 +337,11 @@ function toggleSelectAll(tabType) {
   if (selected.value.size === selectableItems.length && selectableItems.length > 0) {
     selected.value.clear()
   } else {
-    selected.value = new Set(selectableItems)
+    selected.value = new Set<ColorConfigItem>(selectableItems)
   }
 }
 
-function toggleSelect(item, tabType) {
+function toggleSelect(item: ColorConfigItem, tabType: TabType): void {
   const selected = getSelectedSet(tabType)
   if (selected.value.has(item)) {
     selected.value.delete(item)
@@ -334,15 +349,15 @@ function toggleSelect(item, tabType) {
     selected.value.add(item)
   }
   // Trigger reactivity
-  selected.value = new Set(selected.value)
+  selected.value = new Set<ColorConfigItem>(selected.value)
 }
 
-function isSelected(item, tabType) {
+function isSelected(item: ColorConfigItem, tabType: TabType): boolean {
   const selected = getSelectedSet(tabType)
   return selected.value.has(item)
 }
 
-function hasSelection(tabType) {
+function hasSelection(tabType: TabType): boolean {
   return getSelectedSet(tabType).value.size > 0
 }
 
@@ -353,7 +368,7 @@ function getArrayNameByTab(tabType: TabType): 'itemColors' | 'runeColors' | 'gol
 }
 
 // Batch operations
-function batchSetTextColor(color, tabType) {
+function batchSetTextColor(color: string, tabType: TabType): void {
   if (isReadOnly.value) return
   const selected = getSelectedSet(tabType)
 
@@ -365,7 +380,7 @@ function batchSetTextColor(color, tabType) {
   selected.value.clear()
 }
 
-function batchSetMapColor(color, tabType) {
+function batchSetMapColor(color: string, tabType: TabType): void {
   if (isReadOnly.value) return
   const selected = getSelectedSet(tabType)
 
@@ -392,7 +407,7 @@ function batchDelete(tabType: TabType) {
   refreshEffectiveStatus(config.value)
 }
 
-function batchComment(tabType) {
+function batchComment(tabType: TabType): void {
   if (isReadOnly.value || !config.value) return
   const selected = getSelectedSet(tabType)
 
@@ -406,7 +421,7 @@ function batchComment(tabType) {
   refreshEffectiveStatus(config.value)
 }
 
-function batchRestore(tabType) {
+function batchRestore(tabType: TabType): void {
   if (isReadOnly.value || !config.value) return
   const selected = getSelectedSet(tabType)
 
@@ -436,6 +451,8 @@ function copyItemColor(index: number) {
     mapText: original.mapText,
     comment: original.comment,
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isNew: true,
     isCommented: false
   }
@@ -455,6 +472,8 @@ function copyRuneColor(index: number) {
     mapText: original.mapText,
     comment: original.comment,
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isNew: true,
     isCommented: false
   }
@@ -463,20 +482,16 @@ function copyRuneColor(index: number) {
 }
 
 // Check if there are extern items in current tab
-function hasExternItems(tabType) {
-  const items = tabType === TAB_GOLDS ? goldColors.value
-    : tabType === TAB_RUNES ? runeColors.value
-    : itemColors.value
+function hasExternItems(tabType: TabType): boolean {
+  const items = getDisplayItems(tabType)
   return items.some(item => isItemExtern(item))
 }
 
 // Copy all extern items - use skipRefresh to avoid index shifting during batch
-function copyAllExtern(tabType) {
+function copyAllExtern(tabType: TabType): void {
   if (!config.value || isReadOnly.value) return
 
-  const items = tabType === TAB_GOLDS ? goldColors.value
-    : tabType === TAB_RUNES ? runeColors.value
-    : itemColors.value
+  const items = getDisplayItems(tabType)
 
   // Collect extern indices first (snapshot)
   const externIndices: number[] = []
@@ -504,16 +519,17 @@ function copyAllExtern(tabType) {
 }
 
 // Drag and drop
-function handleDragStart(e, index, isRune = false) {
+function handleDragStart(e: DragEvent, index: number, isRune = false): void {
   log(`[handleDragStart] index=${index}, isRune=${isRune}`)
   dragIndex.value = index
+  if (!e.dataTransfer) return
   e.dataTransfer.effectAllowed = 'move'
-  e.dataTransfer.setData('text/plain', index)
+  e.dataTransfer.setData('text/plain', String(index))
 }
 
-function handleDragOver(e, index) {
+function handleDragOver(e: DragEvent, index: number): void {
   e.preventDefault()
-  e.dataTransfer.dropEffect = 'move'
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
   dragOverIndex.value = index
 }
 
@@ -521,7 +537,7 @@ function handleDragLeave() {
   dragOverIndex.value = null
 }
 
-function handleDrop(e, targetIndex, isRune = false) {
+function handleDrop(e: DragEvent, targetIndex: number, isRune = false): void {
   e.preventDefault()
   const type = isRune ? 'runes' : 'items'
   log(`[handleDrop] START: sourceIndex=${dragIndex.value}, targetIndex=${targetIndex}, type=${type}`)
@@ -584,7 +600,7 @@ function updateItemColor(index: number, field: string, value: string) {
   const item = getItemAtIndex(index, 'items')
   if (!item || isReadonlyColorItem(item)) return
   if (item) {
-    (item as Record<string, unknown>)[field] = value
+    ;(item as unknown as Record<string, unknown>)[field] = value
   }
 }
 
@@ -600,6 +616,8 @@ function addItemColor() {
     mapText: '',
     comment: '',
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isNew: true,
     isCommented: false
   }
@@ -647,6 +665,8 @@ function addRuneColor() {
     mapText: '',
     comment: '',
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isNew: true,
     isCommented: false
   }
@@ -659,7 +679,7 @@ function updateRuneColor(index: number, field: string, value: string) {
   const item = getItemAtIndex(index, 'runes')
   if (!item || isReadonlyColorItem(item)) return
   if (item) {
-    (item as Record<string, unknown>)[field] = value
+    ;(item as unknown as Record<string, unknown>)[field] = value
   }
 }
 
@@ -714,6 +734,8 @@ function duplicateItemColorToMain(index: number, skipRefresh = false): boolean {
     mapText: original.mapText,
     comment: original.comment,
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isNew: true,
     isCommented: false
   }
@@ -744,6 +766,8 @@ function duplicateRuneColorToMain(index: number, skipRefresh = false): boolean {
     mapText: original.mapText,
     comment: original.comment,
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isNew: true,
     isCommented: false
   }
@@ -765,6 +789,8 @@ function addGoldColor() {
     mapText: '',
     comment: '',
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isNew: true,
     isCommented: false
   }
@@ -777,7 +803,7 @@ function updateGoldColor(index: number, field: string, value: string) {
   const item = getItemAtIndex(index, 'golds')
   if (!item || isReadonlyColorItem(item)) return
   if (item) {
-    (item as Record<string, unknown>)[field] = value
+    ;(item as unknown as Record<string, unknown>)[field] = value
   }
 }
 
@@ -822,6 +848,8 @@ function copyGoldColor(index: number) {
     mapText: original.mapText,
     comment: original.comment,
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isNew: true,
     isCommented: false
   }
@@ -848,6 +876,8 @@ function duplicateGoldColorToMain(index: number, skipRefresh = false): boolean {
     mapText: original.mapText,
     comment: original.comment,
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isNew: true,
     isCommented: false
   }
@@ -860,14 +890,15 @@ function duplicateGoldColorToMain(index: number, skipRefresh = false): boolean {
 }
 
 // Gold drag and drop
-function handleDragStartGold(e, index) {
+function handleDragStartGold(e: DragEvent, index: number): void {
   log(`[handleDragStartGold] index=${index}`)
   dragIndex.value = index
+  if (!e.dataTransfer) return
   e.dataTransfer.effectAllowed = 'move'
-  e.dataTransfer.setData('text/plain', index)
+  e.dataTransfer.setData('text/plain', String(index))
 }
 
-function handleDropGold(e, targetIndex) {
+function handleDropGold(e: DragEvent, targetIndex: number): void {
   e.preventDefault()
   log(`[handleDropGold] START: sourceIndex=${dragIndex.value}, targetIndex=${targetIndex}`)
 
@@ -920,21 +951,20 @@ function clearFilters() {
   mapColorFilter.value = ''
 }
 
-// Debug panel formatters
-function formatItemColor(item: ItemColorItem): string {
-  return `${item.itemId}|${item.quality}|${item.ethereal}|${item.sockets} → text:${item.textColor}, map:${item.mapColor}`
+function getColorDebugKey(item: ColorConfigItem): string {
+  if ('itemId' in item) return getItemColorKey(item)
+  return item.range
 }
 
-function formatRuneColor(item: RuneColorItem): string {
-  return `${item.range} → text:${item.textColor}, map:${item.mapColor}`
-}
-
-function formatGoldColor(item: GoldColorItem): string {
+function formatColorDebugItem(item: ColorConfigItem): string {
+  if ('itemId' in item) {
+    return `${item.itemId}|${item.quality}|${item.ethereal}|${item.sockets} → text:${item.textColor}, map:${item.mapColor}`
+  }
   return `${item.range} → text:${item.textColor}, map:${item.mapColor}`
 }
 
 // Get current items for debug panel based on active tab
-const currentDebugItems = computed(() => {
+const currentDebugItems = computed<ColorConfigItem[]>(() => {
   if (activeTab.value === TAB_GOLDS) return getAllItems<GoldColorItem>(config.value, 'goldColors')
   if (activeTab.value === TAB_RUNES) return getAllItems<RuneColorItem>(config.value, 'runeColors')
   return getAllItems<ItemColorItem>(config.value, 'itemColors')
@@ -946,17 +976,9 @@ const currentDebugTitle = computed(() => {
   return 'Item Colors'
 })
 
-const currentDebugGetKey = computed(() => {
-  if (activeTab.value === TAB_GOLDS) return getGoldColorKey
-  if (activeTab.value === TAB_RUNES) return getRuneColorKey
-  return getItemColorKey
-})
+const currentDebugGetKey = computed(() => getColorDebugKey)
 
-const currentFormatter = computed(() => {
-  if (activeTab.value === TAB_GOLDS) return formatGoldColor
-  if (activeTab.value === TAB_RUNES) return formatRuneColor
-  return formatItemColor
-})
+const currentFormatter = computed(() => formatColorDebugItem)
 </script>
 
 <template>

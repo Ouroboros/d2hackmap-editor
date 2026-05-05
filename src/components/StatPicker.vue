@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useReferenceData } from '../composables/useReferenceData'
+import { useReferenceData, type ReferenceStat } from '../composables/useReferenceData'
 import { useI18n } from '../i18n'
 
 const { t } = useI18n()
@@ -24,6 +24,12 @@ const emit = defineEmits<{
 }>()
 
 const { stats, loadReferenceData, getStatById } = useReferenceData()
+
+type ReferenceStatWithId = ReferenceStat & { id: number }
+
+function hasStatId(stat: ReferenceStat): stat is ReferenceStatWithId {
+  return typeof stat.id === 'number'
+}
 
 const showPicker = ref<boolean>(false)
 const searchQuery = ref<string>('')
@@ -52,10 +58,10 @@ const displayText = computed(() => {
 })
 
 // Filtered stats based on search
-const filteredStats = computed(() => {
+const filteredStats = computed<ReferenceStatWithId[]>(() => {
   if (!stats.value || stats.value.length === 0) return []
 
-  let result = stats.value
+  let result = stats.value.filter(hasStatId)
 
   // Filter by search query
   if (searchQuery.value) {
@@ -78,7 +84,7 @@ function isSelected(id: string | number): boolean {
 // Select a stat
 function selectStat(id: string | number): void {
   if (props.readonly) return
-  selectedId.value = id?.toString()
+  selectedId.value = id.toString()
 }
 
 // Clear selection

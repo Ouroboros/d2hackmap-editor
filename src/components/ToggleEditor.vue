@@ -133,7 +133,7 @@ function isToggleRowDisabled(item: ToggleItem): boolean {
 
 function updateToggle(item: ToggleItem, field: string, value: unknown): void {
   if (isReadOnly.value) return
-  ;(item as Record<string, unknown>)[field] = value
+  ;(item as unknown as Record<string, unknown>)[field] = value
 }
 
 function handleDelete(item: ToggleItem): void {
@@ -229,6 +229,8 @@ function duplicateToMain(item: ToggleItem, skipRefresh = false): boolean {
     hotkey: item.hotkey,
     comment: item.comment,
     sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
     isNew: true,
     isCommented: false
   }
@@ -368,9 +370,9 @@ function formatToggle(item: ToggleItem): string {
     </EditorPanel>
 
     <!-- Debug Panel -->
-    <DebugDrawer v-if="debugMode && getAllItems(config, 'toggles').length">
+    <DebugDrawer v-if="debugMode && getAllItems<ToggleItem>(config, 'toggles').length">
       <FlatListView
-        :items="getAllItems(config, 'toggles')"
+        :items="getAllItems<ToggleItem>(config, 'toggles')"
         title="Toggles"
         :get-key="getToggleKey"
         :format-item="formatToggle"

@@ -22,7 +22,8 @@ export function isEditableLayer(layer: ConfigLayer): boolean {
 }
 
 export function saveTargetForLayer(layer: ConfigLayer): SaveTarget {
-  return isEditableLayer(layer) ? layer : null
+  if (layer === 'profile' || layer === 'user') return layer
+  return null
 }
 
 export function isEditableItem(item: BaseConfigItem): boolean {

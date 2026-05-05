@@ -298,7 +298,7 @@ async function ensureEditorEntryImported(dirHandle: ConfigDirectory): Promise<vo
     return
   }
 
-  const content = appendImportLine(targetFile.lines, `    Import Config: "${ENTRY_FILENAME}"`)
+  const content = insertImportLine(targetFile.lines, `    Import Config: "${ENTRY_FILENAME}"`)
   await writeConfigFile(target.fullPath, content)
 }
 
@@ -306,12 +306,36 @@ function isSameImportFile(importPath: string, fileName: string): boolean {
   return importPath.split(/[\\/]/).pop()?.toLowerCase() === fileName.toLowerCase()
 }
 
-function appendImportLine(lines: string[], line: string): string {
+function insertImportLine(lines: string[], line: string): string {
   const nextLines = [...lines]
-  while (nextLines.length > 0 && nextLines[nextLines.length - 1] === '') {
-    nextLines.pop()
+  const lastImportIndex = findLastActiveImportLineIndex(nextLines)
+  if (lastImportIndex >= 0) {
+    nextLines.splice(lastImportIndex + 1, 0, line)
+    return nextLines.join('\r\n')
   }
-  return [...nextLines, '', line, ''].join('\r\n')
+
+  const firstConfigIndex = findFirstActiveConfigLineIndex(nextLines)
+  if (firstConfigIndex >= 0) {
+    nextLines.splice(firstConfigIndex, 0, line)
+    return nextLines.join('\r\n')
+  }
+
+  return [...nextLines, line].join('\r\n')
+}
+
+function findLastActiveImportLineIndex(lines: string[]): number {
+  for (let index = lines.length - 1; index >= 0; index--) {
+    const trimmed = lines[index].trim()
+    if (!trimmed.startsWith('//') && trimmed.startsWith('Import Config:')) return index
+  }
+  return -1
+}
+
+function findFirstActiveConfigLineIndex(lines: string[]): number {
+  return lines.findIndex(line => {
+    const trimmed = line.trim()
+    return trimmed.length > 0 && !trimmed.startsWith('//')
+  })
 }
 
 function shouldMigratePreviousEntry(previousEntryContent: string | null, entryContent: string): boolean {

@@ -45,8 +45,8 @@ watch(showPicker, (val) => {
 })
 
 // Parse selected IDs from manualInput (live editing)
-const selectedIds = computed(() => {
-  if (!manualInput.value) return new Set()
+const selectedIds = computed<Set<number>>(() => {
+  if (!manualInput.value) return new Set<number>()
   return parseRange(manualInput.value, MAX_RUNE)
 })
 
@@ -86,7 +86,7 @@ function isSelected(id: number): boolean {
 // Toggle rune selection
 function toggleRune(id: number): void {
   if (props.readonly) return
-  const selected = new Set(selectedIds.value)
+  const selected = new Set<number>(selectedIds.value)
   if (selected.has(id)) {
     selected.delete(id)
   } else {
@@ -101,7 +101,7 @@ function selectAll(): void {
   if (!searchQuery.value) {
     manualInput.value = `1-${MAX_RUNE}`
   } else {
-    const selected = new Set(selectedIds.value)
+    const selected = new Set<number>(selectedIds.value)
     for (const rune of filteredRunes.value) {
       selected.add(rune.id)
     }

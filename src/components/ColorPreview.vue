@@ -31,17 +31,17 @@ const mapColorRgb = computed(() => {
 
   // For now, use a simple conversion. Full palette will be loaded from external file.
   // Parse hex like "0x84" or decimal
-  let index
+  let index: number
   if (typeof val === 'string' && val.startsWith('0x')) {
     index = parseInt(val, 16)
   } else {
-    index = parseInt(val)
+    index = parseInt(String(val), 10)
   }
 
   if (isNaN(index)) return null
 
   // Simple placeholder - map some common colors
-  const PALETTE_SAMPLES = {
+  const PALETTE_SAMPLES: Record<number, string> = {
     0x20: '#FFFFFF',
     0x50: '#00FF00',
     0x60: '#808080',
