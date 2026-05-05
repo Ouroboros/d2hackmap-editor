@@ -106,8 +106,25 @@ const helpEntries = computed<HelpEntry[]>(() => [
     intro: '',
     blocks: [
       {
+        title: '2026-05-05',
+        lines: [
+          '优化预设来源显示、当前预设按钮和显示顺序切换。',
+          '修复 TypeScript 检查问题和配置入口插入逻辑。',
+          '将编辑器入口接入 CFG 引用链。',
+          '完善预设和用户配置的分层编辑。'
+        ]
+      },
+      {
+        title: '2026-05-04',
+        lines: [
+          '添加编辑器预设管理。'
+        ]
+      },
+      {
         title: '2026-05-03',
         lines: [
+          '将 Import Config 引用链解析移到 TypeScript。',
+          '添加使用说明更新日志。',
           '支持外部 ISC 参考数据。',
           '使用 canvas 测量动态列宽。',
           '更新属性参考数据和选择器布局。'
