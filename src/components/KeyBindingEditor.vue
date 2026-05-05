@@ -8,6 +8,7 @@ import {
   getKeyBindingKey
 } from '../composables/useItemActions'
 import { useTransmuteItems } from '../composables/useTransmuteItems'
+import { useDisplayOrder } from '../composables/useDisplayOrder'
 import { moveTransmuteItemInFile } from '../utils/grouping'
 import { fitTextColumnWidthNumber } from '../utils/columnWidth'
 import { useI18n } from '../i18n'
@@ -33,6 +34,7 @@ const props = withDefaults(defineProps<Props>(), {
 const { t } = useI18n()
 const { config, exportSection, isReadOnly } = useConfig()
 const { debugMode } = useDebugMode()
+const { applyDisplayOrder, getRealDropTargetIndex } = useDisplayOrder()
 const {
   markCommented,
   markRestored,
@@ -51,7 +53,7 @@ const {
 const keyBindings = computed(() => {
   const allItems = getAllTransmuteItems<KeyBindingItem>('keyBindings')
   const items = allItems.filter(item => item.isEffective !== false || item.isCommented)
-  return filterBySearch(items, props.searchQuery, 'keyCode', 'command', 'comment')
+  return applyDisplayOrder(filterBySearch(items, props.searchQuery, 'keyCode', 'command', 'comment'))
 })
 
 const hotkeyWidth = computed((): number => {
@@ -193,11 +195,9 @@ function handleKeyBindingDrop(e: DragEvent, targetIndex: number) {
 
   const allItems = getAllTransmuteItems<KeyBindingItem>('keyBindings')
   const targetItem = filteredItems[targetIndex]
-  let targetMergedIdx = targetItem ? allItems.indexOf(targetItem) : -1
-  if (targetMergedIdx < 0) return
-  if (sourceIndex < targetIndex) {
-    targetMergedIdx++
-  }
+  const targetRealIndex = targetItem ? allItems.indexOf(targetItem) : -1
+  if (targetRealIndex < 0) return
+  const targetMergedIdx = getRealDropTargetIndex(sourceIndex, targetIndex, targetRealIndex)
 
   const moved = moveTransmuteItemInFile(config.value, sourceItem, targetMergedIdx, 'keyBindings')
   if (!moved) {

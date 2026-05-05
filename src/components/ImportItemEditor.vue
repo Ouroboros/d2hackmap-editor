@@ -18,6 +18,7 @@ import { moveItemInFile } from '../utils/grouping'
 import { log } from '../utils/log'
 import { useI18n } from '../i18n'
 import { useDebugMode } from '../composables/useDebugMode'
+import { useDisplayOrder } from '../composables/useDisplayOrder'
 import { PICKUP_MODES } from '../configDefs'
 import type { ImportItemItem } from '../types'
 import DebugDrawer from './debug/DebugDrawer.vue'
@@ -42,6 +43,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { config, exportSection, isReadOnly } = useConfig()
 const { debugMode } = useDebugMode()
+const { applyDisplayOrder, getRealDropTargetIndex } = useDisplayOrder()
 const { isItemDisabled, isItemExtern, getItemRowClasses } = useItemActions()
 
 // Sub-tabs configuration (single tab for alignment)
@@ -83,7 +85,7 @@ const importItems = computed((): ImportItemItem[] => {
     )
   }
 
-  return items
+  return applyDisplayOrder(items)
 })
 
 // Build map for jump targets from DISPLAYED items (so indices match data-index)
@@ -394,18 +396,13 @@ function handleDrop(e: DragEvent, targetIndex: number) {
     return
   }
 
-  let targetMergedIdx = getMergedIndex(targetIndex)
-  log(`[ImportItem handleDrop] targetMergedIdx=${targetMergedIdx}`)
-  if (targetMergedIdx < 0) {
-    log(`[ImportItem handleDrop] ABORT: targetMergedIdx < 0`)
+  const targetRealIndex = getMergedIndex(targetIndex)
+  log(`[ImportItem handleDrop] targetRealIndex=${targetRealIndex}`)
+  if (targetRealIndex < 0) {
+    log(`[ImportItem handleDrop] ABORT: targetRealIndex < 0`)
     return
   }
-
-  // When dragging down, insert AFTER the target item
-  if (sourceIndex < targetIndex) {
-    targetMergedIdx++
-    log(`[ImportItem handleDrop] drag-down: adjusted targetMergedIdx=${targetMergedIdx}`)
-  }
+  const targetMergedIdx = getRealDropTargetIndex(sourceIndex, targetIndex, targetRealIndex)
 
   log(`[ImportItem handleDrop] calling moveItemInFile: targetMergedIdx=${targetMergedIdx}`)
 

@@ -91,10 +91,15 @@ body {
 
 .loaded-file {
   font-size: 13px;
-  padding: 2px 8px;
+  height: 23px;
+  padding: 0 10px;
   background: var(--accent-color);
   color: white;
   border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 23px;
 }
 
 .header-profile-group {
@@ -107,10 +112,13 @@ body {
   position: relative;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   height: 23px;
   max-width: 300px;
-  padding: 2px 24px 2px 8px;
+  padding: 0 26px 0 10px;
+  font-family: inherit;
   font-size: 13px;
+  line-height: 23px;
   font-weight: 500;
   color: white;
   background: var(--accent-color);
@@ -131,10 +139,32 @@ body {
 }
 
 .header-profile-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   pointer-events: none;
+}
+
+.header-profile-label,
+.header-profile-name {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  min-width: 0;
+}
+
+.header-profile-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .header-profile-menu {
@@ -144,8 +174,9 @@ body {
   min-width: 100%;
   width: max-content;
   max-width: 360px;
-  padding: 0;
+  padding: 3px;
   border: 1px solid var(--border-color);
+  border-radius: 4px;
   background: var(--bg-primary);
   box-shadow: var(--shadow-md);
   z-index: 1000;
@@ -157,8 +188,10 @@ body {
   justify-content: space-between;
   gap: 12px;
   min-width: 180px;
-  padding: 7px 8px;
+  min-height: 34px;
+  padding: 0 6px 0 10px;
   color: var(--text-primary);
+  border-radius: 3px;
   cursor: pointer;
 }
 
@@ -186,15 +219,18 @@ body {
 }
 
 .header-profile-option-delete {
-  width: 20px;
-  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
   flex: 0 0 auto;
   border: none;
   border-radius: 4px;
   color: white;
   background: var(--danger-color);
-  font-size: 13px;
-  line-height: 20px;
+  font-size: 16px;
+  line-height: 1;
   cursor: pointer;
 }
 
@@ -289,6 +325,52 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.display-order-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.display-order-buttons {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+.display-order-buttons button {
+  min-width: 72px;
+  height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-right: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 32px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.display-order-buttons button:last-child {
+  border-right: 0;
+}
+
+.display-order-buttons button:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.display-order-buttons button.active {
+  background: var(--accent-color);
+  color: white;
 }
 
 /* Tabs */

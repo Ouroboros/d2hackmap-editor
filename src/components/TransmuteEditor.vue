@@ -12,6 +12,7 @@ import {
   getDoTaskKey
 } from '../composables/useItemActions'
 import { useTransmuteItems } from '../composables/useTransmuteItems'
+import { useDisplayOrder } from '../composables/useDisplayOrder'
 import { moveTransmuteItemInFile } from '../utils/grouping'
 import { fitTextColumnWidth } from '../utils/columnWidth'
 import { useI18n } from '../i18n'
@@ -42,6 +43,7 @@ const { t } = useI18n()
 const { config, exportSection, isReadOnly } = useConfig()
 const { saveSubTab, loadSubTab } = useFileStorage()
 const { debugMode } = useDebugMode()
+const { applyDisplayOrder, getRealDropTargetIndex } = useDisplayOrder()
 const {
   markCommented,
   markRestored,
@@ -105,7 +107,7 @@ function isTransmuteRowDisabled(item: BaseConfigItem): boolean {
 const itemDescriptors = computed(() => {
   const allItems = getAllTransmuteItems<ItemDescriptorItem>('itemDescriptors')
   const items = allItems.filter(item => item.isEffective !== false || item.isCommented)
-  return filterBySearch(items, props.searchQuery, 'name', 'itemId', 'comment')
+  return applyDisplayOrder(filterBySearch(items, props.searchQuery, 'name', 'itemId', 'comment'))
 })
 
 const itemDescriptorNameWidth = computed(() => {
@@ -261,11 +263,9 @@ function handleItemDescriptorDrop(e: DragEvent, targetIndex: number) {
 
   const allItems = getAllTransmuteItems<ItemDescriptorItem>('itemDescriptors')
   const targetItem = filteredItems[targetIndex]
-  let targetMergedIdx = targetItem ? allItems.indexOf(targetItem) : -1
-  if (targetMergedIdx < 0) return
-  if (sourceIndex < targetIndex) {
-    targetMergedIdx++
-  }
+  const targetRealIndex = targetItem ? allItems.indexOf(targetItem) : -1
+  if (targetRealIndex < 0) return
+  const targetMergedIdx = getRealDropTargetIndex(sourceIndex, targetIndex, targetRealIndex)
 
   const moved = moveTransmuteItemInFile(config.value, sourceItem, targetMergedIdx, 'itemDescriptors')
   if (!moved) {
@@ -287,7 +287,7 @@ function handleItemDescriptorDragEnd() {
 const cubeFormulas = computed(() => {
   const allItems = getAllTransmuteItems<CubeFormulaItem>('cubeFormulas')
   const items = allItems.filter(item => item.isEffective !== false || item.isCommented)
-  return filterBySearch(items, props.searchQuery, 'name', 'comment')
+  return applyDisplayOrder(filterBySearch(items, props.searchQuery, 'name', 'comment'))
 })
 
 const cubeFormulaNameWidth = computed(() => {
@@ -336,7 +336,7 @@ const selectableCubeFormulasCount = computed(() => {
 const preItemTasks = computed(() => {
   const allItems = getAllTransmuteItems<PreItemTaskItem>('preItemTasks')
   const items = allItems.filter(item => item.isEffective !== false || item.isCommented)
-  return filterBySearch(items, props.searchQuery, 'name', 'itemId', 'comment')
+  return applyDisplayOrder(filterBySearch(items, props.searchQuery, 'name', 'itemId', 'comment'))
 })
 
 const preItemTaskNames = computed(() => {
@@ -354,7 +354,7 @@ const preItemTaskNames = computed(() => {
 const doTasks = computed(() => {
   const allItems = getAllTransmuteItems<DoTaskItem>('doTasks')
   const items = allItems.filter(item => item.isEffective !== false || item.isCommented)
-  return filterBySearch(items, props.searchQuery, 'name', 'preTask', 'comment')
+  return applyDisplayOrder(filterBySearch(items, props.searchQuery, 'name', 'preTask', 'comment'))
 })
 
 const preItemTaskNameWidth = computed(() => {
@@ -787,11 +787,9 @@ function handleCubeFormulaDrop(e: DragEvent, targetIndex: number) {
 
   const allItems = getAllTransmuteItems<CubeFormulaItem>('cubeFormulas')
   const targetItem = filteredItems[targetIndex]
-  let targetMergedIdx = targetItem ? allItems.indexOf(targetItem) : -1
-  if (targetMergedIdx < 0) return
-  if (sourceIndex < targetIndex) {
-    targetMergedIdx++
-  }
+  const targetRealIndex = targetItem ? allItems.indexOf(targetItem) : -1
+  if (targetRealIndex < 0) return
+  const targetMergedIdx = getRealDropTargetIndex(sourceIndex, targetIndex, targetRealIndex)
 
   const moved = moveTransmuteItemInFile(config.value, sourceItem, targetMergedIdx, 'cubeFormulas')
   if (!moved) {
@@ -842,11 +840,9 @@ function handlePreItemTaskDrop(e: DragEvent, targetIndex: number) {
 
   const allItems = getAllTransmuteItems<PreItemTaskItem>('preItemTasks')
   const targetItem = filteredItems[targetIndex]
-  let targetMergedIdx = targetItem ? allItems.indexOf(targetItem) : -1
-  if (targetMergedIdx < 0) return
-  if (sourceIndex < targetIndex) {
-    targetMergedIdx++
-  }
+  const targetRealIndex = targetItem ? allItems.indexOf(targetItem) : -1
+  if (targetRealIndex < 0) return
+  const targetMergedIdx = getRealDropTargetIndex(sourceIndex, targetIndex, targetRealIndex)
 
   const moved = moveTransmuteItemInFile(config.value, sourceItem, targetMergedIdx, 'preItemTasks')
   if (!moved) {
@@ -987,11 +983,9 @@ function handleDoTaskDrop(e: DragEvent, targetIndex: number) {
 
   const allItems = getAllTransmuteItems<DoTaskItem>('doTasks')
   const targetItem = filteredItems[targetIndex]
-  let targetMergedIdx = targetItem ? allItems.indexOf(targetItem) : -1
-  if (targetMergedIdx < 0) return
-  if (sourceIndex < targetIndex) {
-    targetMergedIdx++
-  }
+  const targetRealIndex = targetItem ? allItems.indexOf(targetItem) : -1
+  if (targetRealIndex < 0) return
+  const targetMergedIdx = getRealDropTargetIndex(sourceIndex, targetIndex, targetRealIndex)
 
   const moved = moveTransmuteItemInFile(config.value, sourceItem, targetMergedIdx, 'doTasks')
   if (!moved) {

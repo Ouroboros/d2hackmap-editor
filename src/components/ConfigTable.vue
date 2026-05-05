@@ -1,10 +1,11 @@
 <script setup lang="ts" generic="TItem extends BaseConfigItem">
-import { onMounted, onUnmounted, ref, type CSSProperties } from 'vue'
+import { computed, onMounted, onUnmounted, ref, type CSSProperties } from 'vue'
 import type { BaseConfigItem } from '../types'
 import type { ConfigTableColumn } from './configTable'
 import ConfigHeader from './ConfigHeader.vue'
 import ConfigRow from './ConfigRow.vue'
 import { useI18n } from '../i18n'
+import { useConfig } from '../composables/useConfig'
 import { log } from '../utils/log'
 
 const props = withDefaults(defineProps<{
@@ -51,12 +52,17 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { config } = useConfig()
 const listEl = ref<HTMLElement | null>(null)
 const internalDragActive = ref(false)
 const pointerDragActive = ref(false)
 let pointerDataTransfer: DataTransfer | null = null
 let lastDragOverLogIndex: number | null = null
 let lastDragOverLogAt = 0
+
+const currentProfileName = computed(() =>
+  config.value?.files.find(file => file.layer === 'profile')?.profileName || t('profile.unnamed')
+)
 
 function columnStyle(column: ConfigTableColumn): CSSProperties {
   return {
@@ -82,7 +88,7 @@ function itemRowClasses(item: TItem): Record<string, boolean> {
 }
 
 function sourceLabel(item: BaseConfigItem): string {
-  if (item.layer === 'profile') return t('source.profile')
+  if (item.layer === 'profile') return t('source.profileWithName', { name: currentProfileName.value })
   if (item.layer === 'user') return t('source.user')
   if (item.layer === 'extern') return item.sourceFile || t('source.extern')
   return t('source.entry')

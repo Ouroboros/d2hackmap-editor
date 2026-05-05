@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useTheme } from './composables/useTheme'
 import { useDebugMode } from './composables/useDebugMode'
 import { useConfig } from './composables/useConfig'
+import { useDisplayOrder } from './composables/useDisplayOrder'
 import { refreshEffectiveStatus } from './composables/useItemActions'
 import { useReferenceData } from './composables/useReferenceData'
 import { useFileStorage } from './composables/useFileStorage'
@@ -48,6 +49,7 @@ import DebugDrawer from './components/debug/DebugDrawer.vue'
 const { theme, setTheme } = useTheme()
 const { debugMode, isDebugUiEnabled, toggleDebugMode } = useDebugMode()
 const { t } = useI18n()
+const { displayOrder, setDisplayOrder } = useDisplayOrder()
 const { loadReferenceData } = useReferenceData()
 const {
   config,
@@ -645,7 +647,10 @@ onUnmounted(() => {
             :title="currentProfileName"
             @click="toggleProfileMenu"
           >
-            <span class="header-profile-display">{{ t('profile.current') }}: {{ currentProfileName }}</span>
+            <span class="header-profile-display">
+              <span class="header-profile-label">{{ t('profile.current') }}:</span>
+              <span class="header-profile-name">{{ currentProfileName }}</span>
+            </span>
           </button>
           <div v-if="isProfileMenuOpen" class="header-profile-menu">
             <div
@@ -693,6 +698,21 @@ onUnmounted(() => {
         </button>
       </nav>
       <div class="search-box" v-if="config">
+        <div class="display-order-switch" role="group" :aria-label="t('displayOrder.label')">
+          <span>{{ t('displayOrder.label') }}</span>
+          <div class="display-order-buttons">
+            <button
+              type="button"
+              :class="{ active: displayOrder === 'file' }"
+              @click="setDisplayOrder('file')"
+            >{{ t('displayOrder.file') }}</button>
+            <button
+              type="button"
+              :class="{ active: displayOrder === 'effective' }"
+              @click="setDisplayOrder('effective')"
+            >{{ t('displayOrder.effective') }}</button>
+          </div>
+        </div>
         <input
           type="text"
           v-model="searchQuery"

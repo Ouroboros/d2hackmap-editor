@@ -99,8 +99,9 @@ const zhCN: Record<string, string> = {
 
   // Source
   'source.title': '来源',
-  'source.profile': 'PROFILE',
-  'source.user': 'USER',
+  'source.profile': '预设',
+  'source.profileWithName': '预设: {name}',
+  'source.user': '用户配置',
   'source.extern': 'EXTERN',
   'source.entry': 'ENTRY',
 
@@ -374,6 +375,9 @@ const zhCN: Record<string, string> = {
   // Search
   'search.placeholder': '搜索...',
   'search.clear': '清除',
+  'displayOrder.label': '显示顺序',
+  'displayOrder.file': '文件顺序',
+  'displayOrder.effective': '生效顺序',
   'search.noMatch': '无匹配项',
   'search.pressEnterToUse': '按回车使用 "{value}"',
 
@@ -431,10 +435,10 @@ const zhCN: Record<string, string> = {
   // Help Guide
   'help.title': '使用说明',
   'help.gettingStarted': '快速开始',
-  'help.gettingStartedContent': '点击"打开目录"按钮，选择配置文件所在的目录。编辑器会自动加载用户配置和所有引用的外部配置。编辑完成后点击"保存文件"即可。',
+  'help.gettingStartedContent': '点击"打开目录"按钮，选择配置文件所在的目录。编辑器会自动加载外部配置、当前预设和用户配置。编辑完成后按改动归属保存用户配置或当前预设。',
 
   'help.configChain': '配置继承',
-  'help.configChainContent': '配置文件可以引用其他配置文件，编辑器会自动加载所有引用的配置。当多个配置中存在相同的配置项时，你自己的配置优先生效。',
+  'help.configChainContent': '配置文件可以引用其他配置文件，编辑器会自动加载所有引用的配置。d2hackmap.gen.cfg 是编辑器入口文件，只负责导入当前预设和用户配置。',
 
   'help.itemTypes': '配置项状态',
   'help.mainItem': '可编辑项',
@@ -457,10 +461,10 @@ const zhCN: Record<string, string> = {
 
   'help.batchOps': '批量操作',
   'help.batchOpsContent': '勾选多个配置项后，可以进行批量设置颜色、批量注释、批量删除、批量恢复等操作。外部配置项不可勾选。',
-  'help.copyAllExtern': '"全部复制到用户配置"按钮可一次性复制当前页可见的外部项和 Profile 项。',
+  'help.copyAllExtern': '"全部复制到用户配置"按钮可一次性复制当前页可见的外部项和预设项。',
 
   'help.dragDrop': '拖拽排序',
-  'help.dragDropContent': '拖动行首的拖拽手柄（⋮⋮）可调整配置项顺序。仅用户配置项可拖拽排序。',
+  'help.dragDropContent': '拖动行首的拖拽手柄（⋮⋮）可调整配置项顺序。预设项和用户配置项可拖拽排序。',
 
   'help.colorConfig': '颜色配置',
   'help.colorConfigContent': '物品颜色、符文颜色、金币颜色支持设置文字颜色和地图颜色。点击颜色方块选择颜色，选择"无"表示不修改默认颜色。',
@@ -477,19 +481,19 @@ const zhCN: Record<string, string> = {
 
   'help.tab.common': '通用',
   'help.common.workflow': '基础流程',
-  'help.common.workflow.1': '点击“打开目录”选择 HackMap 配置目录，程序按配置引用链加载外部配置和用户配置。',
-  'help.common.workflow.2': '编辑的是用户配置项；保存时写入底部“输出到”显示的生成配置文件。',
+  'help.common.workflow.1': '点击“打开目录”选择 HackMap 配置目录，程序按配置引用链加载外部配置、当前预设和用户配置。',
+  'help.common.workflow.2': 'd2hackmap.gen.cfg 是入口文件，只导入当前预设和用户配置；具体规则写入 d2hackmap.editor.profile.cfg 或 d2hackmap.editor.user.cfg。',
   'help.common.workflow.3': '顶部搜索框只筛选当前页面，不会删除或改写未显示的配置项。',
   'help.common.itemState': '配置项状态',
-  'help.common.itemState.1': '用户配置项可以编辑、注释、删除、拖拽排序。',
+  'help.common.itemState.1': '预设项和用户配置项可以编辑、注释、删除、拖拽排序。',
   'help.common.itemState.2': '外部项来自引用文件，只读；需要修改时先点“+”复制到用户配置。',
   'help.common.itemState.3': '已注释项保存后仍保留在 CFG 中，但不会生效。',
-  'help.common.itemState.4': '已删除项保存后会从用户配置中移除。',
+  'help.common.itemState.4': '已删除项保存后会从所属可编辑配置中移除。',
   'help.common.operations': '通用操作',
   'help.common.operations.1': '勾选框用于批量恢复、注释、删除；外部项不能勾选。',
-  'help.common.operations.2': '“全部复制到用户配置”会把当前页可见的外部项和 Profile 项复制到用户配置。',
-  'help.common.operations.3': '拖拽手柄会真实改变用户配置项顺序，保存后顺序写回 CFG。',
-  'help.common.operations.4': '“导出”用于导出当前配置段，日常保存直接点“保存文件”。',
+  'help.common.operations.2': '“全部复制到用户配置”会把当前页可见的外部项和预设项复制到用户配置。',
+  'help.common.operations.3': '拖拽手柄会真实改变可编辑项顺序，保存后顺序写回对应 CFG。',
+  'help.common.operations.4': '“导出”用于导出当前配置段，日常保存使用顶部“保存用户配置”或“保存当前预设”。',
 
   'help.toggles.fields': '字段',
   'help.toggles.fields.1': '启用列对应开关是否打开。',
@@ -599,18 +603,18 @@ const zhCN: Record<string, string> = {
   'help.keyBindings.operations.2': '外部按键绑定只读，复制到用户配置后才能修改。',
   'help.keyBindings.operations.3': '用户配置按键绑定可以批量注释、删除、恢复和拖拽排序。',
 
-  'profile.current': '当前 Profile',
-  'profile.unnamed': '未命名 Profile',
+  'profile.current': '当前预设',
+  'profile.unnamed': '未命名预设',
   'profile.targetUser': '用户配置',
   'profile.saveUser': '保存用户配置',
-  'profile.saveCurrent': '保存当前 Profile',
-  'profile.saveAs': '保存到新 Profile',
-  'profile.delete': '删除 Profile',
-  'profile.selectTitle': '切换 Profile',
-  'profile.name': 'Profile 名称',
-  'profile.noProfiles': '还没有保存过 Profile',
-  'profile.confirmSwitchUnsaved': '当前有未保存改动，切换 Profile 会丢失未保存内容。是否继续？',
-  'profile.confirmDelete': '确定删除 Profile “{name}” 吗？',
+  'profile.saveCurrent': '保存当前预设',
+  'profile.saveAs': '保存到新预设',
+  'profile.delete': '删除预设',
+  'profile.selectTitle': '切换预设',
+  'profile.name': '预设名称',
+  'profile.noProfiles': '还没有保存过预设',
+  'profile.confirmSwitchUnsaved': '当前有未保存改动，切换预设会丢失未保存内容。是否继续？',
+  'profile.confirmDelete': '确定删除预设“{name}”吗？',
 }
 
 export default zhCN

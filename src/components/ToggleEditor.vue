@@ -16,6 +16,7 @@ import {
 } from '../composables/useItemActions'
 import { useI18n } from '../i18n'
 import { useDebugMode } from '../composables/useDebugMode'
+import { useDisplayOrder } from '../composables/useDisplayOrder'
 import type { ToggleItem } from '../types'
 import DebugDrawer from './debug/DebugDrawer.vue'
 import FlatListView from './debug/FlatListView.vue'
@@ -39,6 +40,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { config, exportSection, isReadOnly } = useConfig()
 const { debugMode } = useDebugMode()
+const { applyDisplayOrder, getRealDropTargetIndex } = useDisplayOrder()
 const { markDeleted, markCommented, markRestored, isItemDisabled, isItemExtern, getItemRowClasses } = useItemActions()
 
 // Sub-tabs configuration (single tab for alignment)
@@ -72,7 +74,7 @@ const toggles = computed((): ToggleItem[] => {
     )
   }
 
-  return items
+  return applyDisplayOrder(items)
 })
 
 // Build map for jump targets from DISPLAYED items (so indices match data-index)
@@ -189,11 +191,9 @@ function handleToggleDrop(e: DragEvent, targetIndex: number): void {
 
   const allItems = getAllItems<ToggleItem>(config.value, 'toggles')
   const targetItem = filteredItems[targetIndex]
-  let targetMergedIdx = targetItem ? allItems.indexOf(targetItem) : -1
-  if (targetMergedIdx < 0) return
-  if (sourceIndex < targetIndex) {
-    targetMergedIdx++
-  }
+  const targetRealIndex = targetItem ? allItems.indexOf(targetItem) : -1
+  if (targetRealIndex < 0) return
+  const targetMergedIdx = getRealDropTargetIndex(sourceIndex, targetIndex, targetRealIndex)
 
   const moved = moveItemInFile(config.value, sourceItem, targetMergedIdx, 'toggles')
   if (!moved) {

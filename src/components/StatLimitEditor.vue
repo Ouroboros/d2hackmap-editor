@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useConfig } from '../composables/useConfig'
 import { useFileStorage } from '../composables/useFileStorage'
+import { useDisplayOrder } from '../composables/useDisplayOrder'
 import {
   useItemActions,
   canCopyItemToMain,
@@ -38,6 +39,7 @@ const { t } = useI18n()
 const { config, exportSection, isReadOnly } = useConfig()
 const { saveSubTab, loadSubTab } = useFileStorage()
 const { debugMode } = useDebugMode()
+const { applyDisplayOrder, getRealDropTargetIndex } = useDisplayOrder()
 const { getStatById } = useReferenceData()
 const {
   markCommented,
@@ -79,7 +81,7 @@ function handleExport(): void {
 const statLimits = computed(() => {
   const allItems = getAllTransmuteItems<StatLimitItem>('statLimits')
   const items = allItems.filter(item => item.isEffective !== false || item.isCommented)
-  return filterBySearch(items, props.searchQuery, 'name', 'statId', 'comment')
+  return applyDisplayOrder(filterBySearch(items, props.searchQuery, 'name', 'statId', 'comment'))
 })
 
 const selectedStatLimits = ref<Set<StatLimitItem>>(new Set())
@@ -185,11 +187,9 @@ function handleStatLimitDrop(e: DragEvent, targetIndex: number) {
 
   const allItems = getAllTransmuteItems<StatLimitItem>('statLimits')
   const targetItem = filteredItems[targetIndex]
-  let targetMergedIdx = targetItem ? allItems.indexOf(targetItem) : -1
-  if (targetMergedIdx < 0) return
-  if (sourceIndex < targetIndex) {
-    targetMergedIdx++
-  }
+  const targetRealIndex = targetItem ? allItems.indexOf(targetItem) : -1
+  if (targetRealIndex < 0) return
+  const targetMergedIdx = getRealDropTargetIndex(sourceIndex, targetIndex, targetRealIndex)
 
   const moved = moveTransmuteItemInFile(config.value, sourceItem, targetMergedIdx, 'statLimits')
   if (!moved) {
@@ -259,7 +259,7 @@ const statLimitGroupColumns = computed<ConfigTableColumn[]>(() => [
 const statLimitGroups = computed(() => {
   const allItems = getAllTransmuteItems<StatLimitGroupItem>('statLimitGroups')
   const items = allItems.filter(item => item.isEffective !== false || item.isCommented)
-  return filterBySearch(items, props.searchQuery, 'name', 'comment')
+  return applyDisplayOrder(filterBySearch(items, props.searchQuery, 'name', 'comment'))
 })
 
 const selectedStatLimitGroups = ref<Set<StatLimitGroupItem>>(new Set())
@@ -365,11 +365,9 @@ function handleStatLimitGroupDrop(e: DragEvent, targetIndex: number) {
 
   const allItems = getAllTransmuteItems<StatLimitGroupItem>('statLimitGroups')
   const targetItem = filteredItems[targetIndex]
-  let targetMergedIdx = targetItem ? allItems.indexOf(targetItem) : -1
-  if (targetMergedIdx < 0) return
-  if (sourceIndex < targetIndex) {
-    targetMergedIdx++
-  }
+  const targetRealIndex = targetItem ? allItems.indexOf(targetItem) : -1
+  if (targetRealIndex < 0) return
+  const targetMergedIdx = getRealDropTargetIndex(sourceIndex, targetIndex, targetRealIndex)
 
   const moved = moveTransmuteItemInFile(config.value, sourceItem, targetMergedIdx, 'statLimitGroups')
   if (!moved) {

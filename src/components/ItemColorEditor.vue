@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted, type Ref } from 'vue'
 import { useConfig } from '../composables/useConfig'
 import { useFileStorage } from '../composables/useFileStorage'
+import { useDisplayOrder } from '../composables/useDisplayOrder'
 import {
   useItemActions,
   refreshEffectiveStatus,
@@ -59,6 +60,7 @@ const props = withDefaults(defineProps<Props>(), {
 const { config, exportSection, isReadOnly } = useConfig()
 const { debugMode } = useDebugMode()
 const { saveSubTab, loadSubTab } = useFileStorage()
+const { applyDisplayOrder, getRealDropTargetIndex } = useDisplayOrder()
 const { isItemDisabled, isItemExtern, getItemRowClasses } = useItemActions()
 const { itemsMap } = useReferenceData()
 
@@ -147,7 +149,7 @@ const itemColors = computed(() => {
     items = items.filter(item => item.mapColor === mapColorFilter.value)
   }
 
-  return items
+  return applyDisplayOrder(items)
 })
 
 const runeColors = computed(() => {
@@ -171,7 +173,7 @@ const runeColors = computed(() => {
     items = items.filter(item => item.mapColor === mapColorFilter.value)
   }
 
-  return items
+  return applyDisplayOrder(items)
 })
 
 const goldColors = computed(() => {
@@ -195,7 +197,7 @@ const goldColors = computed(() => {
     items = items.filter(item => item.mapColor === mapColorFilter.value)
   }
 
-  return items
+  return applyDisplayOrder(items)
 })
 
 // Build jump maps from DISPLAYED items (so indices match data-index)
@@ -560,18 +562,13 @@ function handleDrop(e: DragEvent, targetIndex: number, isRune = false): void {
     return
   }
 
-  let targetMergedIdx = getMergedIndex(targetIndex, type)
-  log(`[handleDrop] targetMergedIdx=${targetMergedIdx}`)
-  if (targetMergedIdx < 0) {
-    log(`[handleDrop] ABORT: targetMergedIdx < 0`)
+  const targetRealIndex = getMergedIndex(targetIndex, type)
+  log(`[handleDrop] targetRealIndex=${targetRealIndex}`)
+  if (targetRealIndex < 0) {
+    log(`[handleDrop] ABORT: targetRealIndex < 0`)
     return
   }
-
-  // When dragging down, insert AFTER the target item
-  if (sourceIndex < targetIndex) {
-    targetMergedIdx++
-    log(`[handleDrop] drag-down: adjusted targetMergedIdx=${targetMergedIdx}`)
-  }
+  const targetMergedIdx = getRealDropTargetIndex(sourceIndex, targetIndex, targetRealIndex)
 
   const arrayName = isRune ? 'runeColors' : 'itemColors'
   log(`[handleDrop] calling moveItemInFile: arrayName=${arrayName}, targetMergedIdx=${targetMergedIdx}`)
@@ -920,18 +917,13 @@ function handleDropGold(e: DragEvent, targetIndex: number): void {
     return
   }
 
-  let targetMergedIdx = getMergedIndex(targetIndex, 'golds')
-  log(`[handleDropGold] targetMergedIdx=${targetMergedIdx}`)
-  if (targetMergedIdx < 0) {
-    log(`[handleDropGold] ABORT: targetMergedIdx < 0`)
+  const targetRealIndex = getMergedIndex(targetIndex, 'golds')
+  log(`[handleDropGold] targetRealIndex=${targetRealIndex}`)
+  if (targetRealIndex < 0) {
+    log(`[handleDropGold] ABORT: targetRealIndex < 0`)
     return
   }
-
-  // When dragging down, insert AFTER the target item
-  if (sourceIndex < targetIndex) {
-    targetMergedIdx++
-    log(`[handleDropGold] drag-down: adjusted targetMergedIdx=${targetMergedIdx}`)
-  }
+  const targetMergedIdx = getRealDropTargetIndex(sourceIndex, targetIndex, targetRealIndex)
 
   log(`[handleDropGold] calling moveItemInFile: targetMergedIdx=${targetMergedIdx}`)
 

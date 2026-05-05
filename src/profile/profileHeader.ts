@@ -12,6 +12,6 @@ export function withProfileHeader(content: string, profileName: string): string 
   if (lines[0]?.trim().startsWith(PROFILE_HEADER_PREFIX)) {
     lines.shift()
   }
-  const header = `${PROFILE_HEADER_PREFIX} ${normalizedName || '未命名 Profile'}`
+  const header = `${PROFILE_HEADER_PREFIX} ${normalizedName}`
   return [header, '', ...lines].join('\r\n').replace(/\r\n+$/g, '\r\n')
 }

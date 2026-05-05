@@ -14,6 +14,7 @@ import {
   USER_DEFINED_FILENAME
 } from '../profile/profileConstants'
 import { withProfileHeader } from '../profile/profileHeader'
+import { useI18n } from '../i18n'
 
 // Constants
 export const EDITOR_OUTPUT_FILENAME = ENTRY_FILENAME
@@ -98,6 +99,8 @@ function mergeProfileAndUserData(profileData: ConfigData, userData: ConfigData):
 }
 
 export function useEditorOutput() {
+  const { t } = useI18n()
+
   // Validate directory: check required file and read permission.
   async function validateConfigDirectory(handle: ConfigDirectory): Promise<ValidateResult> {
     const result = await validateConfigDirectoryPath(handle.path)
@@ -137,7 +140,7 @@ export function useEditorOutput() {
 
   function generateProfileContent(config: Config, profileNameOverride?: string): string {
     const profileFile = getProfileFile(config)
-    const profileName = profileFile.profileName || '未命名 Profile'
+    const profileName = profileFile.profileName || t('profile.unnamed')
     return withProfileHeader(generateConfig(profileFile.data), profileNameOverride || profileName)
   }
 
