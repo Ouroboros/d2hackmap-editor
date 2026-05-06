@@ -39,7 +39,7 @@ const { t } = useI18n()
 const { config, exportSection, isReadOnly } = useConfig()
 const { saveSubTab, loadSubTab } = useFileStorage()
 const { debugMode } = useDebugMode()
-const { applyDisplayOrder, getRealDropTargetIndex } = useDisplayOrder()
+const { applyDisplayOrder, sortByFileOrder, getRealDropTargetIndex } = useDisplayOrder()
 const { getStatById } = useReferenceData()
 const {
   markCommented,
@@ -594,8 +594,14 @@ function copyAllExtern() {
   if (!config.value || isReadOnly.value) return
 
   const itemsToCopy = activeSubTab.value === 'statLimits'
-    ? statLimits.value.filter(item => isItemExtern(item))
-    : statLimitGroups.value.filter(group => isItemExtern(group))
+    ? sortByFileOrder(
+      statLimits.value.filter(item => isItemExtern(item)),
+      getAllTransmuteItems<StatLimitItem>('statLimits')
+    )
+    : sortByFileOrder(
+      statLimitGroups.value.filter(group => isItemExtern(group)),
+      getAllTransmuteItems<StatLimitGroupItem>('statLimitGroups')
+    )
 
   let copied = 0
   if (activeSubTab.value === 'statLimits') {

@@ -6,6 +6,7 @@ export type {
   ItemColorItem,
   RuneColorItem,
   GoldColorItem,
+  SkillMissileDrawModeItem,
   ImportItemItem,
   StatLimitItem,
   StatLimitGroupItem,

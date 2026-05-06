@@ -43,7 +43,7 @@ const { t } = useI18n()
 const { config, exportSection, isReadOnly } = useConfig()
 const { saveSubTab, loadSubTab } = useFileStorage()
 const { debugMode } = useDebugMode()
-const { applyDisplayOrder, getRealDropTargetIndex } = useDisplayOrder()
+const { applyDisplayOrder, sortByFileOrder, getRealDropTargetIndex } = useDisplayOrder()
 const {
   markCommented,
   markRestored,
@@ -219,7 +219,10 @@ function hasItemDescriptorExternItems() {
 
 function copyAllItemDescriptorExtern() {
   if (!config.value || isReadOnly.value) return
-  const externItems = itemDescriptors.value.filter(item => isItemExtern(item))
+  const externItems = sortByFileOrder(
+    itemDescriptors.value.filter(item => isItemExtern(item)),
+    getAllTransmuteItems<ItemDescriptorItem>('itemDescriptors')
+  )
 
   let copied = 0
   for (const item of externItems) {
@@ -743,7 +746,10 @@ function hasCubeFormulaExternItems() {
 
 function copyAllCubeFormulaExtern() {
   if (!config.value || isReadOnly.value) return
-  const externItems = cubeFormulas.value.filter(item => isItemExtern(item))
+  const externItems = sortByFileOrder(
+    cubeFormulas.value.filter(item => isItemExtern(item)),
+    getAllTransmuteItems<CubeFormulaItem>('cubeFormulas')
+  )
 
   let copied = 0
   for (const item of externItems) {
@@ -939,7 +945,10 @@ function hasPreItemTaskExternItems() {
 
 function copyAllPreItemTaskExtern() {
   if (!config.value || isReadOnly.value) return
-  const externItems = preItemTasks.value.filter(item => isItemExtern(item))
+  const externItems = sortByFileOrder(
+    preItemTasks.value.filter(item => isItemExtern(item)),
+    getAllTransmuteItems<PreItemTaskItem>('preItemTasks')
+  )
 
   let copied = 0
   for (const item of externItems) {
@@ -1087,7 +1096,10 @@ function hasDoTaskExternItems() {
 
 function copyAllDoTaskExtern() {
   if (!config.value || isReadOnly.value) return
-  const externItems = doTasks.value.filter(item => isItemExtern(item))
+  const externItems = sortByFileOrder(
+    doTasks.value.filter(item => isItemExtern(item)),
+    getAllTransmuteItems<DoTaskItem>('doTasks')
+  )
 
   let copied = 0
   for (const item of externItems) {

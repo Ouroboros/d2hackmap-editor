@@ -43,7 +43,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { config, exportSection, isReadOnly } = useConfig()
 const { debugMode } = useDebugMode()
-const { applyDisplayOrder, getRealDropTargetIndex } = useDisplayOrder()
+const { applyDisplayOrder, sortByFileOrder, getRealDropTargetIndex } = useDisplayOrder()
 const { isItemDisabled, isItemExtern, getItemRowClasses } = useItemActions()
 
 // Sub-tabs configuration (single tab for alignment)
@@ -224,7 +224,13 @@ function copyItem(index: number): void {
 function duplicateItemToMain(index: number, skipRefresh = false): boolean {
   if (!config.value || isReadOnly.value) return false
   const original = getItemAtIndex(index)
-  if (!original || !canCopyItemToMain(original)) return false
+  if (!original) return false
+  return duplicateImportItemToMain(original, skipRefresh)
+}
+
+function duplicateImportItemToMain(original: ImportItemItem, skipRefresh = false): boolean {
+  if (!config.value || isReadOnly.value) return false
+  if (!canCopyItemToMain(original)) return false
 
   // Check for duplicate: skip if main config already has item with same key
   const key = getImportItemKey(original)
@@ -335,15 +341,14 @@ function hasExternItems() {
 function copyAllExtern() {
   if (!config.value || isReadOnly.value) return
 
-  // Collect extern indices first (snapshot)
-  const externIndices: number[] = []
-  importItems.value.forEach((item, index) => {
-    if (isItemExtern(item)) externIndices.push(index)
-  })
+  const externItems = sortByFileOrder(
+    importItems.value.filter(item => isItemExtern(item)),
+    importItemsAll.value
+  )
 
   let copied = 0
-  for (const index of externIndices) {
-    if (duplicateItemToMain(index, true)) copied++
+  for (const item of externItems) {
+    if (duplicateImportItemToMain(item, true)) copied++
   }
 
   // Refresh once after all copies

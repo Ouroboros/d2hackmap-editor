@@ -28,6 +28,7 @@ import type {
   ItemColorItem,
   RuneColorItem,
   GoldColorItem,
+  SkillMissileDrawModeItem,
   ImportItemItem,
   StatLimitItem,
   StatLimitGroupItem,
@@ -203,6 +204,10 @@ function formatGoldColorLine(gold: GoldColorItem): string {
   return formatSchemaLine('Gold Colors', [gold.range], [gold.textColor, gold.mapColor, gold.mapText], gold.comment)
 }
 
+function formatSkillMissileDrawModeLine(item: SkillMissileDrawModeItem): string {
+  return formatSchemaLine('Skill Missile DrawMode', [item.skillId], [item.drawMode], item.comment)
+}
+
 // Format Import Item line
 function formatImportItemLine(item: ImportItemItem): string {
   const params: string[] = [item.itemId]
@@ -328,7 +333,19 @@ export function generateConfig(configData: ConfigData): string {
     }
   }
 
-  if (itemColorLines.length > 0 || runeColorLines.length > 0 || goldColorLines.length > 0) {
+  const skillMissileDrawModeLines: string[] = []
+  for (const item of configData.skillMissileDrawModes) {
+    if (shouldOutput(item)) {
+      skillMissileDrawModeLines.push(outputLine(formatSkillMissileDrawModeLine(item), item.isCommented))
+    }
+  }
+
+  if (
+    itemColorLines.length > 0 ||
+    runeColorLines.length > 0 ||
+    goldColorLines.length > 0 ||
+    skillMissileDrawModeLines.length > 0
+  ) {
     addSectionHeader(sections, t('gen.itemColors'))
     if (itemColorLines.length > 0) {
       sections.push(...itemColorLines)
@@ -342,6 +359,11 @@ export function generateConfig(configData: ConfigData): string {
       if (itemColorLines.length > 0 || runeColorLines.length > 0) sections.push('')
       sections.push(`// ${t('gen.goldColors')}`)
       sections.push(...goldColorLines)
+    }
+    if (skillMissileDrawModeLines.length > 0) {
+      if (itemColorLines.length > 0 || runeColorLines.length > 0 || goldColorLines.length > 0) sections.push('')
+      sections.push(`// ${t('gen.skillMissileDrawModes')}`)
+      sections.push(...skillMissileDrawModeLines)
     }
   }
 

@@ -9,6 +9,7 @@ import {
   getItemColorKey,
   getRuneColorKey,
   getGoldColorKey,
+  getSkillMissileDrawModeKey,
   getAllItems,
   canCopyItemToMain,
   getEditableFile,
@@ -24,9 +25,10 @@ import { useReferenceData } from '../composables/useReferenceData'
 import { useI18n } from '../i18n'
 import { useDebugMode } from '../composables/useDebugMode'
 import { IdRange } from '../utils/IdRange'
+import { fitTextColumnWidth } from '../utils/columnWidth'
 import { log } from '../utils/log'
-import { COLOR_NONE } from '../configDefs'
-import type { ItemColorItem, RuneColorItem, GoldColorItem } from '../types'
+import { COLOR_NONE, SKILL_MISSILE_DRAW_MODES } from '../configDefs'
+import type { ItemColorItem, RuneColorItem, GoldColorItem, SkillMissileDrawModeItem } from '../types'
 import DebugDrawer from './debug/DebugDrawer.vue'
 import FlatListView from './debug/FlatListView.vue'
 import EditorPanel from './EditorPanel.vue'
@@ -37,6 +39,7 @@ import RunePicker from './RunePicker.vue'
 import MapColorPicker from './MapColorPicker.vue'
 import TextColorPicker from './TextColorPicker.vue'
 import QualityPicker from './QualityPicker.vue'
+import SkillPicker from './SkillPicker.vue'
 import type { ConfigTableColumn } from './configTable'
 
 const { t } = useI18n()
@@ -45,9 +48,10 @@ const { t } = useI18n()
 const TAB_ITEMS = 'items' as const
 const TAB_RUNES = 'runes' as const
 const TAB_GOLDS = 'golds' as const
+const TAB_SKILL_MISSILES = 'skillMissiles' as const
 
-type TabType = typeof TAB_ITEMS | typeof TAB_RUNES | typeof TAB_GOLDS
-type ColorConfigItem = ItemColorItem | RuneColorItem | GoldColorItem
+type TabType = typeof TAB_ITEMS | typeof TAB_RUNES | typeof TAB_GOLDS | typeof TAB_SKILL_MISSILES
+type ColorConfigItem = ItemColorItem | RuneColorItem | GoldColorItem | SkillMissileDrawModeItem
 
 interface Props {
   searchQuery?: string
@@ -60,9 +64,9 @@ const props = withDefaults(defineProps<Props>(), {
 const { config, exportSection, isReadOnly } = useConfig()
 const { debugMode } = useDebugMode()
 const { saveSubTab, loadSubTab } = useFileStorage()
-const { applyDisplayOrder, getRealDropTargetIndex } = useDisplayOrder()
+const { applyDisplayOrder, sortByFileOrder, getRealDropTargetIndex } = useDisplayOrder()
 const { isItemDisabled, isItemExtern, getItemRowClasses } = useItemActions()
-const { itemsMap } = useReferenceData()
+const { itemsMap, getSkillById } = useReferenceData()
 
 const activeTab = ref<TabType>(TAB_ITEMS)
 
@@ -70,13 +74,15 @@ const activeTab = ref<TabType>(TAB_ITEMS)
 const subTabsConfig = computed(() => [
   { id: TAB_ITEMS, label: t('subTab.items') },
   { id: TAB_RUNES, label: t('subTab.runes') },
-  { id: TAB_GOLDS, label: t('subTab.golds') }
+  { id: TAB_GOLDS, label: t('subTab.golds') },
+  { id: TAB_SKILL_MISSILES, label: t('subTab.skillMissiles') }
 ])
 
 // Selection state (store item references)
 const selectedItems = ref<Set<ColorConfigItem>>(new Set())
 const selectedRunes = ref<Set<ColorConfigItem>>(new Set())
 const selectedGolds = ref<Set<ColorConfigItem>>(new Set())
+const selectedSkillMissiles = ref<Set<ColorConfigItem>>(new Set())
 
 // Color filter state
 const textColorFilter = ref<string>('')
@@ -93,6 +99,7 @@ watch(activeTab, (newTab) => {
   selectedItems.value.clear()
   selectedRunes.value.clear()
   selectedGolds.value.clear()
+  selectedSkillMissiles.value.clear()
 })
 
 // Load saved sub-tab on mount
@@ -102,7 +109,7 @@ onMounted(() => {
 })
 
 function isTabType(value: string): value is TabType {
-  return value === TAB_ITEMS || value === TAB_RUNES || value === TAB_GOLDS
+  return value === TAB_ITEMS || value === TAB_RUNES || value === TAB_GOLDS || value === TAB_SKILL_MISSILES
 }
 
 function handleExport(): void {
@@ -120,6 +127,7 @@ function hasInvalidIds(itemId: string): boolean {
 const itemColorsAll = computed(() => getAllItems<ItemColorItem>(config.value, 'itemColors'))
 const runeColorsAll = computed(() => getAllItems<RuneColorItem>(config.value, 'runeColors'))
 const goldColorsAll = computed(() => getAllItems<GoldColorItem>(config.value, 'goldColors'))
+const skillMissileDrawModesAll = computed(() => getAllItems<SkillMissileDrawModeItem>(config.value, 'skillMissileDrawModes'))
 
 // Filter items for display: main items (all) + extern items (only effective)
 function filterForDisplay<T extends { sourceFile: string | null; isEffective?: boolean }>(items: T[]): T[] {
@@ -200,10 +208,29 @@ const goldColors = computed(() => {
   return applyDisplayOrder(items)
 })
 
+const skillMissileDrawModes = computed(() => {
+  let items = filterForDisplay(skillMissileDrawModesAll.value)
+  if (!items.length) return []
+
+  if (props.searchQuery) {
+    const q = props.searchQuery.toLowerCase()
+    items = items.filter(item =>
+      item.skillId.toLowerCase().includes(q) ||
+      item.drawMode.toLowerCase().includes(q) ||
+      item.comment?.toLowerCase().includes(q)
+    )
+  }
+
+  return applyDisplayOrder(items)
+})
+
 // Build jump maps from DISPLAYED items (so indices match data-index)
 const itemColorsJumpMap = computed(() => buildCommentedMainMap(itemColors.value, getItemColorKey))
 const runeColorsJumpMap = computed(() => buildCommentedMainMap(runeColors.value, getRuneColorKey))
 const goldColorsJumpMap = computed(() => buildCommentedMainMap(goldColors.value, getGoldColorKey))
+const skillMissileDrawModesJumpMap = computed(() =>
+  buildCommentedMainMap(skillMissileDrawModes.value, getSkillMissileDrawModeKey)
+)
 
 // Get jump target for an item
 function getItemJumpTarget(item: ItemColorItem): number | undefined {
@@ -215,6 +242,9 @@ function getRuneJumpTarget(item: RuneColorItem): number | undefined {
 function getGoldJumpTarget(item: GoldColorItem): number | undefined {
   return getJumpTargetIndex(item, goldColorsJumpMap.value, getGoldColorKey)
 }
+function getSkillMissileJumpTarget(item: SkillMissileDrawModeItem): number | undefined {
+  return getJumpTargetIndex(item, skillMissileDrawModesJumpMap.value, getSkillMissileDrawModeKey)
+}
 
 // Jump to index with container selector (to avoid conflicts between tabs)
 function jumpToItemColor(index: number): void {
@@ -225,6 +255,9 @@ function jumpToRuneColor(index: number): void {
 }
 function jumpToGoldColor(index: number): void {
   scrollToIndex(index, '.golds-color-list')
+}
+function jumpToSkillMissileDrawMode(index: number): void {
+  scrollToIndex(index, '.skill-missiles-list')
 }
 
 // Get merged display index for drag operations
@@ -239,6 +272,11 @@ function getMergedIndex(filteredIndex: number, type: TabType): number {
     if (!item) return -1
     return getAllItems<RuneColorItem>(config.value, 'runeColors').indexOf(item)
   }
+  if (type === TAB_SKILL_MISSILES) {
+    const item = skillMissileDrawModes.value[filteredIndex]
+    if (!item) return -1
+    return getAllItems<SkillMissileDrawModeItem>(config.value, 'skillMissileDrawModes').indexOf(item)
+  }
 
   const item = itemColors.value[filteredIndex]
   if (!item) return -1
@@ -249,10 +287,12 @@ function getMergedIndex(filteredIndex: number, type: TabType): number {
 function getItemAtIndex(filteredIndex: number, type: typeof TAB_ITEMS): ItemColorItem | undefined
 function getItemAtIndex(filteredIndex: number, type: typeof TAB_RUNES): RuneColorItem | undefined
 function getItemAtIndex(filteredIndex: number, type: typeof TAB_GOLDS): GoldColorItem | undefined
+function getItemAtIndex(filteredIndex: number, type: typeof TAB_SKILL_MISSILES): SkillMissileDrawModeItem | undefined
 function getItemAtIndex(filteredIndex: number, type: TabType): ColorConfigItem | undefined
 function getItemAtIndex(filteredIndex: number, type: TabType): ColorConfigItem | undefined {
   if (type === TAB_GOLDS) return goldColors.value[filteredIndex]
   if (type === TAB_RUNES) return runeColors.value[filteredIndex]
+  if (type === TAB_SKILL_MISSILES) return skillMissileDrawModes.value[filteredIndex]
   return itemColors.value[filteredIndex]
 }
 
@@ -277,6 +317,23 @@ const goldMapTextWidth = computed(() => {
   const maxLen = Math.max(0, ...items.map(item => (item.mapText || '').length))
   return Math.max(120, maxLen * 8 + 24)
 })
+
+const skillMissileDrawModeWidth = computed(() =>
+  fitTextColumnWidth(
+    SKILL_MISSILE_DRAW_MODES.map(mode => `[${mode.value}] ${t(mode.labelKey)}`),
+    t('itemColors.drawMode'),
+    { min: 230, max: 360, padding: 70 }
+  )
+)
+
+const skillMissileSkillIdWidth = computed(() =>
+  fitTextColumnWidth(
+    getAllItems<SkillMissileDrawModeItem>(config.value, 'skillMissileDrawModes')
+      .map(item => getSkillDisplayText(item.skillId)),
+    t('itemColors.skillId'),
+    { min: 230, max: 560, padding: 34 }
+  )
+)
 
 const itemColorColumns = computed<ConfigTableColumn[]>(() => [
   { key: 'itemId', label: t('itemColors.itemId'), width: '150px' },
@@ -306,26 +363,55 @@ const goldColorColumns = computed<ConfigTableColumn[]>(() => [
   { key: 'actions', label: t('itemColors.actions'), width: '220px', className: 'col-actions' }
 ])
 
-function isColorRowDisabled(item: ItemColorItem | RuneColorItem | GoldColorItem): boolean {
+const skillMissileColumns = computed<ConfigTableColumn[]>(() => [
+  { key: 'skillId', label: t('itemColors.skillId'), width: skillMissileSkillIdWidth.value },
+  { key: 'drawMode', label: t('itemColors.drawMode'), width: skillMissileDrawModeWidth.value },
+  { key: 'comment', label: t('itemColors.comment'), width: '180px', className: 'col-comment' },
+  { key: 'actions', label: t('itemColors.actions'), width: '220px', className: 'col-actions' }
+])
+
+function getSkillDisplayText(skillId: string): string {
+  if (!skillId) return ''
+  const skill = getSkillById(skillId)
+  return skill ? `${skill.id} - ${skill.name}` : skillId
+}
+
+function isColorRowDisabled(item: ColorConfigItem): boolean {
   return isItemDisabled(item) || isItemExtern(item)
+}
+
+function hasColorFields(item: ColorConfigItem): item is ItemColorItem | RuneColorItem | GoldColorItem {
+  return 'textColor' in item && 'mapColor' in item
 }
 
 // Selectable counts (non-extern items only)
 const selectableItemsCount = computed(() => itemColors.value.filter(item => !isItemExtern(item)).length)
 const selectableRunesCount = computed(() => runeColors.value.filter(item => !isItemExtern(item)).length)
 const selectableGoldsCount = computed(() => goldColors.value.filter(item => !isItemExtern(item)).length)
+const selectableSkillMissilesCount = computed(() =>
+  skillMissileDrawModes.value.filter(item => !isItemExtern(item)).length
+)
 
 // Selection helpers
 function getSelectedSet(tabType: TabType): Ref<Set<ColorConfigItem>> {
+  if (tabType === TAB_SKILL_MISSILES) return selectedSkillMissiles
   return tabType === TAB_GOLDS ? selectedGolds
     : tabType === TAB_RUNES ? selectedRunes
     : selectedItems
 }
 
 function getDisplayItems(tabType: TabType): ColorConfigItem[] {
+  if (tabType === TAB_SKILL_MISSILES) return skillMissileDrawModes.value
   if (tabType === TAB_GOLDS) return goldColors.value
   if (tabType === TAB_RUNES) return runeColors.value
   return itemColors.value
+}
+
+function getFileOrderedItems(tabType: TabType): ColorConfigItem[] {
+  if (tabType === TAB_SKILL_MISSILES) return skillMissileDrawModesAll.value
+  if (tabType === TAB_GOLDS) return goldColorsAll.value
+  if (tabType === TAB_RUNES) return runeColorsAll.value
+  return itemColorsAll.value
 }
 
 // Selection functions
@@ -363,7 +449,8 @@ function hasSelection(tabType: TabType): boolean {
   return getSelectedSet(tabType).value.size > 0
 }
 
-function getArrayNameByTab(tabType: TabType): 'itemColors' | 'runeColors' | 'goldColors' {
+function getArrayNameByTab(tabType: TabType): 'itemColors' | 'runeColors' | 'goldColors' | 'skillMissileDrawModes' {
+  if (tabType === TAB_SKILL_MISSILES) return 'skillMissileDrawModes'
   if (tabType === TAB_GOLDS) return 'goldColors'
   if (tabType === TAB_RUNES) return 'runeColors'
   return 'itemColors'
@@ -375,7 +462,7 @@ function batchSetTextColor(color: string, tabType: TabType): void {
   const selected = getSelectedSet(tabType)
 
   for (const item of selected.value) {
-    if (!isItemExtern(item)) {
+    if (!isItemExtern(item) && hasColorFields(item)) {
       item.textColor = color
     }
   }
@@ -387,7 +474,7 @@ function batchSetMapColor(color: string, tabType: TabType): void {
   const selected = getSelectedSet(tabType)
 
   for (const item of selected.value) {
-    if (!isItemExtern(item)) {
+    if (!isItemExtern(item) && hasColorFields(item)) {
       item.mapColor = color
     }
   }
@@ -493,23 +580,22 @@ function hasExternItems(tabType: TabType): boolean {
 function copyAllExtern(tabType: TabType): void {
   if (!config.value || isReadOnly.value) return
 
-  const items = getDisplayItems(tabType)
-
-  // Collect extern indices first (snapshot)
-  const externIndices: number[] = []
-  items.forEach((item, index) => {
-    if (isItemExtern(item)) externIndices.push(index)
-  })
+  const externItems = sortByFileOrder(
+    getDisplayItems(tabType).filter(item => isItemExtern(item)),
+    getFileOrderedItems(tabType)
+  )
 
   let copied = 0
-  for (const index of externIndices) {
+  for (const item of externItems) {
     let success = false
     if (tabType === TAB_GOLDS) {
-      success = duplicateGoldColorToMain(index, true)
+      success = duplicateGoldColorItemToMain(item as GoldColorItem, true)
     } else if (tabType === TAB_RUNES) {
-      success = duplicateRuneColorToMain(index, true)
+      success = duplicateRuneColorItemToMain(item as RuneColorItem, true)
+    } else if (tabType === TAB_SKILL_MISSILES) {
+      success = duplicateSkillMissileDrawModeItemToMain(item as SkillMissileDrawModeItem, true)
     } else {
-      success = duplicateItemColorToMain(index, true)
+      success = duplicateItemColorItemToMain(item as ItemColorItem, true)
     }
     if (success) copied++
   }
@@ -589,7 +675,7 @@ function handleDragEnd() {
   dragOverIndex.value = null
 }
 
-function isReadonlyColorItem(item: ItemColorItem | RuneColorItem | GoldColorItem): boolean {
+function isReadonlyColorItem(item: ColorConfigItem): boolean {
   return isReadOnly.value || isItemDisabled(item) || isItemExtern(item)
 }
 
@@ -712,7 +798,13 @@ function handleRestoreRuneColor(index: number) {
 function duplicateItemColorToMain(index: number, skipRefresh = false): boolean {
   if (!config.value || isReadOnly.value) return false
   const original = getItemAtIndex(index, 'items')
-  if (!original || !canCopyItemToMain(original)) return false
+  if (!original) return false
+  return duplicateItemColorItemToMain(original, skipRefresh)
+}
+
+function duplicateItemColorItemToMain(original: ItemColorItem, skipRefresh = false): boolean {
+  if (!config.value || isReadOnly.value) return false
+  if (!canCopyItemToMain(original)) return false
 
   // Check for duplicate: skip if main config already has item with same key
   const key = getItemColorKey(original)
@@ -747,7 +839,13 @@ function duplicateItemColorToMain(index: number, skipRefresh = false): boolean {
 function duplicateRuneColorToMain(index: number, skipRefresh = false): boolean {
   if (!config.value || isReadOnly.value) return false
   const original = getItemAtIndex(index, 'runes')
-  if (!original || !canCopyItemToMain(original)) return false
+  if (!original) return false
+  return duplicateRuneColorItemToMain(original, skipRefresh)
+}
+
+function duplicateRuneColorItemToMain(original: RuneColorItem, skipRefresh = false): boolean {
+  if (!config.value || isReadOnly.value) return false
+  if (!canCopyItemToMain(original)) return false
 
   // Check for duplicate: skip if main config already has item with same key
   const key = getRuneColorKey(original)
@@ -857,7 +955,13 @@ function copyGoldColor(index: number) {
 function duplicateGoldColorToMain(index: number, skipRefresh = false): boolean {
   if (!config.value || isReadOnly.value) return false
   const original = getItemAtIndex(index, 'golds')
-  if (!original || !canCopyItemToMain(original)) return false
+  if (!original) return false
+  return duplicateGoldColorItemToMain(original, skipRefresh)
+}
+
+function duplicateGoldColorItemToMain(original: GoldColorItem, skipRefresh = false): boolean {
+  if (!config.value || isReadOnly.value) return false
+  if (!canCopyItemToMain(original)) return false
 
   // Check for duplicate: skip if main config already has item with same key
   const key = getGoldColorKey(original)
@@ -882,6 +986,102 @@ function duplicateGoldColorToMain(index: number, skipRefresh = false): boolean {
   if (!skipRefresh) {
     refreshEffectiveStatus(config.value)
     scrollToMainItemInList(() => goldColors.value, newItem, getGoldColorKey, '.golds-color-list')
+  }
+  return true
+}
+
+function addSkillMissileDrawMode() {
+  if (!config.value || isReadOnly.value) return
+  const newItem: SkillMissileDrawModeItem = {
+    skillId: '',
+    drawMode: '0',
+    comment: '',
+    sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
+    isNew: true,
+    isCommented: false
+  }
+  addItemToEditable(config.value, 'skillMissileDrawModes', newItem)
+  refreshEffectiveStatus(config.value)
+  scrollToMainItemInList(
+    () => skillMissileDrawModes.value,
+    newItem,
+    getSkillMissileDrawModeKey,
+    '.skill-missiles-list'
+  )
+}
+
+function updateSkillMissileDrawMode(index: number, field: string, value: string) {
+  const item = getItemAtIndex(index, TAB_SKILL_MISSILES)
+  if (!item || isReadonlyColorItem(item)) return
+  ;(item as unknown as Record<string, unknown>)[field] = value
+}
+
+function handleDeleteSkillMissileDrawMode(index: number) {
+  if (!config.value || isReadOnly.value) return
+  const item = getItemAtIndex(index, TAB_SKILL_MISSILES)
+  if (!item || isItemExtern(item)) return
+
+  deleteItemFromFile(config.value, item, 'skillMissileDrawModes')
+  refreshEffectiveStatus(config.value)
+}
+
+function handleCommentSkillMissileDrawMode(index: number) {
+  if (!config.value || isReadOnly.value) return
+  const item = getItemAtIndex(index, TAB_SKILL_MISSILES)
+  if (!item || isItemExtern(item)) return
+
+  item.isCommented = true
+  item.isDeleted = false
+  refreshEffectiveStatus(config.value)
+}
+
+function handleRestoreSkillMissileDrawMode(index: number) {
+  if (!config.value || isReadOnly.value) return
+  const item = getItemAtIndex(index, TAB_SKILL_MISSILES)
+  if (!item || isItemExtern(item)) return
+
+  item.isCommented = false
+  item.isDeleted = false
+  refreshEffectiveStatus(config.value)
+}
+
+function duplicateSkillMissileDrawModeToMain(index: number, skipRefresh = false): boolean {
+  if (!config.value || isReadOnly.value) return false
+  const original = getItemAtIndex(index, TAB_SKILL_MISSILES)
+  if (!original) return false
+  return duplicateSkillMissileDrawModeItemToMain(original, skipRefresh)
+}
+
+function duplicateSkillMissileDrawModeItemToMain(original: SkillMissileDrawModeItem, skipRefresh = false): boolean {
+  if (!config.value || isReadOnly.value) return false
+  if (!canCopyItemToMain(original)) return false
+
+  const key = getSkillMissileDrawModeKey(original)
+  const allItems = getAllItems<SkillMissileDrawModeItem>(config.value, 'skillMissileDrawModes')
+  const hasMainItem = allItems.some(item => getSkillMissileDrawModeKey(item) === key && item.layer === 'user')
+  if (hasMainItem) return false
+
+  const newItem: SkillMissileDrawModeItem = {
+    skillId: original.skillId,
+    drawMode: original.drawMode,
+    comment: original.comment,
+    sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
+    isNew: true,
+    isCommented: false
+  }
+  addItemToEditable(config.value, 'skillMissileDrawModes', newItem)
+  if (!skipRefresh) {
+    refreshEffectiveStatus(config.value)
+    scrollToMainItemInList(
+      () => skillMissileDrawModes.value,
+      newItem,
+      getSkillMissileDrawModeKey,
+      '.skill-missiles-list'
+    )
   }
   return true
 }
@@ -938,6 +1138,53 @@ function handleDropGold(e: DragEvent, targetIndex: number): void {
   dragOverIndex.value = null
 }
 
+function handleDragStartSkillMissile(e: DragEvent, index: number): void {
+  log(`[handleDragStartSkillMissile] index=${index}`)
+  dragIndex.value = index
+  if (!e.dataTransfer) return
+  e.dataTransfer.effectAllowed = 'move'
+  e.dataTransfer.setData('text/plain', String(index))
+}
+
+function handleDropSkillMissile(e: DragEvent, targetIndex: number): void {
+  e.preventDefault()
+  log(`[handleDropSkillMissile] START: sourceIndex=${dragIndex.value}, targetIndex=${targetIndex}`)
+
+  if (isReadOnly.value || !config.value) {
+    log(`[handleDropSkillMissile] ABORT: isReadOnly=${isReadOnly.value}, config=${!!config.value}`)
+    return
+  }
+  const sourceIndex = dragIndex.value
+  if (sourceIndex === null || sourceIndex === targetIndex) {
+    log(`[handleDropSkillMissile] ABORT: sourceIndex=${sourceIndex}, targetIndex=${targetIndex}`)
+    dragIndex.value = null
+    dragOverIndex.value = null
+    return
+  }
+
+  const item = getItemAtIndex(sourceIndex, TAB_SKILL_MISSILES)
+  if (!item) {
+    log(`[handleDropSkillMissile] ABORT: item not found at sourceIndex=${sourceIndex}`)
+    return
+  }
+
+  const targetRealIndex = getMergedIndex(targetIndex, TAB_SKILL_MISSILES)
+  log(`[handleDropSkillMissile] targetRealIndex=${targetRealIndex}`)
+  if (targetRealIndex < 0) {
+    log(`[handleDropSkillMissile] ABORT: targetRealIndex < 0`)
+    return
+  }
+  const targetMergedIdx = getRealDropTargetIndex(sourceIndex, targetIndex, targetRealIndex)
+
+  log(`[handleDropSkillMissile] calling moveItemInFile: targetMergedIdx=${targetMergedIdx}`)
+  const result = moveItemInFile(config.value, item, targetMergedIdx, 'skillMissileDrawModes')
+  log(`[handleDropSkillMissile] moveItemInFile returned: ${result}`)
+
+  refreshEffectiveStatus(config.value)
+  dragIndex.value = null
+  dragOverIndex.value = null
+}
+
 function clearFilters() {
   textColorFilter.value = ''
   mapColorFilter.value = ''
@@ -945,6 +1192,7 @@ function clearFilters() {
 
 function getColorDebugKey(item: ColorConfigItem): string {
   if ('itemId' in item) return getItemColorKey(item)
+  if ('skillId' in item) return getSkillMissileDrawModeKey(item)
   return item.range
 }
 
@@ -952,17 +1200,24 @@ function formatColorDebugItem(item: ColorConfigItem): string {
   if ('itemId' in item) {
     return `${item.itemId}|${item.quality}|${item.ethereal}|${item.sockets} → text:${item.textColor}, map:${item.mapColor}`
   }
+  if ('skillId' in item) {
+    return `${item.skillId} → drawMode:${item.drawMode}`
+  }
   return `${item.range} → text:${item.textColor}, map:${item.mapColor}`
 }
 
 // Get current items for debug panel based on active tab
 const currentDebugItems = computed<ColorConfigItem[]>(() => {
+  if (activeTab.value === TAB_SKILL_MISSILES) {
+    return getAllItems<SkillMissileDrawModeItem>(config.value, 'skillMissileDrawModes')
+  }
   if (activeTab.value === TAB_GOLDS) return getAllItems<GoldColorItem>(config.value, 'goldColors')
   if (activeTab.value === TAB_RUNES) return getAllItems<RuneColorItem>(config.value, 'runeColors')
   return getAllItems<ItemColorItem>(config.value, 'itemColors')
 })
 
 const currentDebugTitle = computed(() => {
+  if (activeTab.value === TAB_SKILL_MISSILES) return 'Skill Missile DrawMode'
   if (activeTab.value === TAB_GOLDS) return 'Gold Colors'
   if (activeTab.value === TAB_RUNES) return 'Rune Colors'
   return 'Item Colors'
@@ -983,10 +1238,12 @@ const currentFormatter = computed(() => formatColorDebugItem)
         <div v-if="hasSelection(activeTab) && !isReadOnly" class="batch-bar">
           <span class="batch-info">{{ t('batch.selected', { count: getSelectedSet(activeTab).value.size }) }}</span>
           <TextColorPicker
+            v-if="activeTab !== TAB_SKILL_MISSILES"
             :modelValue="COLOR_NONE"
             @update:modelValue="batchSetTextColor($event, activeTab)"
           />
           <MapColorPicker
+            v-if="activeTab !== TAB_SKILL_MISSILES"
             :modelValue="COLOR_NONE"
             @update:modelValue="batchSetMapColor($event, activeTab)"
           />
@@ -1002,7 +1259,7 @@ const currentFormatter = computed(() => formatColorDebugItem)
           @click="copyAllExtern(activeTab)"
         >{{ t('batch.copyAllExtern') }}</button>
         <!-- Color Filters -->
-        <div class="filter-group">
+        <div v-if="activeTab !== TAB_SKILL_MISSILES" class="filter-group">
           <span class="filter-label">{{ t('itemColors.filterTextColor') }}:</span>
           <TextColorPicker
             :modelValue="textColorFilter"
@@ -1010,7 +1267,7 @@ const currentFormatter = computed(() => formatColorDebugItem)
           />
           <button v-if="textColorFilter && textColorFilter !== '' && textColorFilter !== COLOR_NONE" class="btn btn-small btn-secondary" @click="textColorFilter = ''">×</button>
         </div>
-        <div class="filter-group">
+        <div v-if="activeTab !== TAB_SKILL_MISSILES" class="filter-group">
           <span class="filter-label">{{ t('itemColors.filterMapColor') }}:</span>
           <MapColorPicker
             :modelValue="mapColorFilter"
@@ -1018,12 +1275,13 @@ const currentFormatter = computed(() => formatColorDebugItem)
           />
           <button v-if="mapColorFilter && mapColorFilter !== COLOR_NONE" class="btn btn-small btn-secondary" @click="mapColorFilter = ''">×</button>
         </div>
-        <button v-if="(textColorFilter && textColorFilter !== COLOR_NONE) || (mapColorFilter && mapColorFilter !== COLOR_NONE)" class="btn btn-small btn-secondary" @click="clearFilters">
+        <button v-if="activeTab !== TAB_SKILL_MISSILES && ((textColorFilter && textColorFilter !== COLOR_NONE) || (mapColorFilter && mapColorFilter !== COLOR_NONE))" class="btn btn-small btn-secondary" @click="clearFilters">
           {{ t('search.clear') }}
         </button>
         <button v-if="activeTab === TAB_ITEMS && !isReadOnly" class="btn btn-primary btn-small" @click="addItemColor">{{ t('btn.add') }}</button>
         <button v-if="activeTab === TAB_RUNES && !isReadOnly" class="btn btn-primary btn-small" @click="addRuneColor">{{ t('btn.add') }}</button>
         <button v-if="activeTab === TAB_GOLDS && !isReadOnly" class="btn btn-primary btn-small" @click="addGoldColor">{{ t('btn.add') }}</button>
+        <button v-if="activeTab === TAB_SKILL_MISSILES && !isReadOnly" class="btn btn-primary btn-small" @click="addSkillMissileDrawMode">{{ t('btn.add') }}</button>
         <button class="btn btn-secondary btn-small" @click="handleExport" :title="t('btn.export')">{{ t('btn.export') }}</button>
       </template>
 
@@ -1350,6 +1608,104 @@ const currentFormatter = computed(() => formatColorDebugItem)
                   ×
                 </button>
               </template>
+          </template>
+        </ConfigTable>
+      </div>
+
+      <!-- Skill Missile DrawMode Tab -->
+      <div v-show="activeTab === TAB_SKILL_MISSILES" class="tab-content">
+        <ConfigTable
+          :items="skillMissileDrawModes"
+          :columns="skillMissileColumns"
+          :empty-text="t('itemColors.skillMissileEmpty')"
+          list-class="color-list skill-missiles-list"
+          show-checkbox
+          show-index
+          show-drag
+          :is-all-selected="selectedSkillMissiles.size === selectableSkillMissilesCount && selectableSkillMissilesCount > 0"
+          :is-read-only="isReadOnly"
+          :is-selected="(item) => isSelected(item, TAB_SKILL_MISSILES)"
+          :is-disabled="isColorRowDisabled"
+          :drag-over-index="dragOverIndex"
+          :row-classes="getItemRowClasses"
+          @select-all="toggleSelectAll(TAB_SKILL_MISSILES)"
+          @select="(item) => toggleSelect(item, TAB_SKILL_MISSILES)"
+          @dragstart="(event, index) => handleDragStartSkillMissile(event, index)"
+          @dragover="handleDragOver"
+          @dragleave="handleDragLeave"
+          @drop="(event, index) => handleDropSkillMissile(event, index)"
+          @dragend="handleDragEnd"
+        >
+          <template #cell-skillId="{ item, index }">
+            <SkillPicker
+              :placeholder="t('itemColors.skillId')"
+              :model-value="item.skillId"
+              :readonly="isReadonlyColorItem(item)"
+              :disabled="isReadOnly"
+              @update:model-value="updateSkillMissileDrawMode(index, 'skillId', $event)"
+            />
+          </template>
+          <template #cell-drawMode="{ item, index }">
+            <select
+              :value="item.drawMode"
+              :disabled="isReadOnly || isReadonlyColorItem(item)"
+              @change="updateSkillMissileDrawMode(index, 'drawMode', ($event.target as HTMLSelectElement).value)"
+            >
+              <option
+                v-for="mode in SKILL_MISSILE_DRAW_MODES"
+                :key="mode.value"
+                :value="mode.value"
+              >
+                [{{ mode.value }}] {{ t(mode.labelKey) }}
+              </option>
+            </select>
+          </template>
+          <template #cell-comment="{ item, index }">
+            <input
+              type="text"
+              class="comment-input"
+              :placeholder="t('itemColors.comment')"
+              :value="item.comment"
+              :readonly="isReadonlyColorItem(item)"
+              :disabled="isReadOnly"
+              @input="updateSkillMissileDrawMode(index, 'comment', ($event.target as HTMLInputElement).value)"
+            />
+          </template>
+          <template #cell-actions="{ item, index }">
+            <template v-if="isItemExtern(item)">
+              <button
+                v-if="getSkillMissileJumpTarget(item) !== undefined"
+                class="btn btn-small btn-warning"
+                @click="jumpToSkillMissileDrawMode(getSkillMissileJumpTarget(item)!)"
+                :title="t('action.jumpToMain')"
+              >→</button>
+              <button
+                v-if="!isReadOnly && getSkillMissileJumpTarget(item) === undefined"
+                class="btn btn-small btn-accent"
+                @click="duplicateSkillMissileDrawModeToMain(index)"
+                :title="t('action.copyToMain')"
+              >
+                +
+              </button>
+            </template>
+            <template v-else-if="item.isCommented || item.isDeleted">
+              <button v-if="!isReadOnly" class="btn btn-small btn-primary" @click="handleRestoreSkillMissileDrawMode(index)" :title="t('action.restore')">
+                ↩
+              </button>
+              <span v-if="item.isCommented" class="status-tag tag-commented">//</span>
+              <span v-if="item.isDeleted" class="status-tag tag-deleted">×</span>
+            </template>
+            <template v-else-if="!isReadOnly">
+              <button v-if="canCopyItemToMain(item)" class="btn btn-small btn-accent" @click="duplicateSkillMissileDrawModeToMain(index)" :title="t('action.copyToMain')">
+                +
+              </button>
+              <button class="btn btn-small btn-secondary" @click="handleCommentSkillMissileDrawMode(index)" :title="t('action.comment')">
+                //
+              </button>
+              <button class="btn btn-small btn-danger" @click="handleDeleteSkillMissileDrawMode(index)" :title="t('action.delete')">
+                ×
+              </button>
+            </template>
           </template>
         </ConfigTable>
       </div>

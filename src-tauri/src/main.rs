@@ -16,6 +16,7 @@ const USER_DEFINED_FILE: &str = "d2hackmap.editor.user.cfg";
 const PROFILE_DIR: &str = "profiles";
 const DEBUG_LOG_FILE: &str = "d2hackmap-editor-debug.log";
 const EXTERNAL_ISC_FILE: &str = "isc.json";
+const EXTERNAL_SKILLS_FILE: &str = "skills.json";
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -387,6 +388,20 @@ fn read_external_isc_json() -> Result<Option<String>, String> {
         .map_err(|e| format!("Failed to read {}: {e}", isc_path.display()))
 }
 
+#[tauri::command]
+fn read_external_skills_json() -> Result<Option<String>, String> {
+    let skills_path = exe_sibling_path(EXTERNAL_SKILLS_FILE)
+        .map_err(|e| format!("Failed to resolve {EXTERNAL_SKILLS_FILE} path: {e}"))?;
+
+    if !skills_path.is_file() {
+        return Ok(None);
+    }
+
+    fs::read_to_string(&skills_path)
+        .map(Some)
+        .map_err(|e| format!("Failed to read {}: {e}", skills_path.display()))
+}
+
 fn directory_payload(path: &Path) -> ConfigDirectory {
     ConfigDirectory {
         path: path_to_string(path),
@@ -586,7 +601,8 @@ fn main() {
             delete_editor_profile,
             save_active_profile_to_library,
             append_debug_log,
-            read_external_isc_json
+            read_external_isc_json,
+            read_external_skills_json
         ])
         .run(tauri::generate_context!())
         .expect("error while running Tauri application");

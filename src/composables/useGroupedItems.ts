@@ -77,7 +77,14 @@ export function getEffectiveItems<T extends BaseConfigItem>(
 }
 
 // Array-type keys of ConfigData (excluding 'transmute' which is an object)
-type ConfigDataArrayKey = 'toggles' | 'itemColors' | 'runeColors' | 'goldColors' | 'importItems' | 'includes'
+type ConfigDataArrayKey =
+  | 'toggles'
+  | 'itemColors'
+  | 'runeColors'
+  | 'goldColors'
+  | 'skillMissileDrawModes'
+  | 'importItems'
+  | 'includes'
 
 /**
  * Get all items from all files for a given array name

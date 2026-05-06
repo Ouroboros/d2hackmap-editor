@@ -7,7 +7,14 @@ import { log } from './log'
 import { isEditableLayer } from '../profile/profileLayers'
 
 // Array-type keys of ConfigData (excluding 'transmute' which is an object)
-type ConfigDataArrayKey = 'toggles' | 'itemColors' | 'runeColors' | 'goldColors' | 'importItems' | 'includes'
+type ConfigDataArrayKey =
+  | 'toggles'
+  | 'itemColors'
+  | 'runeColors'
+  | 'goldColors'
+  | 'skillMissileDrawModes'
+  | 'importItems'
+  | 'includes'
 
 /**
  * Move an item within its own file

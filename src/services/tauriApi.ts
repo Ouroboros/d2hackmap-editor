@@ -165,3 +165,8 @@ export async function readExternalIscJson(): Promise<string | null> {
   if (!isTauriRuntime()) return null
   return invoke<string | null>('read_external_isc_json')
 }
+
+export async function readExternalSkillsJson(): Promise<string | null> {
+  if (!isTauriRuntime()) return null
+  return invoke<string | null>('read_external_skills_json')
+}

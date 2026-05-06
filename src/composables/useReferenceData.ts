@@ -1,7 +1,8 @@
 import { ref, computed, type Ref, type ComputedRef } from 'vue'
 import itemsData from '../../data/items.json'
 import statsData from '../../data/isc.json'
-import { appendDebugLog, readExternalIscJson } from '../services/tauriApi'
+import skillsData from '../../data/skills.json'
+import { appendDebugLog, readExternalIscJson, readExternalSkillsJson } from '../services/tauriApi'
 
 // Reference item type
 export interface ReferenceItem {
@@ -19,12 +20,21 @@ export interface ReferenceStat {
   [key: string]: unknown
 }
 
-// Reference data state - built-in data is loaded first, then EXE-side isc.json can override/append stats.
+// Reference skill type
+export interface ReferenceSkill {
+  id: number | null
+  name?: string
+  classCode?: string
+  [key: string]: unknown
+}
+
+// Reference data state - built-in data is loaded first, then EXE-side JSON can override/append by ID.
 const items = ref<ReferenceItem[]>(itemsData as ReferenceItem[])
 const stats = ref<ReferenceStat[]>(statsData as ReferenceStat[])
+const skills = ref<ReferenceSkill[]>(skillsData as ReferenceSkill[])
 const loaded = ref(true)
 const loading = ref(false)
-let externalStatsLoadStarted = false
+let externalReferenceLoadStarted = false
 
 // Create a Map for fast ID lookup
 const itemsMap: ComputedRef<Map<number, ReferenceItem>> = computed(() => {
@@ -32,6 +42,16 @@ const itemsMap: ComputedRef<Map<number, ReferenceItem>> = computed(() => {
   for (const item of items.value) {
     if (item.id != null) {
       map.set(item.id, item)
+    }
+  }
+  return map
+})
+
+const skillsMap: ComputedRef<Map<number, ReferenceSkill>> = computed(() => {
+  const map = new Map<number, ReferenceSkill>()
+  for (const skill of skills.value) {
+    if (skill.id != null) {
+      map.set(skill.id, skill)
     }
   }
   return map
@@ -46,6 +66,17 @@ function normalizeStat(stat: unknown): ReferenceStat | null {
     ...item,
     id
   } as ReferenceStat
+}
+
+function normalizeSkill(skill: unknown): ReferenceSkill | null {
+  if (!skill || typeof skill !== 'object') return null
+  const item = skill as Record<string, unknown>
+  const id = Number(item.id)
+  if (!Number.isFinite(id)) return null
+  return {
+    ...item,
+    id
+  } as ReferenceSkill
 }
 
 function mergeStats(baseStats: ReferenceStat[], externalStats: ReferenceStat[]): ReferenceStat[] {
@@ -67,6 +98,31 @@ function mergeStats(baseStats: ReferenceStat[], externalStats: ReferenceStat[]):
       merged.push(stat)
     } else {
       merged[index] = stat
+    }
+  }
+
+  return merged.sort((a, b) => Number(a.id ?? 0) - Number(b.id ?? 0))
+}
+
+function mergeSkills(baseSkills: ReferenceSkill[], externalSkills: ReferenceSkill[]): ReferenceSkill[] {
+  const merged = [...baseSkills]
+  const indexById = new Map<number, number>()
+
+  for (let i = 0; i < merged.length; i++) {
+    if (merged[i].id != null) {
+      indexById.set(Number(merged[i].id), i)
+    }
+  }
+
+  for (const skill of externalSkills) {
+    if (skill.id == null) continue
+    const id = Number(skill.id)
+    const index = indexById.get(id)
+    if (index == null) {
+      indexById.set(id, merged.length)
+      merged.push(skill)
+    } else {
+      merged[index] = skill
     }
   }
 
@@ -95,9 +151,31 @@ async function loadExternalStats(): Promise<void> {
 }
 
 function loadReferenceData(): void {
-  if (externalStatsLoadStarted) return
-  externalStatsLoadStarted = true
+  if (externalReferenceLoadStarted) return
+  externalReferenceLoadStarted = true
   void loadExternalStats()
+  void loadExternalSkills()
+}
+
+async function loadExternalSkills(): Promise<void> {
+  try {
+    const content = await readExternalSkillsJson()
+    if (!content) return
+
+    const parsed = JSON.parse(content)
+    if (!Array.isArray(parsed)) {
+      throw new Error('skills.json root must be an array')
+    }
+
+    const externalSkills = parsed
+      .map(normalizeSkill)
+      .filter((skill): skill is ReferenceSkill => skill !== null)
+
+    skills.value = mergeSkills(skillsData as ReferenceSkill[], externalSkills)
+    await appendDebugLog(`[reference] loaded skills.json: ${externalSkills.length} valid skill entries`)
+  } catch (err) {
+    await appendDebugLog(`[reference] failed to load skills.json: ${err instanceof Error ? err.message : String(err)}`)
+  }
 }
 
 export function useReferenceData() {
@@ -129,6 +207,20 @@ export function useReferenceData() {
       .slice(0, limit)
   }
 
+  // Search skills by query
+  function searchSkills(query: string, limit: number = 20): ReferenceSkill[] {
+    if (!query || !skills.value.length) return skills.value.slice(0, limit)
+
+    const q = query.toLowerCase()
+    return skills.value
+      .filter(skill =>
+        skill.id?.toString().includes(q) ||
+        skill.name?.toLowerCase().includes(q) ||
+        skill.classCode?.toLowerCase().includes(q)
+      )
+      .slice(0, limit)
+  }
+
   // Get item by ID
   function getItemById(id: string | number | null | undefined): ReferenceItem | undefined {
     return items.value.find(item => item.id?.toString() === id?.toString())
@@ -139,16 +231,25 @@ export function useReferenceData() {
     return stats.value.find(stat => stat.id?.toString() === id?.toString())
   }
 
+  // Get skill by ID
+  function getSkillById(id: string | number | null | undefined): ReferenceSkill | undefined {
+    return skills.value.find(skill => skill.id?.toString() === id?.toString())
+  }
+
   return {
     items,
     itemsMap,
     stats,
+    skills,
+    skillsMap,
     loaded,
     loading,
     loadReferenceData,
     searchItems,
     searchStats,
+    searchSkills,
     getItemById,
-    getStatById
+    getStatById,
+    getSkillById
   }
 }

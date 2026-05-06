@@ -148,6 +148,9 @@ function generateItemColorsExport(cfg: Config): string {
       if (rune.mapText) values.push(`"${rune.mapText}"`)
       lines.push(`Rune Colors[${rune.range}]: ${values.join(', ')}`)
     }
+    for (const item of fileConfig.data.skillMissileDrawModes) {
+      lines.push(`Skill Missile DrawMode[${item.skillId}]: ${item.drawMode}`)
+    }
   }
   return lines.join('\r\n')
 }

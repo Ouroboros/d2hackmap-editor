@@ -29,6 +29,17 @@ export function useDisplayOrder() {
     return displayOrder.value === 'effective' ? [...items].reverse() : items
   }
 
+  function sortByFileOrder<T>(items: T[], fileOrderedItems: T[]): T[] {
+    const order = new Map<T, number>()
+    fileOrderedItems.forEach((item, index) => {
+      order.set(item, index)
+    })
+
+    return [...items].sort((a, b) =>
+      (order.get(a) ?? Number.MAX_SAFE_INTEGER) - (order.get(b) ?? Number.MAX_SAFE_INTEGER)
+    )
+  }
+
   function getRealDropTargetIndex(
     sourceDisplayIndex: number,
     targetDisplayIndex: number,
@@ -47,6 +58,7 @@ export function useDisplayOrder() {
     displayOrder,
     setDisplayOrder,
     applyDisplayOrder,
+    sortByFileOrder,
     getRealDropTargetIndex
   }
 }

@@ -43,6 +43,11 @@ export interface GoldColorItem extends BaseConfigItem {
   mapText: string
 }
 
+export interface SkillMissileDrawModeItem extends BaseConfigItem {
+  skillId: string
+  drawMode: string
+}
+
 export interface ImportItemItem extends BaseConfigItem {
   itemId: string
   quality: string
@@ -122,6 +127,7 @@ export interface ConfigData {
   itemColors: ItemColorItem[]
   runeColors: RuneColorItem[]
   goldColors: GoldColorItem[]
+  skillMissileDrawModes: SkillMissileDrawModeItem[]
   importItems: ImportItemItem[]
   transmute: TransmuteConfig
   includes: ExternItem[]
@@ -147,6 +153,7 @@ export function createEmptyConfigData(): ConfigData {
     itemColors: [],
     runeColors: [],
     goldColors: [],
+    skillMissileDrawModes: [],
     importItems: [],
     transmute: {
       statLimits: [],

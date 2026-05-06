@@ -34,7 +34,7 @@ const props = withDefaults(defineProps<Props>(), {
 const { t } = useI18n()
 const { config, exportSection, isReadOnly } = useConfig()
 const { debugMode } = useDebugMode()
-const { applyDisplayOrder, getRealDropTargetIndex } = useDisplayOrder()
+const { applyDisplayOrder, sortByFileOrder, getRealDropTargetIndex } = useDisplayOrder()
 const {
   markCommented,
   markRestored,
@@ -222,7 +222,10 @@ function hasKeyBindingExternItems() {
 
 function copyAllKeyBindingExtern() {
   if (!config.value || isReadOnly.value) return
-  const externItems = keyBindings.value.filter(item => isItemExtern(item))
+  const externItems = sortByFileOrder(
+    keyBindings.value.filter(item => isItemExtern(item)),
+    getAllTransmuteItems<KeyBindingItem>('keyBindings')
+  )
 
   let copied = 0
   for (const item of externItems) {

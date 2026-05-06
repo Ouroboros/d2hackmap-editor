@@ -199,6 +199,24 @@ export const ACTION_TYPES: ActionTypeOption[] = [
   { value: '7', labelKey: 'action.7' },
 ]
 
+// Skill Missile DrawMode option
+export interface SkillMissileDrawModeOption {
+  value: string
+  labelKey: string
+}
+
+// Skill Missile DrawMode[技能ID]: 0 ~ 7
+export const SKILL_MISSILE_DRAW_MODES: SkillMissileDrawModeOption[] = [
+  { value: '0', labelKey: 'skillMissile.drawMode.0' },
+  { value: '1', labelKey: 'skillMissile.drawMode.1' },
+  { value: '2', labelKey: 'skillMissile.drawMode.2' },
+  { value: '3', labelKey: 'skillMissile.drawMode.3' },
+  { value: '4', labelKey: 'skillMissile.drawMode.4' },
+  { value: '5', labelKey: 'skillMissile.drawMode.5' },
+  { value: '6', labelKey: 'skillMissile.drawMode.6' },
+  { value: '7', labelKey: 'skillMissile.drawMode.7' },
+]
+
 // Toggle definition type
 export interface ToggleDef {
   key: string

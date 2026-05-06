@@ -15,7 +15,7 @@ const zhCN: Record<string, string> = {
 
   // Tabs
   'tab.toggles': '开关设置',
-  'tab.itemColors': '物品颜色',
+  'tab.itemColors': '单位颜色',
   'tab.importItems': '自动拾取',
   'tab.statLimitGroup': '属性限制',
   'tab.itemDescriptors': '物品描述',
@@ -29,6 +29,7 @@ const zhCN: Record<string, string> = {
   'subTab.items': '物品颜色',
   'subTab.runes': '符文颜色',
   'subTab.golds': '金币颜色',
+  'subTab.skillMissiles': '弹道颜色',
   'subTab.importItems': '拾取规则',
   'subTab.statLimits': '属性限制',
   'subTab.statLimitGroups': '限制组',
@@ -89,6 +90,9 @@ const zhCN: Record<string, string> = {
   'itemColors.runeEmpty': '没有符文颜色配置',
   'itemColors.goldEmpty': '没有金币颜色配置',
   'itemColors.goldRange': '金币范围',
+  'itemColors.skillId': '技能ID',
+  'itemColors.drawMode': '显示模式',
+  'itemColors.skillMissileEmpty': '没有技能弹道显示配置',
   'itemColors.filterTextColor': '按文字颜色筛选',
   'itemColors.filterMapColor': '按地图颜色筛选',
   'itemColors.dragHint': '拖动排序',
@@ -354,6 +358,30 @@ const zhCN: Record<string, string> = {
   'statPicker.cancel': '取消',
   'statPicker.confirm': '确定',
 
+  // Skill Picker
+  'skillPicker.title': '选择技能',
+  'skillPicker.placeholder': '技能ID',
+  'skillPicker.clear': '清空',
+  'skillPicker.inputHint': '输入技能ID或从列表选择',
+  'skillPicker.inputPlaceholder': '输入技能ID，如: 802',
+  'skillPicker.searchPlaceholder': '搜索技能ID、名称或职业代码...',
+  'skillPicker.noMatch': '没有找到匹配的技能',
+  'skillPicker.noData': '技能数据未加载',
+  'skillPicker.selected': '已选',
+  'skillPicker.notSelected': '未选择',
+  'skillPicker.cancel': '取消',
+  'skillPicker.confirm': '确定',
+
+  // Skill Missile DrawMode
+  'skillMissile.drawMode.0': 'Trans25 - 25% 不透明度',
+  'skillMissile.drawMode.1': 'Trans50 - 50% 不透明度',
+  'skillMissile.drawMode.2': 'Trans75 - 75% 不透明度',
+  'skillMissile.drawMode.3': 'Modulate',
+  'skillMissile.drawMode.4': 'Burn',
+  'skillMissile.drawMode.5': 'Normal',
+  'skillMissile.drawMode.6': 'Transhighlight',
+  'skillMissile.drawMode.7': 'Highlight',
+
   // Common actions
   'action.restore': '恢复',
   'action.comment': '注释',
@@ -426,6 +454,7 @@ const zhCN: Record<string, string> = {
   'gen.itemColors': '物品颜色',
   'gen.runeColors': '符文颜色',
   'gen.goldColors': '金币颜色',
+  'gen.skillMissileDrawModes': '弹道颜色',
   'gen.importItems': '自动拾取',
   'gen.statLimits': '属性限制',
   'gen.itemDescriptors': '物品描述符',

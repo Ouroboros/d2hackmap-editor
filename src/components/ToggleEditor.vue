@@ -40,7 +40,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { config, exportSection, isReadOnly } = useConfig()
 const { debugMode } = useDebugMode()
-const { applyDisplayOrder, getRealDropTargetIndex } = useDisplayOrder()
+const { applyDisplayOrder, sortByFileOrder, getRealDropTargetIndex } = useDisplayOrder()
 const { markDeleted, markCommented, markRestored, isItemDisabled, isItemExtern, getItemRowClasses } = useItemActions()
 
 // Sub-tabs configuration (single tab for alignment)
@@ -251,8 +251,11 @@ function hasExternItems(): boolean {
 function copyAllExtern(): void {
   if (!config.value || isReadOnly.value) return
 
-  // Collect extern items first (snapshot)
-  const externItems = toggles.value.filter(item => isItemExtern(item))
+  // Snapshot visible extern items, then copy in real CFG order regardless of current display order.
+  const externItems = sortByFileOrder(
+    toggles.value.filter(item => isItemExtern(item)),
+    togglesAll.value
+  )
 
   let copied = 0
   for (const item of externItems) {
