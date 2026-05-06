@@ -300,7 +300,6 @@ function formatToggle(item: ToggleItem): string {
         :is-disabled="isToggleRowDisabled"
         :drag-over-index="toggleDragOverIndex"
         :row-classes="getItemRowClasses"
-        :row-key="(toggle, index) => `${toggle.name}-${index}`"
         @dragstart="handleToggleDragStart"
         @dragover="handleToggleDragOver"
         @dragleave="handleToggleDragLeave"

@@ -59,6 +59,8 @@ const pointerDragActive = ref(false)
 let pointerDataTransfer: DataTransfer | null = null
 let lastDragOverLogIndex: number | null = null
 let lastDragOverLogAt = 0
+const stableItemKeys = new WeakMap<object, number>()
+let nextStableItemKey = 1
 
 const currentProfileName = computed(() =>
   config.value?.files.find(file => file.layer === 'profile')?.profileName || t('profile.unnamed')
@@ -72,7 +74,14 @@ function columnStyle(column: ConfigTableColumn): CSSProperties {
 }
 
 function itemKey(item: TItem, index: number): string | number {
-  return props.rowKey ? props.rowKey(item, index) : index
+  if (props.rowKey) return props.rowKey(item, index)
+
+  const existingKey = stableItemKeys.get(item)
+  if (existingKey !== undefined) return existingKey
+
+  const key = nextStableItemKey++
+  stableItemKeys.set(item, key)
+  return key
 }
 
 function itemSelected(item: TItem): boolean {

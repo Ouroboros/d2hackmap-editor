@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, type Component } from 'vue'
 import { useTheme } from './composables/useTheme'
 import { useDebugMode } from './composables/useDebugMode'
 import { useConfig } from './composables/useConfig'
@@ -134,6 +134,27 @@ const tabs = computed(() => [
   { id: 'validation', label: t('tab.validation') },
   { id: 'help', label: t('tab.help') },
 ])
+
+const editorComponents: Record<string, Component> = {
+  toggles: ToggleEditor,
+  itemColors: ItemColorEditor,
+  importItems: ImportItemEditor,
+  statLimitGroup: StatLimitEditor,
+  autoTransmute: TransmuteEditor,
+  keyBindings: KeyBindingEditor,
+  validation: ValidationEditor,
+  help: HelpGuide
+}
+
+const activeEditorComponent = computed<Component | null>(() => {
+  if (!config.value) return null
+  return editorComponents[activeTab.value] ?? ToggleEditor
+})
+
+const activeEditorProps = computed(() => {
+  if (activeTab.value === 'validation' || activeTab.value === 'help') return {}
+  return { searchQuery: searchQuery.value }
+})
 
 function normalizeActiveTab(tab: string): string {
   return tab === 'itemDescriptors' ? 'autoTransmute' : tab
@@ -726,14 +747,14 @@ onUnmounted(() => {
     <!-- Content -->
     <main class="content">
       <template v-if="config">
-        <ToggleEditor v-show="activeTab === 'toggles'" :searchQuery="searchQuery" />
-        <ItemColorEditor v-show="activeTab === 'itemColors'" :searchQuery="searchQuery" />
-        <ImportItemEditor v-show="activeTab === 'importItems'" :searchQuery="searchQuery" />
-        <StatLimitEditor v-show="activeTab === 'statLimitGroup'" :searchQuery="searchQuery" />
-        <TransmuteEditor v-show="activeTab === 'autoTransmute'" :searchQuery="searchQuery" />
-        <KeyBindingEditor v-show="activeTab === 'keyBindings'" :searchQuery="searchQuery" />
-        <ValidationEditor v-show="activeTab === 'validation'" />
-        <HelpGuide v-show="activeTab === 'help'" />
+        <KeepAlive>
+          <component
+            :is="activeEditorComponent"
+            v-if="activeEditorComponent"
+            :key="activeTab"
+            v-bind="activeEditorProps"
+          />
+        </KeepAlive>
       </template>
       <HelpGuide v-if="!config && activeTab === 'help'" />
       <div v-else-if="!config" class="empty-state">

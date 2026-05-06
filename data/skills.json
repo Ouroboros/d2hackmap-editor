@@ -1,0 +1,1847 @@
+[
+  {
+    "id": 0,
+    "classCode": "none",
+    "name": "攻击"
+  },
+  {
+    "id": 1,
+    "classCode": "none",
+    "name": "脚踢"
+  },
+  {
+    "id": 2,
+    "classCode": "none",
+    "name": "投掷"
+  },
+  {
+    "id": 3,
+    "classCode": "none",
+    "name": "取消召唤"
+  },
+  {
+    "id": 4,
+    "classCode": "none",
+    "name": "左手投掷"
+  },
+  {
+    "id": 5,
+    "classCode": "none",
+    "name": "左手挥动"
+  },
+  {
+    "id": 6,
+    "classCode": "ama",
+    "name": "魔法箭 (Magic Arrow)"
+  },
+  {
+    "id": 7,
+    "classCode": "ama",
+    "name": "火焰箭 (Fire Arrow)"
+  },
+  {
+    "id": 8,
+    "classCode": "ama",
+    "name": "内视 (Inner Sight)"
+  },
+  {
+    "id": 9,
+    "classCode": "ama",
+    "name": "双倍打击 (Critical Strike)"
+  },
+  {
+    "id": 10,
+    "classCode": "ama",
+    "name": "戳刺 (Jab)"
+  },
+  {
+    "id": 11,
+    "classCode": "ama",
+    "name": "冰箭 (Cold Arrow)"
+  },
+  {
+    "id": 12,
+    "classCode": "ama",
+    "name": "多重箭 (Multiple Shot)"
+  },
+  {
+    "id": 13,
+    "classCode": "ama",
+    "name": "闪避 (Dodge)"
+  },
+  {
+    "id": 14,
+    "classCode": "ama",
+    "name": "威力一击 (Power Strike)"
+  },
+  {
+    "id": 15,
+    "classCode": "ama",
+    "name": "毒枪 (Poison Javelin)"
+  },
+  {
+    "id": 16,
+    "classCode": "ama",
+    "name": "爆裂箭 (Exploding Arrow)"
+  },
+  {
+    "id": 17,
+    "classCode": "ama",
+    "name": "慢速箭 (Slow Missiles)"
+  },
+  {
+    "id": 18,
+    "classCode": "ama",
+    "name": "躲避 (Avoid)"
+  },
+  {
+    "id": 19,
+    "classCode": "ama",
+    "name": "刺爆 (Impale)"
+  },
+  {
+    "id": 20,
+    "classCode": "ama",
+    "name": "闪电球 (Lightning Bolt)"
+  },
+  {
+    "id": 21,
+    "classCode": "ama",
+    "name": "急冻箭 (Ice Arrow)"
+  },
+  {
+    "id": 22,
+    "classCode": "ama",
+    "name": "导引箭 (Guided Arrow)"
+  },
+  {
+    "id": 23,
+    "classCode": "ama",
+    "name": "刺入 (Penetrate)"
+  },
+  {
+    "id": 24,
+    "classCode": "ama",
+    "name": "充能一击 (Charged Strike)"
+  },
+  {
+    "id": 25,
+    "classCode": "ama",
+    "name": "瘟疫标枪 (Plague Javelin)"
+  },
+  {
+    "id": 26,
+    "classCode": "ama",
+    "name": "炮轰 (Strafe)"
+  },
+  {
+    "id": 27,
+    "classCode": "ama",
+    "name": "牺牲之箭 (Immolation Arrow)"
+  },
+  {
+    "id": 28,
+    "classCode": "ama",
+    "name": "诱饵 (Decoy)"
+  },
+  {
+    "id": 29,
+    "classCode": "ama",
+    "name": "回避 (Evade)"
+  },
+  {
+    "id": 30,
+    "classCode": "ama",
+    "name": "击退 (Fend)"
+  },
+  {
+    "id": 31,
+    "classCode": "ama",
+    "name": "冻结之箭 (Freezing Arrow)"
+  },
+  {
+    "id": 32,
+    "classCode": "ama",
+    "name": "女武神 (Valkyrie)"
+  },
+  {
+    "id": 33,
+    "classCode": "ama",
+    "name": "穿透 (Pierce)"
+  },
+  {
+    "id": 34,
+    "classCode": "ama",
+    "name": "闪电攻击 (Lightning Strike)"
+  },
+  {
+    "id": 35,
+    "classCode": "ama",
+    "name": "闪电之怒 (Lightning Fury)"
+  },
+  {
+    "id": 36,
+    "classCode": "sor",
+    "name": "火弹 (Fire Bolt)"
+  },
+  {
+    "id": 37,
+    "classCode": "sor",
+    "name": "热情 (Warmth)"
+  },
+  {
+    "id": 38,
+    "classCode": "sor",
+    "name": "充能弹 (Charged Bolt)"
+  },
+  {
+    "id": 39,
+    "classCode": "sor",
+    "name": "冰弹 (Ice Bolt)"
+  },
+  {
+    "id": 40,
+    "classCode": "sor",
+    "name": "冰封装甲 (Frozen Armor)"
+  },
+  {
+    "id": 41,
+    "classCode": "sor",
+    "name": "地狱之火 (Inferno)"
+  },
+  {
+    "id": 42,
+    "classCode": "sor",
+    "name": "静态力场 (Static Field)"
+  },
+  {
+    "id": 43,
+    "classCode": "sor",
+    "name": "心灵传动 (Telekinesis)"
+  },
+  {
+    "id": 44,
+    "classCode": "sor",
+    "name": "霜之新星 (Frost Nova)"
+  },
+  {
+    "id": 45,
+    "classCode": "sor",
+    "name": "冰风暴 (Ice Blast)"
+  },
+  {
+    "id": 46,
+    "classCode": "sor",
+    "name": "炽烈之径 (Blaze)"
+  },
+  {
+    "id": 47,
+    "classCode": "sor",
+    "name": "火球 (Fire Ball)"
+  },
+  {
+    "id": 48,
+    "classCode": "sor",
+    "name": "新星 (Nova)"
+  },
+  {
+    "id": 49,
+    "classCode": "sor",
+    "name": "闪电 (Lightning)"
+  },
+  {
+    "id": 50,
+    "classCode": "sor",
+    "name": "碎冰甲 (Shiver Armor)"
+  },
+  {
+    "id": 51,
+    "classCode": "sor",
+    "name": "火墙 (Fire Wall)"
+  },
+  {
+    "id": 52,
+    "classCode": "sor",
+    "name": "火焰强化 (Enchant)"
+  },
+  {
+    "id": 53,
+    "classCode": "sor",
+    "name": "连锁闪电 (Chain Lightning)"
+  },
+  {
+    "id": 54,
+    "classCode": "sor",
+    "name": "闪现 (Blink)"
+  },
+  {
+    "id": 55,
+    "classCode": "sor",
+    "name": "冰尖柱 (Glacial Spike)"
+  },
+  {
+    "id": 56,
+    "classCode": "sor",
+    "name": "陨石 (Meteor)"
+  },
+  {
+    "id": 57,
+    "classCode": "sor",
+    "name": "雷云风暴 (Thunder Storm)"
+  },
+  {
+    "id": 58,
+    "classCode": "sor",
+    "name": "能量护盾 (Energy Shield)"
+  },
+  {
+    "id": 59,
+    "classCode": "sor",
+    "name": "暴风雪 (Blizzard)"
+  },
+  {
+    "id": 60,
+    "classCode": "sor",
+    "name": "寒冰装甲 (Chilling Armor)"
+  },
+  {
+    "id": 61,
+    "classCode": "sor",
+    "name": "支配之焰 (Fire Mastery)"
+  },
+  {
+    "id": 62,
+    "classCode": "sor",
+    "name": "九头海蛇 (Hydra)"
+  },
+  {
+    "id": 63,
+    "classCode": "sor",
+    "name": "支配闪电 (Lightning Mastery)"
+  },
+  {
+    "id": 64,
+    "classCode": "sor",
+    "name": "冰封球 (Frozen Orb)"
+  },
+  {
+    "id": 65,
+    "classCode": "sor",
+    "name": "支配冰冷 (Cold Mastery)"
+  },
+  {
+    "id": 66,
+    "classCode": "nec",
+    "name": "伤害加深 (Amplify Damage)"
+  },
+  {
+    "id": 67,
+    "classCode": "nec",
+    "name": "牙 (Teeth)"
+  },
+  {
+    "id": 68,
+    "classCode": "nec",
+    "name": "白骨装甲 (Bone Armor)"
+  },
+  {
+    "id": 69,
+    "classCode": "nec",
+    "name": "支配骷髅 (Skeleton Mastery)"
+  },
+  {
+    "id": 70,
+    "classCode": "nec",
+    "name": "骷髅复苏 (Raise Skeleton)"
+  },
+  {
+    "id": 71,
+    "classCode": "nec",
+    "name": "微暗灵视 (Dim Vision)"
+  },
+  {
+    "id": 72,
+    "classCode": "nec",
+    "name": "削弱 (Weaken)"
+  },
+  {
+    "id": 73,
+    "classCode": "nec",
+    "name": "淬毒匕首 (Poison Dagger)"
+  },
+  {
+    "id": 74,
+    "classCode": "nec",
+    "name": "尸体爆炸 (Corpse Explosion)"
+  },
+  {
+    "id": 75,
+    "classCode": "nec",
+    "name": "黏土石魔 (Clay Golem)"
+  },
+  {
+    "id": 76,
+    "classCode": "nec",
+    "name": "攻击反噬 (Iron Maiden)"
+  },
+  {
+    "id": 77,
+    "classCode": "nec",
+    "name": "恐惧 (Terror)"
+  },
+  {
+    "id": 78,
+    "classCode": "nec",
+    "name": "骨墙 (Bone Wall)"
+  },
+  {
+    "id": 79,
+    "classCode": "nec",
+    "name": "支配石魔 (Golem Mastery)"
+  },
+  {
+    "id": 80,
+    "classCode": "nec",
+    "name": "复苏骷髅法师 (Raise Skeletal Mage)"
+  },
+  {
+    "id": 81,
+    "classCode": "nec",
+    "name": "迷乱 (Confuse)"
+  },
+  {
+    "id": 82,
+    "classCode": "nec",
+    "name": "偷取生命 (Life Tap)"
+  },
+  {
+    "id": 83,
+    "classCode": "nec",
+    "name": "毒爆 (Poison Explosion)"
+  },
+  {
+    "id": 84,
+    "classCode": "nec",
+    "name": "骨矛 (Bone Spear)"
+  },
+  {
+    "id": 85,
+    "classCode": "nec",
+    "name": "鲜血石魔 (Blood Golem)"
+  },
+  {
+    "id": 86,
+    "classCode": "nec",
+    "name": "吸引 (Attract)"
+  },
+  {
+    "id": 87,
+    "classCode": "nec",
+    "name": "衰老 (Decrepify)"
+  },
+  {
+    "id": 88,
+    "classCode": "nec",
+    "name": "骨牢 (Bone Prison)"
+  },
+  {
+    "id": 89,
+    "classCode": "nec",
+    "name": "召唤抵抗 (Summon Resist)"
+  },
+  {
+    "id": 90,
+    "classCode": "nec",
+    "name": "钢铁石魔 (Iron Golem)"
+  },
+  {
+    "id": 91,
+    "classCode": "nec",
+    "name": "降低抵抗 (Lower Resist)"
+  },
+  {
+    "id": 92,
+    "classCode": "nec",
+    "name": "剧毒新星 (Poison Nova)"
+  },
+  {
+    "id": 93,
+    "classCode": "nec",
+    "name": "白骨之魂 (Bone Spirit)"
+  },
+  {
+    "id": 94,
+    "classCode": "nec",
+    "name": "火焰石魔 (Fire Golem)"
+  },
+  {
+    "id": 95,
+    "classCode": "nec",
+    "name": "重生 (Revive)"
+  },
+  {
+    "id": 96,
+    "classCode": "pal",
+    "name": "牺牲 (Sacrifice)"
+  },
+  {
+    "id": 97,
+    "classCode": "pal",
+    "name": "重击 (Smite)"
+  },
+  {
+    "id": 98,
+    "classCode": "pal",
+    "name": "力量 (Might)"
+  },
+  {
+    "id": 99,
+    "classCode": "pal",
+    "name": "祈祷 (Prayer)"
+  },
+  {
+    "id": 100,
+    "classCode": "pal",
+    "name": "抵抗火焰 (Resist Fire)"
+  },
+  {
+    "id": 101,
+    "classCode": "pal",
+    "name": "圣光弹  (Holy Bolt)"
+  },
+  {
+    "id": 102,
+    "classCode": "pal",
+    "name": "圣火 (Holy Fire)"
+  },
+  {
+    "id": 103,
+    "classCode": "pal",
+    "name": "荆棘 (Thorns)"
+  },
+  {
+    "id": 104,
+    "classCode": "pal",
+    "name": "反抗 (Defiance)"
+  },
+  {
+    "id": 105,
+    "classCode": "pal",
+    "name": "抵抗冰冷 (Resist Cold)"
+  },
+  {
+    "id": 106,
+    "classCode": "pal",
+    "name": "热诚 (Zeal)"
+  },
+  {
+    "id": 107,
+    "classCode": "pal",
+    "name": "冲锋 (Charge)"
+  },
+  {
+    "id": 108,
+    "classCode": "pal",
+    "name": "祝福瞄准 (Blessed Aim)"
+  },
+  {
+    "id": 109,
+    "classCode": "pal",
+    "name": "净化 (Cleansing)"
+  },
+  {
+    "id": 110,
+    "classCode": "pal",
+    "name": "抵抗闪电 (Resist Lightning)"
+  },
+  {
+    "id": 111,
+    "classCode": "pal",
+    "name": "复仇 (Vengeance)"
+  },
+  {
+    "id": 112,
+    "classCode": "pal",
+    "name": "祝福之鎚 (Blessed Hammer)"
+  },
+  {
+    "id": 113,
+    "classCode": "pal",
+    "name": "专注 (Concentration)"
+  },
+  {
+    "id": 114,
+    "classCode": "pal",
+    "name": "神圣冰冻 (Holy Freeze)"
+  },
+  {
+    "id": 115,
+    "classCode": "pal",
+    "name": "活力 (Vigor)"
+  },
+  {
+    "id": 116,
+    "classCode": "pal",
+    "name": "转换 (Conversion)"
+  },
+  {
+    "id": 117,
+    "classCode": "pal",
+    "name": "神圣之盾 (Holy Shield)"
+  },
+  {
+    "id": 118,
+    "classCode": "pal",
+    "name": "神圣冲击 (Holy Shock)"
+  },
+  {
+    "id": 119,
+    "classCode": "pal",
+    "name": "庇护所 (Sanctuary)"
+  },
+  {
+    "id": 120,
+    "classCode": "pal",
+    "name": "冥思 (Meditation)"
+  },
+  {
+    "id": 121,
+    "classCode": "pal",
+    "name": "天堂之拳 (Fist of the Heavens)"
+  },
+  {
+    "id": 122,
+    "classCode": "pal",
+    "name": "狂热 (Fanaticism)"
+  },
+  {
+    "id": 123,
+    "classCode": "pal",
+    "name": "信念 (Conviction)"
+  },
+  {
+    "id": 124,
+    "classCode": "pal",
+    "name": "救赎 (Redemption)"
+  },
+  {
+    "id": 125,
+    "classCode": "pal",
+    "name": "救助 (Salvation)"
+  },
+  {
+    "id": 126,
+    "classCode": "bar",
+    "name": "重击 (Bash)"
+  },
+  {
+    "id": 127,
+    "classCode": "bar",
+    "name": "支配长剑 (Sword Mastery)"
+  },
+  {
+    "id": 128,
+    "classCode": "bar",
+    "name": "支配斧头 (Axe Mastery)"
+  },
+  {
+    "id": 129,
+    "classCode": "bar",
+    "name": "支配钉头鎚 (Mace Mastery)"
+  },
+  {
+    "id": 130,
+    "classCode": "bar",
+    "name": "狂嗥 (Howl)"
+  },
+  {
+    "id": 131,
+    "classCode": "bar",
+    "name": "找寻药剂 (Find Potion)"
+  },
+  {
+    "id": 132,
+    "classCode": "bar",
+    "name": "跳跃 (Leap)"
+  },
+  {
+    "id": 133,
+    "classCode": "bar",
+    "name": "双手挥击 (Double Swing)"
+  },
+  {
+    "id": 134,
+    "classCode": "bar",
+    "name": "支配长柄武器 (Pole Arm Mastery)"
+  },
+  {
+    "id": 135,
+    "classCode": "bar",
+    "name": "支配飞掷 (Throwing Mastery)"
+  },
+  {
+    "id": 136,
+    "classCode": "bar",
+    "name": "支配长矛 (Spear Mastery)"
+  },
+  {
+    "id": 137,
+    "classCode": "bar",
+    "name": "嘲弄 (Taunt)"
+  },
+  {
+    "id": 138,
+    "classCode": "bar",
+    "name": "大叫 (Shout)"
+  },
+  {
+    "id": 139,
+    "classCode": "bar",
+    "name": "击昏 (Stun)"
+  },
+  {
+    "id": 140,
+    "classCode": "bar",
+    "name": "双手投掷 (Double Throw)"
+  },
+  {
+    "id": 141,
+    "classCode": "bar",
+    "name": "增加耐力 (Increased Stamina)"
+  },
+  {
+    "id": 142,
+    "classCode": "bar",
+    "name": "找寻物品 (Find Item)"
+  },
+  {
+    "id": 143,
+    "classCode": "bar",
+    "name": "跳跃攻击 (Leap Attack)"
+  },
+  {
+    "id": 144,
+    "classCode": "bar",
+    "name": "专心 (Concentrate)"
+  },
+  {
+    "id": 145,
+    "classCode": "bar",
+    "name": "铁布杉 (Iron Skin)"
+  },
+  {
+    "id": 146,
+    "classCode": "bar",
+    "name": "战嗥 (Battle Cry)"
+  },
+  {
+    "id": 147,
+    "classCode": "bar",
+    "name": "狂乱 (Frenzy)"
+  },
+  {
+    "id": 148,
+    "classCode": "bar",
+    "name": "加速 (Increased Speed)"
+  },
+  {
+    "id": 149,
+    "classCode": "bar",
+    "name": "战斗体制 (Battle Orders)"
+  },
+  {
+    "id": 150,
+    "classCode": "bar",
+    "name": "残酷吓阻 (Grim Ward)"
+  },
+  {
+    "id": 151,
+    "classCode": "bar",
+    "name": "旋风 (Whirlwind)"
+  },
+  {
+    "id": 152,
+    "classCode": "bar",
+    "name": "狂战士 (Berserk)"
+  },
+  {
+    "id": 153,
+    "classCode": "bar",
+    "name": "自然抵抗 (Natural Resistance)"
+  },
+  {
+    "id": 154,
+    "classCode": "bar",
+    "name": "战斗狂嗥 (War Cry)"
+  },
+  {
+    "id": 155,
+    "classCode": "bar",
+    "name": "战斗指挥 (Battle Command)"
+  },
+  {
+    "id": 217,
+    "classCode": "none",
+    "name": "辨视卷轴"
+  },
+  {
+    "id": 218,
+    "classCode": "none",
+    "name": "辨视之书"
+  },
+  {
+    "id": 219,
+    "classCode": "none",
+    "name": "城镇传送卷轴"
+  },
+  {
+    "id": 220,
+    "classCode": "none",
+    "name": "城镇传送之书"
+  },
+  {
+    "id": 221,
+    "classCode": "dru",
+    "name": "乌鸦 (Raven)"
+  },
+  {
+    "id": 222,
+    "classCode": "dru",
+    "name": "猛毒花藤 (Poison Creeper)"
+  },
+  {
+    "id": 223,
+    "classCode": "dru",
+    "name": "狼人变化 (Werewolf)"
+  },
+  {
+    "id": 224,
+    "classCode": "dru",
+    "name": "变形术 (Lycanthropy)"
+  },
+  {
+    "id": 225,
+    "classCode": "dru",
+    "name": "火风暴 (Firestorm)"
+  },
+  {
+    "id": 226,
+    "classCode": "dru",
+    "name": "橡木智者 (Oak Sage)"
+  },
+  {
+    "id": 227,
+    "classCode": "dru",
+    "name": "召唤狼灵 (Summon Spirit Wolf)"
+  },
+  {
+    "id": 228,
+    "classCode": "dru",
+    "name": "熊人变化 (Werebear)"
+  },
+  {
+    "id": 229,
+    "classCode": "dru",
+    "name": "熔浆巨岩 (Molten Boulder)"
+  },
+  {
+    "id": 230,
+    "classCode": "dru",
+    "name": "极地风暴 (Arctic Blast)"
+  },
+  {
+    "id": 231,
+    "classCode": "dru",
+    "name": "食屍藤 (Carrion Vine)"
+  },
+  {
+    "id": 232,
+    "classCode": "dru",
+    "name": "野性狂暴 (Feral Rage)"
+  },
+  {
+    "id": 233,
+    "classCode": "dru",
+    "name": "撞鎚 (Maul)"
+  },
+  {
+    "id": 234,
+    "classCode": "dru",
+    "name": "火山爆 (Fissure)"
+  },
+  {
+    "id": 235,
+    "classCode": "dru",
+    "name": "飓风装甲 (Cyclone Armor)"
+  },
+  {
+    "id": 236,
+    "classCode": "dru",
+    "name": "狼獾之心 (Heart of Wolverine)"
+  },
+  {
+    "id": 237,
+    "classCode": "dru",
+    "name": "召唤狂狼 (Summon Dire Wolf)"
+  },
+  {
+    "id": 238,
+    "classCode": "dru",
+    "name": "狂犬病 (Rabies)"
+  },
+  {
+    "id": 239,
+    "classCode": "dru",
+    "name": "焰爪 (Fire Claws)"
+  },
+  {
+    "id": 240,
+    "classCode": "dru",
+    "name": "小旋风 (Twister)"
+  },
+  {
+    "id": 241,
+    "classCode": "dru",
+    "name": "太阳藤 (Solar Creeper)"
+  },
+  {
+    "id": 242,
+    "classCode": "dru",
+    "name": "饥饿 (Hunger)"
+  },
+  {
+    "id": 243,
+    "classCode": "dru",
+    "name": "震波 (Shock Wave)"
+  },
+  {
+    "id": 244,
+    "classCode": "dru",
+    "name": "火山 (Volcano)"
+  },
+  {
+    "id": 245,
+    "classCode": "dru",
+    "name": "龙卷风 (Tornado)"
+  },
+  {
+    "id": 246,
+    "classCode": "dru",
+    "name": "棘灵 (Spirit of Barbs)"
+  },
+  {
+    "id": 247,
+    "classCode": "dru",
+    "name": "召唤灰熊 (Summon Grizzly)"
+  },
+  {
+    "id": 248,
+    "classCode": "dru",
+    "name": "狂怒 (Fury)"
+  },
+  {
+    "id": 249,
+    "classCode": "dru",
+    "name": "毁天灭地 (Armageddon)"
+  },
+  {
+    "id": 250,
+    "classCode": "dru",
+    "name": "暴风 (Hurricane)"
+  },
+  {
+    "id": 251,
+    "classCode": "ass",
+    "name": "火焰爆震 (Fire Blast)"
+  },
+  {
+    "id": 252,
+    "classCode": "ass",
+    "name": "支配利爪 (Claw Mastery)"
+  },
+  {
+    "id": 253,
+    "classCode": "ass",
+    "name": "心灵战鎚 (Psychic Hammer)"
+  },
+  {
+    "id": 254,
+    "classCode": "ass",
+    "name": "虎击 (Tiger Strike)"
+  },
+  {
+    "id": 255,
+    "classCode": "ass",
+    "name": "龙爪 (Dragon Talon)"
+  },
+  {
+    "id": 256,
+    "classCode": "ass",
+    "name": "雷电网 (Shock Web)"
+  },
+  {
+    "id": 257,
+    "classCode": "ass",
+    "name": "刃之守卫 (Blade Sentinel)"
+  },
+  {
+    "id": 258,
+    "classCode": "ass",
+    "name": "速度爆发 (Burst of Speed)"
+  },
+  {
+    "id": 259,
+    "classCode": "ass",
+    "name": "焰拳 (Fists of Fire)"
+  },
+  {
+    "id": 260,
+    "classCode": "ass",
+    "name": "双龙爪 (Dragon Claw)"
+  },
+  {
+    "id": 261,
+    "classCode": "ass",
+    "name": "电能守卫 (Charged Bolt Sentry)"
+  },
+  {
+    "id": 262,
+    "classCode": "ass",
+    "name": "火焰复苏 (Wake of Fire)"
+  },
+  {
+    "id": 263,
+    "classCode": "ass",
+    "name": "武器格挡 (Weapon Block)"
+  },
+  {
+    "id": 264,
+    "classCode": "ass",
+    "name": "魔影斗蓬 (Cloak of Shadows)"
+  },
+  {
+    "id": 265,
+    "classCode": "ass",
+    "name": "眼镜蛇攻击 (Cobra Strike)"
+  },
+  {
+    "id": 266,
+    "classCode": "ass",
+    "name": "刃之怒 (Blade Fury)"
+  },
+  {
+    "id": 267,
+    "classCode": "ass",
+    "name": "能量消解 (Fade)"
+  },
+  {
+    "id": 268,
+    "classCode": "ass",
+    "name": "影子战士 (Shadow Warrior)"
+  },
+  {
+    "id": 269,
+    "classCode": "ass",
+    "name": "雷电爪 (Claws of Thunder)"
+  },
+  {
+    "id": 270,
+    "classCode": "ass",
+    "name": "神龙摆尾 (Dragon Tail)"
+  },
+  {
+    "id": 271,
+    "classCode": "ass",
+    "name": "雷光守卫 (Lightning Sentry)"
+  },
+  {
+    "id": 272,
+    "classCode": "ass",
+    "name": "复苏狱火 (Wake of Inferno)"
+  },
+  {
+    "id": 273,
+    "classCode": "ass",
+    "name": "心灵爆震 (Mind Blast)"
+  },
+  {
+    "id": 274,
+    "classCode": "ass",
+    "name": "寒冰刃 (Blades of Ice)"
+  },
+  {
+    "id": 275,
+    "classCode": "ass",
+    "name": "飞龙在天 (Dragon Flight)"
+  },
+  {
+    "id": 276,
+    "classCode": "ass",
+    "name": "亡者守卫 (Death Sentry)"
+  },
+  {
+    "id": 277,
+    "classCode": "ass",
+    "name": "刀刃之盾 (Blade Shield)"
+  },
+  {
+    "id": 278,
+    "classCode": "ass",
+    "name": "毒牙 (Venom)"
+  },
+  {
+    "id": 279,
+    "classCode": "ass",
+    "name": "影子大师 (Shadow Master)"
+  },
+  {
+    "id": 280,
+    "classCode": "ass",
+    "name": "凤凰攻击 (Phoenix Strike)"
+  },
+  {
+    "id": 350,
+    "classCode": "none",
+    "name": "迪勒瑞姆 Delirium"
+  },
+  {
+    "id": 357,
+    "classCode": "none",
+    "name": "毁灭之珠"
+  },
+  {
+    "id": 359,
+    "classCode": "ama",
+    "name": "技能专修"
+  },
+  {
+    "id": 360,
+    "classCode": "ama",
+    "name": "技能专修"
+  },
+  {
+    "id": 361,
+    "classCode": "ama",
+    "name": "技能专修"
+  },
+  {
+    "id": 362,
+    "classCode": "sor",
+    "name": "技能专修"
+  },
+  {
+    "id": 363,
+    "classCode": "sor",
+    "name": "技能专修"
+  },
+  {
+    "id": 364,
+    "classCode": "sor",
+    "name": "技能专修"
+  },
+  {
+    "id": 365,
+    "classCode": "nec",
+    "name": "技能专修"
+  },
+  {
+    "id": 366,
+    "classCode": "nec",
+    "name": "技能专修"
+  },
+  {
+    "id": 367,
+    "classCode": "nec",
+    "name": "技能专修"
+  },
+  {
+    "id": 368,
+    "classCode": "pal",
+    "name": "技能专修"
+  },
+  {
+    "id": 369,
+    "classCode": "pal",
+    "name": "技能专修"
+  },
+  {
+    "id": 370,
+    "classCode": "pal",
+    "name": "技能专修"
+  },
+  {
+    "id": 371,
+    "classCode": "bar",
+    "name": "技能专修"
+  },
+  {
+    "id": 372,
+    "classCode": "bar",
+    "name": "技能专修"
+  },
+  {
+    "id": 373,
+    "classCode": "bar",
+    "name": "技能专修"
+  },
+  {
+    "id": 374,
+    "classCode": "dru",
+    "name": "技能专修"
+  },
+  {
+    "id": 375,
+    "classCode": "dru",
+    "name": "技能专修"
+  },
+  {
+    "id": 376,
+    "classCode": "dru",
+    "name": "技能专修"
+  },
+  {
+    "id": 377,
+    "classCode": "ass",
+    "name": "技能专修"
+  },
+  {
+    "id": 378,
+    "classCode": "ass",
+    "name": "技能专修"
+  },
+  {
+    "id": 379,
+    "classCode": "ass",
+    "name": "技能专修"
+  },
+  {
+    "id": 380,
+    "classCode": "ama",
+    "name": "聚魂之源"
+  },
+  {
+    "id": 381,
+    "classCode": "sor",
+    "name": "聚魂之源"
+  },
+  {
+    "id": 382,
+    "classCode": "nec",
+    "name": "聚魂之源"
+  },
+  {
+    "id": 383,
+    "classCode": "pal",
+    "name": "聚魂之源"
+  },
+  {
+    "id": 384,
+    "classCode": "bar",
+    "name": "聚魂之源"
+  },
+  {
+    "id": 385,
+    "classCode": "dru",
+    "name": "聚魂之源"
+  },
+  {
+    "id": 386,
+    "classCode": "ass",
+    "name": "聚魂之源"
+  },
+  {
+    "id": 387,
+    "classCode": "none",
+    "name": "额外支配召唤生物"
+  },
+  {
+    "id": 388,
+    "classCode": "none",
+    "name": "飞空弯刀"
+  },
+  {
+    "id": 389,
+    "classCode": "none",
+    "name": "守护"
+  },
+  {
+    "id": 390,
+    "classCode": "none",
+    "name": "攻击者"
+  },
+  {
+    "id": 391,
+    "classCode": "none",
+    "name": "乌鸦"
+  },
+  {
+    "id": 392,
+    "classCode": "none",
+    "name": "铁狼"
+  },
+  {
+    "id": 393,
+    "classCode": "none",
+    "name": "水元素"
+  },
+  {
+    "id": 394,
+    "classCode": "none",
+    "name": "铁石魔"
+  },
+  {
+    "id": 395,
+    "classCode": "none",
+    "name": "鲜血蛆虫"
+  },
+  {
+    "id": 396,
+    "classCode": "none",
+    "name": "野蛮人"
+  },
+  {
+    "id": 397,
+    "classCode": "none",
+    "name": "熊"
+  },
+  {
+    "id": 398,
+    "classCode": "none",
+    "name": "地狱骑士"
+  },
+  {
+    "id": 399,
+    "classCode": "none",
+    "name": "黑色灵魂"
+  },
+  {
+    "id": 400,
+    "classCode": "none",
+    "name": "墨菲斯托"
+  },
+  {
+    "id": 401,
+    "classCode": "none",
+    "name": "地狱骑士魔法光弹"
+  },
+  {
+    "id": 402,
+    "classCode": "none",
+    "name": "安达利尔"
+  },
+  {
+    "id": 403,
+    "classCode": "none",
+    "name": "倒刺"
+  },
+  {
+    "id": 404,
+    "classCode": "none",
+    "name": "火焰新星（限巴尔形态）"
+  },
+  {
+    "id": 405,
+    "classCode": "none",
+    "name": "寒冰震波（限巴尔形态）"
+  },
+  {
+    "id": 410,
+    "classCode": "none",
+    "name": "火焰护盾"
+  },
+  {
+    "id": 411,
+    "classCode": "none",
+    "name": "寒冰护盾"
+  },
+  {
+    "id": 412,
+    "classCode": "none",
+    "name": "闪电护盾"
+  },
+  {
+    "id": 413,
+    "classCode": "none",
+    "name": "魔法护盾"
+  },
+  {
+    "id": 415,
+    "classCode": "none",
+    "name": "关羽（娱乐技能，无伤害）"
+  },
+  {
+    "id": 416,
+    "classCode": "none",
+    "name": "衣卒尔"
+  },
+  {
+    "id": 418,
+    "classCode": "none",
+    "name": "ÿc8限制跟随ÿc3"
+  },
+  {
+    "id": 419,
+    "classCode": "none",
+    "name": "战斗指挥 (Battle Command)"
+  },
+  {
+    "id": 420,
+    "classCode": "none",
+    "name": "战斗体制 (Battle Orders)"
+  },
+  {
+    "id": 421,
+    "classCode": "none",
+    "name": "战嗥 (Battle Cry)"
+  },
+  {
+    "id": 422,
+    "classCode": "none",
+    "name": "熊人变化 (Werebear)"
+  },
+  {
+    "id": 424,
+    "classCode": "none",
+    "name": "传送 (Teleport)"
+  },
+  {
+    "id": 425,
+    "classCode": "none",
+    "name": "生疏的闪现 (Clumsy Blink)"
+  },
+  {
+    "id": 500,
+    "classCode": "none",
+    "name": "尚未精通的闪现"
+  },
+  {
+    "id": 502,
+    "classCode": "none",
+    "name": "物理尸体爆炸 (Corpse Explosion Physical)"
+  },
+  {
+    "id": 503,
+    "classCode": "none",
+    "name": "魔法尸体爆炸 (Corpse Explosion Magic)"
+  },
+  {
+    "id": 504,
+    "classCode": "none",
+    "name": "火焰尸体爆炸 (Corpse Explosion Fire)"
+  },
+  {
+    "id": 505,
+    "classCode": "none",
+    "name": "冰冻尸体爆炸 (Corpse Explosion Cold)"
+  },
+  {
+    "id": 506,
+    "classCode": "none",
+    "name": "闪电尸体爆炸 (Corpse Explosion Lightning)"
+  },
+  {
+    "id": 507,
+    "classCode": "none",
+    "name": "毒素尸体爆炸 (Corpse Explosion Poison)"
+  },
+  {
+    "id": 508,
+    "classCode": "none",
+    "name": "暴风之龙"
+  },
+  {
+    "id": 509,
+    "classCode": "none",
+    "name": "命运编织者 (Fate Weaver)"
+  },
+  {
+    "id": 510,
+    "classCode": "none",
+    "name": "深渊九头蛇 (Abyssal Hydra)"
+  },
+  {
+    "id": 511,
+    "classCode": "none",
+    "name": "冰霜专精 (Cold Expertise)"
+  },
+  {
+    "id": 512,
+    "classCode": "none",
+    "name": "火焰专精 (Fire Expertise)"
+  },
+  {
+    "id": 513,
+    "classCode": "none",
+    "name": "闪电专精 (Lightning Expertise)"
+  },
+  {
+    "id": 514,
+    "classCode": "none",
+    "name": "剧毒专精 (Poison Expertise)"
+  },
+  {
+    "id": 515,
+    "classCode": "none",
+    "name": "物理专精 (Physical Expertise)"
+  },
+  {
+    "id": 516,
+    "classCode": "none",
+    "name": "魔法专精 (Magic Expertise)"
+  },
+  {
+    "id": 582,
+    "classCode": "none",
+    "name": "创建红门：秘密母牛关卡"
+  },
+  {
+    "id": 600,
+    "classCode": "none",
+    "name": "天壤劫火 (Diablo Flame)"
+  },
+  {
+    "id": 700,
+    "classCode": "ama",
+    "name": "多重爆裂箭"
+  },
+  {
+    "id": 701,
+    "classCode": "ama",
+    "name": "多重导引箭 (Multiple Guided Arrow)"
+  },
+  {
+    "id": 702,
+    "classCode": "ama",
+    "name": "多重冰箭"
+  },
+  {
+    "id": 703,
+    "classCode": "ama",
+    "name": "多重冻结箭"
+  },
+  {
+    "id": 704,
+    "classCode": "ama",
+    "name": "多重翼尾箭 (Multiple Winged Arrow)"
+  },
+  {
+    "id": 705,
+    "classCode": "ama",
+    "name": "十字毒枪"
+  },
+  {
+    "id": 706,
+    "classCode": "ama",
+    "name": "泰坦之矛 (Titan's Spear)"
+  },
+  {
+    "id": 707,
+    "classCode": "ama",
+    "name": "冻结之矛"
+  },
+  {
+    "id": 708,
+    "classCode": "ama",
+    "name": "冰裂之枪"
+  },
+  {
+    "id": 709,
+    "classCode": "ama",
+    "name": "特性：快速反击"
+  },
+  {
+    "id": 710,
+    "classCode": "ama",
+    "name": "魔法标枪新星"
+  },
+  {
+    "id": 711,
+    "classCode": "ama",
+    "name": "狂龙之怒 (Raging Dragon Fury)"
+  },
+  {
+    "id": 800,
+    "classCode": "sor",
+    "name": "雷暴"
+  },
+  {
+    "id": 801,
+    "classCode": "sor",
+    "name": "冰狱星爆 (Frost Explosion)"
+  },
+  {
+    "id": 802,
+    "classCode": "sor",
+    "name": "冰石乱坠"
+  },
+  {
+    "id": 803,
+    "classCode": "sor",
+    "name": "寒冰强化"
+  },
+  {
+    "id": 804,
+    "classCode": "sor",
+    "name": "奥术飞弹"
+  },
+  {
+    "id": 805,
+    "classCode": "sor",
+    "name": "衣卒尔"
+  },
+  {
+    "id": 806,
+    "classCode": "sor",
+    "name": "特性：快速施展"
+  },
+  {
+    "id": 807,
+    "classCode": "sor",
+    "name": "魔法新星"
+  },
+  {
+    "id": 808,
+    "classCode": "sor",
+    "name": "火焰新星 (Fire Nova)"
+  },
+  {
+    "id": 809,
+    "classCode": "sor",
+    "name": "烈焰风暴 (Flame Storm)"
+  },
+  {
+    "id": 900,
+    "classCode": "nec",
+    "name": "召唤腐化骑士"
+  },
+  {
+    "id": 901,
+    "classCode": "nec",
+    "name": "剧毒旋风"
+  },
+  {
+    "id": 902,
+    "classCode": "nec",
+    "name": "剧毒领域"
+  },
+  {
+    "id": 903,
+    "classCode": "nec",
+    "name": "断葬送"
+  },
+  {
+    "id": 904,
+    "classCode": "nec",
+    "name": "降低毒素抵抗"
+  },
+  {
+    "id": 905,
+    "classCode": "nec",
+    "name": "强化伤害"
+  },
+  {
+    "id": 906,
+    "classCode": "nec",
+    "name": "降低魔法抵抗"
+  },
+  {
+    "id": 907,
+    "classCode": "nec",
+    "name": "特性：加强破免"
+  },
+  {
+    "id": 908,
+    "classCode": "nec",
+    "name": "亡者领域 (Land of the Dead)"
+  },
+  {
+    "id": 909,
+    "classCode": "nec",
+    "name": "恶魔之眼"
+  },
+  {
+    "id": 910,
+    "classCode": "nec",
+    "name": "冥府之门 (Gate of Hades)"
+  },
+  {
+    "id": 1000,
+    "classCode": "pal",
+    "name": "天堂之怒 (Heavens Fury)"
+  },
+  {
+    "id": 1001,
+    "classCode": "pal",
+    "name": "特性：近战防御"
+  },
+  {
+    "id": 1002,
+    "classCode": "pal",
+    "name": "神圣盾击 (Holy Smite)"
+  },
+  {
+    "id": 1003,
+    "classCode": "pal",
+    "name": "抵抗魔法"
+  },
+  {
+    "id": 1004,
+    "classCode": "pal",
+    "name": "魔法飞锤"
+  },
+  {
+    "id": 1100,
+    "classCode": "bar",
+    "name": "剑刃风暴"
+  },
+  {
+    "id": 1101,
+    "classCode": "bar",
+    "name": "钢铁漩涡"
+  },
+  {
+    "id": 1102,
+    "classCode": "bar",
+    "name": "闪现呐喊"
+  },
+  {
+    "id": 1103,
+    "classCode": "bar",
+    "name": "提升体能"
+  },
+  {
+    "id": 1104,
+    "classCode": "bar",
+    "name": "召唤兔子"
+  },
+  {
+    "id": 1105,
+    "classCode": "bar",
+    "name": "象仆"
+  },
+  {
+    "id": 1106,
+    "classCode": "bar",
+    "name": "抵抗魔法"
+  },
+  {
+    "id": 1107,
+    "classCode": "bar",
+    "name": "双翼骑士斩"
+  },
+  {
+    "id": 1108,
+    "classCode": "bar",
+    "name": "战争践踏 (War Stomp)"
+  },
+  {
+    "id": 1200,
+    "classCode": "dru",
+    "name": "风暴咆哮 (Tempest Roar)"
+  },
+  {
+    "id": 1201,
+    "classCode": "dru",
+    "name": "末日审判 (Armageddon)"
+  },
+  {
+    "id": 1202,
+    "classCode": "dru",
+    "name": "群狼杀阵"
+  },
+  {
+    "id": 1203,
+    "classCode": "dru",
+    "name": "多重火墙"
+  },
+  {
+    "id": 1204,
+    "classCode": "dru",
+    "name": "火焰之环 (Faux Diablo Flame)"
+  },
+  {
+    "id": 1205,
+    "classCode": "dru",
+    "name": "炼狱闪电 (Diablo Lightning)"
+  },
+  {
+    "id": 1206,
+    "classCode": "dru",
+    "name": "骨剌监牢"
+  },
+  {
+    "id": 1207,
+    "classCode": "dru",
+    "name": "召唤狼人"
+  },
+  {
+    "id": 1208,
+    "classCode": "dru",
+    "name": "旋风新星"
+  },
+  {
+    "id": 1209,
+    "classCode": "dru",
+    "name": "特性：撕裂伤口"
+  },
+  {
+    "id": 1300,
+    "classCode": "ass",
+    "name": "新星陷阱"
+  },
+  {
+    "id": 1301,
+    "classCode": "ass",
+    "name": "暗影飞刀"
+  },
+  {
+    "id": 1302,
+    "classCode": "ass",
+    "name": "迷你核弹"
+  },
+  {
+    "id": 1303,
+    "classCode": "ass",
+    "name": "热核爆阵"
+  },
+  {
+    "id": 1304,
+    "classCode": "ass",
+    "name": "闪电移刃"
+  },
+  {
+    "id": 1305,
+    "classCode": "ass",
+    "name": "魔灵附身"
+  },
+  {
+    "id": 1306,
+    "classCode": "ass",
+    "name": "静止"
+  },
+  {
+    "id": 1307,
+    "classCode": "ass",
+    "name": "暗影魔刃"
+  },
+  {
+    "id": 1308,
+    "classCode": "ass",
+    "name": "魔龙舞爪"
+  },
+  {
+    "id": 1309,
+    "classCode": "ass",
+    "name": "特性：击缓敌人"
+  },
+  {
+    "id": 1310,
+    "classCode": "ass",
+    "name": "火焰无人机"
+  },
+  {
+    "id": 1311,
+    "classCode": "ass",
+    "name": "刀锋之舞"
+  }
+]

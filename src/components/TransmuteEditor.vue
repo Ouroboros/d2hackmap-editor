@@ -105,17 +105,18 @@ function isTransmuteRowDisabled(item: BaseConfigItem): boolean {
 }
 
 const itemDescriptors = computed(() => {
-  const allItems = getAllTransmuteItems<ItemDescriptorItem>('itemDescriptors')
-  const items = allItems.filter(item => item.isEffective !== false || item.isCommented)
+  const items = itemDescriptorsAll.value.filter(item => item.isEffective !== false || item.isCommented)
   return applyDisplayOrder(filterBySearch(items, props.searchQuery, 'name', 'itemId', 'comment'))
 })
 
+const itemDescriptorsAll = computed(() => getAllTransmuteItems<ItemDescriptorItem>('itemDescriptors'))
+
 const itemDescriptorNameWidth = computed(() => {
-  return fitTextColumnWidth(itemDescriptors.value.map(item => item.name), t('transmute.name'), { min: 150, max: 360 })
+  return fitTextColumnWidth(itemDescriptorsAll.value.map(item => item.name), t('transmute.name'), { min: 150, max: 360 })
 })
 
 const itemDescriptorLimitWidth = computed(() => {
-  return fitTextColumnWidth(itemDescriptors.value.map(item => item.limitName), t('import.statGroup'), { min: 120, max: 260 })
+  return fitTextColumnWidth(itemDescriptorsAll.value.map(item => item.limitName), t('import.statGroup'), { min: 120, max: 260 })
 })
 
 const itemDescriptorColumns = computed<ConfigTableColumn[]>(() => [
@@ -288,13 +289,14 @@ function handleItemDescriptorDragEnd() {
 }
 
 const cubeFormulas = computed(() => {
-  const allItems = getAllTransmuteItems<CubeFormulaItem>('cubeFormulas')
-  const items = allItems.filter(item => item.isEffective !== false || item.isCommented)
+  const items = cubeFormulasAll.value.filter(item => item.isEffective !== false || item.isCommented)
   return applyDisplayOrder(filterBySearch(items, props.searchQuery, 'name', 'comment'))
 })
 
+const cubeFormulasAll = computed(() => getAllTransmuteItems<CubeFormulaItem>('cubeFormulas'))
+
 const cubeFormulaNameWidth = computed(() => {
-  return fitTextColumnWidth(cubeFormulas.value.map(item => item.name), t('transmute.name'), { min: 180, max: 360 })
+  return fitTextColumnWidth(cubeFormulasAll.value.map(item => item.name), t('transmute.name'), { min: 180, max: 360 })
 })
 
 const cubeFormulaColumns = computed<ConfigTableColumn[]>(() => [
@@ -337,15 +339,16 @@ const selectableCubeFormulasCount = computed(() => {
 })
 
 const preItemTasks = computed(() => {
-  const allItems = getAllTransmuteItems<PreItemTaskItem>('preItemTasks')
-  const items = allItems.filter(item => item.isEffective !== false || item.isCommented)
+  const items = preItemTasksAll.value.filter(item => item.isEffective !== false || item.isCommented)
   return applyDisplayOrder(filterBySearch(items, props.searchQuery, 'name', 'itemId', 'comment'))
 })
+
+const preItemTasksAll = computed(() => getAllTransmuteItems<PreItemTaskItem>('preItemTasks'))
 
 const preItemTaskNames = computed(() => {
   const result: string[] = []
   const seen = new Set<string>()
-  for (const item of preItemTasks.value) {
+  for (const item of preItemTasksAll.value) {
     const name = item.name.trim()
     if (!name || seen.has(name)) continue
     seen.add(name)
@@ -355,17 +358,18 @@ const preItemTaskNames = computed(() => {
 })
 
 const doTasks = computed(() => {
-  const allItems = getAllTransmuteItems<DoTaskItem>('doTasks')
-  const items = allItems.filter(item => item.isEffective !== false || item.isCommented)
+  const items = doTasksAll.value.filter(item => item.isEffective !== false || item.isCommented)
   return applyDisplayOrder(filterBySearch(items, props.searchQuery, 'name', 'preTask', 'comment'))
 })
 
+const doTasksAll = computed(() => getAllTransmuteItems<DoTaskItem>('doTasks'))
+
 const preItemTaskNameWidth = computed(() => {
-  return fitTextColumnWidth(preItemTasks.value.map(item => item.name), t('transmute.name'), { min: 150, max: 360 })
+  return fitTextColumnWidth(preItemTasksAll.value.map(item => item.name), t('transmute.name'), { min: 150, max: 360 })
 })
 
 const preItemTaskLimitWidth = computed(() => {
-  return fitTextColumnWidth(preItemTasks.value.map(item => item.limitName), t('import.statGroup'), { min: 120, max: 260 })
+  return fitTextColumnWidth(preItemTasksAll.value.map(item => item.limitName), t('import.statGroup'), { min: 120, max: 260 })
 })
 
 const preItemTaskActionWidth = computed(() => {
@@ -387,11 +391,11 @@ const preItemTaskColumns = computed<ConfigTableColumn[]>(() => [
 ])
 
 const doTaskNameWidth = computed(() => {
-  return fitTextColumnWidth(doTasks.value.map(item => item.name), t('transmute.name'), { min: 150, max: 360 })
+  return fitTextColumnWidth(doTasksAll.value.map(item => item.name), t('transmute.name'), { min: 150, max: 360 })
 })
 
 const doTaskPreTaskWidth = computed(() => {
-  return fitTextColumnWidth([...doTasks.value.map(item => item.preTask), ...preItemTaskNames.value], t('transmute.preTask'), {
+  return fitTextColumnWidth([...doTasksAll.value.map(item => item.preTask), ...preItemTaskNames.value], t('transmute.preTask'), {
     min: 150,
     max: 300
   })
@@ -399,7 +403,7 @@ const doTaskPreTaskWidth = computed(() => {
 
 const doTaskFormulaWidth = computed(() => {
   return fitTextColumnWidth(
-    doTasks.value.map(item => t('formulaPicker.count', { count: item.formulas.length })),
+    doTasksAll.value.map(item => t('formulaPicker.count', { count: item.formulas.length })),
     t('transmute.formulas'),
     { min: 160, max: 220 }
   )
@@ -1451,7 +1455,6 @@ function formatCurrentDebugItem(item: TransmuteDebugItem): string {
         :is-disabled="isTransmuteRowDisabled"
         :drag-over-index="preItemTaskDragOverIndex"
         :row-classes="getItemRowClasses"
-        :row-key="(task, index) => `${getPreItemTaskKey(task)}-${task.sourceFile || 'main'}-${index}`"
         @select-all="togglePreItemTaskSelectAll"
         @select="togglePreItemTaskSelect"
         @dragstart="handlePreItemTaskDragStart"
@@ -1572,7 +1575,6 @@ function formatCurrentDebugItem(item: TransmuteDebugItem): string {
         :is-disabled="isTransmuteRowDisabled"
         :drag-over-index="doTaskDragOverIndex"
         :row-classes="getItemRowClasses"
-        :row-key="(task, index) => `${getDoTaskKey(task)}-${task.sourceFile || 'main'}-${index}`"
         @select-all="toggleDoTaskSelectAll"
         @select="toggleDoTaskSelect"
         @dragstart="handleDoTaskDragStart"

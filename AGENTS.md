@@ -60,6 +60,15 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## 5. Project Build Rules
+
+**Do not run full builds unless the user explicitly asks.**
+
+- Never run `npm run build` by default.
+- Never run `build_win11.bat` or release/Tauri builds by default.
+- The user builds on Windows and will verify UI there.
+- For lightweight TypeScript/Vue checks, prefer commands that do not trigger Rust/Tauri builds, such as `npx vue-tsc --noEmit`, only when needed.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

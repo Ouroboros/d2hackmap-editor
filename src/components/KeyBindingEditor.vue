@@ -51,14 +51,15 @@ const {
 } = useTransmuteItems()
 
 const keyBindings = computed(() => {
-  const allItems = getAllTransmuteItems<KeyBindingItem>('keyBindings')
-  const items = allItems.filter(item => item.isEffective !== false || item.isCommented)
+  const items = keyBindingsAll.value.filter(item => item.isEffective !== false || item.isCommented)
   return applyDisplayOrder(filterBySearch(items, props.searchQuery, 'keyCode', 'command', 'comment'))
 })
 
+const keyBindingsAll = computed(() => getAllTransmuteItems<KeyBindingItem>('keyBindings'))
+
 const hotkeyWidth = computed((): number => {
   return fitTextColumnWidthNumber(
-    keyBindings.value.map(item => item.keyCode === '-1' ? '无' : item.keyCode),
+    keyBindingsAll.value.map(item => item.keyCode === '-1' ? '无' : item.keyCode),
     t('transmute.keyCode'),
     { min: 160, max: 260, padding: 20 }
   )

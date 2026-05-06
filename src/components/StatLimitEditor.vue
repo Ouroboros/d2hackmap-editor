@@ -79,10 +79,11 @@ function handleExport(): void {
 }
 
 const statLimits = computed(() => {
-  const allItems = getAllTransmuteItems<StatLimitItem>('statLimits')
-  const items = allItems.filter(item => item.isEffective !== false || item.isCommented)
+  const items = statLimitsAll.value.filter(item => item.isEffective !== false || item.isCommented)
   return applyDisplayOrder(filterBySearch(items, props.searchQuery, 'name', 'statId', 'comment'))
 })
+
+const statLimitsAll = computed(() => getAllTransmuteItems<StatLimitItem>('statLimits'))
 
 const selectedStatLimits = ref<Set<StatLimitItem>>(new Set())
 const statLimitDragIndex = ref<number | null>(null)
@@ -209,7 +210,7 @@ function handleStatLimitDragEnd() {
 }
 
 const limitNameWidth = computed(() => {
-  return fitTextColumnWidth(statLimits.value.map(item => item.name), t('transmute.limitName'), {
+  return fitTextColumnWidth(statLimitsAll.value.map(item => item.name), t('transmute.limitName'), {
     min: 80,
     max: 220,
     padding: 16
@@ -226,7 +227,7 @@ function getStatLimitDisplayText(item: StatLimitItem): string {
 }
 
 const statLimitStatIdWidth = computed(() => {
-  return fitTextColumnWidth(statLimits.value.map(getStatLimitDisplayText), t('transmute.statId'), {
+  return fitTextColumnWidth(statLimitsAll.value.map(getStatLimitDisplayText), t('transmute.statId'), {
     min: 150,
     max: 360,
     padding: 22,
