@@ -39,7 +39,9 @@ import type {
   ItemColorItem,
   RuneColorItem,
   GoldColorItem,
+  MonsterColorItem,
   SkillMissileDrawModeItem,
+  MagicBagNameItem,
   ImportItemItem,
   StatLimitItem,
   StatLimitGroupItem,
@@ -109,8 +111,16 @@ export function getGoldColorKey(item: GoldColorItem): string {
   return item.range
 }
 
+export function getMonsterColorKey(item: MonsterColorItem): string {
+  return item.monsterId
+}
+
 export function getSkillMissileDrawModeKey(item: SkillMissileDrawModeItem): string {
   return item.skillId
+}
+
+export function getMagicBagNameKey(item: MagicBagNameItem): string {
+  return item.index
 }
 
 export function getImportItemKey(item: ImportItemItem): string {
@@ -212,14 +222,18 @@ export function refreshEffectiveStatus(config: Config, debug = false): void {
   const allItemColors = _getAllItems<ItemColorItem>(config, 'itemColors')
   const allRuneColors = _getAllItems<RuneColorItem>(config, 'runeColors')
   const allGoldColors = _getAllItems<GoldColorItem>(config, 'goldColors')
+  const allMonsterColors = _getAllItems<MonsterColorItem>(config, 'monsterColors')
   const allSkillMissileDrawModes = _getAllItems<SkillMissileDrawModeItem>(config, 'skillMissileDrawModes')
+  const allMagicBagNames = _getAllItems<MagicBagNameItem>(config, 'magicBagNames')
   const allImportItems = _getAllItems<ImportItemItem>(config, 'importItems')
 
   updateEffectiveStatus(allToggles, getToggleKey, label)
   updateEffectiveStatus(allItemColors, getItemColorKey, label)
   updateEffectiveStatus(allRuneColors, getRuneColorKey, label)
   updateEffectiveStatus(allGoldColors, getGoldColorKey, label)
+  updateEffectiveStatus(allMonsterColors, getMonsterColorKey, label)
   updateEffectiveStatus(allSkillMissileDrawModes, getSkillMissileDrawModeKey, label)
+  updateEffectiveStatus(allMagicBagNames, getMagicBagNameKey, label)
   updateEffectiveStatus(allImportItems, getImportItemKey, label)
 
   // Transmute items

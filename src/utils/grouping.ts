@@ -12,7 +12,9 @@ type ConfigDataArrayKey =
   | 'itemColors'
   | 'runeColors'
   | 'goldColors'
+  | 'monsterColors'
   | 'skillMissileDrawModes'
+  | 'magicBagNames'
   | 'importItems'
   | 'includes'
 

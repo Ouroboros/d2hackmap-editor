@@ -63,10 +63,12 @@ function mergeProfileAndUserData(profileData: ConfigData, userData: ConfigData):
   merged.itemColors = [...profileData.itemColors.map(cloneProfileItem), ...userData.itemColors.map(cloneProfileItem)]
   merged.runeColors = [...profileData.runeColors.map(cloneProfileItem), ...userData.runeColors.map(cloneProfileItem)]
   merged.goldColors = [...profileData.goldColors.map(cloneProfileItem), ...userData.goldColors.map(cloneProfileItem)]
+  merged.monsterColors = [...profileData.monsterColors.map(cloneProfileItem), ...userData.monsterColors.map(cloneProfileItem)]
   merged.skillMissileDrawModes = [
     ...profileData.skillMissileDrawModes.map(cloneProfileItem),
     ...userData.skillMissileDrawModes.map(cloneProfileItem)
   ]
+  merged.magicBagNames = [...profileData.magicBagNames.map(cloneProfileItem), ...userData.magicBagNames.map(cloneProfileItem)]
   merged.importItems = [...profileData.importItems.map(cloneProfileItem), ...userData.importItems.map(cloneProfileItem)]
   merged.includes = [...profileData.includes, ...userData.includes]
 

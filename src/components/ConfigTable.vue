@@ -430,6 +430,8 @@ onUnmounted(() => {
 }
 
 .config-header-cell {
+  justify-content: center;
+  text-align: center;
   white-space: nowrap;
 }
 
@@ -451,6 +453,7 @@ onUnmounted(() => {
 }
 
 .config-header-cell.col-source {
+  justify-content: center;
   z-index: 12;
 }
 

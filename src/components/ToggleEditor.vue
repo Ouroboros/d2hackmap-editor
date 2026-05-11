@@ -24,9 +24,11 @@ import EditorPanel from './EditorPanel.vue'
 import SubTabs from './SubTabs.vue'
 import ConfigTable from './ConfigTable.vue'
 import HotkeyInput from './HotkeyInput.vue'
+import MapColorPicker from './MapColorPicker.vue'
 import type { ConfigTableColumn } from './configTable'
 import { moveItemInFile } from '../utils/grouping'
 import { fitTextColumnWidthNumber } from '../utils/columnWidth'
+import { getConfigItemSchema } from '../keywords'
 
 const { t } = useI18n()
 
@@ -101,13 +103,59 @@ const nameWidth = computed((): number => {
   })
 })
 
-// Calculate dynamic width for hotkey column based on longest text
-const hotkeyWidth = computed((): number => {
+function getSimpleCppClass(item: ToggleItem): string {
+  return getConfigItemSchema(item.name)?.cppClass || 'HMConfigItemToggle'
+}
+
+function hasEnabledControl(item: ToggleItem): boolean {
+  const cppClass = getSimpleCppClass(item)
+  return cppClass === 'HMConfigItemToggle' || cppClass === 'HMConfigItemOption'
+}
+
+function hasHotkeyControl(item: ToggleItem): boolean {
+  const cppClass = getSimpleCppClass(item)
+  return cppClass === 'HMConfigItemToggle' || cppClass === 'HMConfigItemKey'
+}
+
+function hasValueControl(item: ToggleItem): boolean {
+  const cppClass = getSimpleCppClass(item)
+  return (
+    cppClass === 'HMConfigItemInt' ||
+    cppClass === 'HMConfigItemString' ||
+    cppClass === 'HMConfigItemColorT'
+  )
+}
+
+function hasToggleParamControl(item: ToggleItem): boolean {
+  return getSimpleCppClass(item) === 'HMConfigItemToggle'
+}
+
+function isColorValue(item: ToggleItem): boolean {
+  return getSimpleCppClass(item) === 'HMConfigItemColorT'
+}
+
+function getSimpleValueText(item: ToggleItem): string {
+  if (hasHotkeyControl(item)) return item.hotkey === '-1' ? t('hotkey.none') : item.hotkey
+  if (hasValueControl(item)) return item.value || ''
+  return ''
+}
+
+// Calculate dynamic width for value column based on longest text
+const valueWidth = computed((): number => {
   const items = getAllItems<ToggleItem>(config.value, 'toggles')
   return fitTextColumnWidthNumber(
-    items.map(item => item.hotkey === '-1' ? '无' : item.hotkey),
-    t('toggle.hotkey'),
+    items.map(getSimpleValueText),
+    t('toggle.value'),
     { min: 160, max: 260, padding: 20 }
+  )
+})
+
+const paramWidth = computed((): number => {
+  const items = getAllItems<ToggleItem>(config.value, 'toggles')
+  return fitTextColumnWidthNumber(
+    items.filter(hasToggleParamControl).map(item => item.value || ''),
+    t('toggle.param'),
+    { min: 70, max: 120, padding: 20 }
   )
 })
 
@@ -124,7 +172,8 @@ const commentWidth = computed((): number => {
 const toggleColumns = computed<ConfigTableColumn[]>(() => [
   { key: 'enabled', label: t('toggle.enabled'), width: '40px' },
   { key: 'name', label: t('toggle.name'), width: `${nameWidth.value}px` },
-  { key: 'hotkey', label: t('toggle.hotkey'), width: `${hotkeyWidth.value + 30}px` },
+  { key: 'value', label: t('toggle.value'), width: `${valueWidth.value + 30}px` },
+  { key: 'param', label: t('toggle.param'), width: `${paramWidth.value}px` },
   { key: 'comment', label: t('itemColors.comment'), width: `${commentWidth.value}px` },
   { key: 'actions', label: t('itemColors.actions'), width: '220px', className: 'col-actions' }
 ])
@@ -227,6 +276,7 @@ function duplicateToMain(item: ToggleItem, skipRefresh = false): boolean {
     name: item.name,
     enabled: item.enabled,
     hotkey: item.hotkey,
+    value: item.value,
     comment: item.comment,
     sourceFile: null,
     layer: 'user',
@@ -270,7 +320,9 @@ function copyAllExtern(): void {
 
 // Debug panel formatter
 function formatToggle(item: ToggleItem): string {
-  return `${item.name}: ${item.enabled ? 'ON' : 'OFF'}${item.hotkey ? ` (${item.hotkey})` : ''}`
+  const valueText = hasValueControl(item) ? ` = ${item.value || ''}` : ''
+  const hotkeyText = hasHotkeyControl(item) && item.hotkey ? ` (${item.hotkey})` : ''
+  return `${item.name}: ${item.enabled ? 'ON' : 'OFF'}${hotkeyText}${valueText}`
 }
 </script>
 
@@ -305,10 +357,11 @@ function formatToggle(item: ToggleItem): string {
         @dragleave="handleToggleDragLeave"
         @drop="handleToggleDrop"
         @dragend="handleToggleDragEnd"
-      >
+        >
         <template #cell-enabled="{ item: toggle }">
           <label>
             <input
+              v-if="hasEnabledControl(toggle)"
               type="checkbox"
               :checked="toggle.enabled"
               :disabled="isItemDisabled(toggle) || isItemExtern(toggle) || isReadOnly"
@@ -319,12 +372,36 @@ function formatToggle(item: ToggleItem): string {
         <template #cell-name="{ item: toggle }">
           <span class="col-name">{{ toggle.name }}</span>
         </template>
-        <template #cell-hotkey="{ item: toggle }">
+        <template #cell-value="{ item: toggle }">
           <HotkeyInput
+            v-if="hasHotkeyControl(toggle)"
             :model-value="toggle.hotkey"
             :disabled="isItemDisabled(toggle) || isItemExtern(toggle) || isReadOnly"
-            :input-width="hotkeyWidth"
+            :input-width="valueWidth"
             @update:model-value="updateToggle(toggle, 'hotkey', $event)"
+          />
+          <MapColorPicker
+            v-else-if="isColorValue(toggle)"
+            :modelValue="toggle.value || '-1'"
+            :disabled="isItemDisabled(toggle) || isItemExtern(toggle) || isReadOnly"
+            :readonly="isItemDisabled(toggle) || isItemExtern(toggle) || isReadOnly"
+            @update:modelValue="updateToggle(toggle, 'value', $event)"
+          />
+          <input
+            v-else-if="hasValueControl(toggle)"
+            :type="getSimpleCppClass(toggle) === 'HMConfigItemInt' ? 'number' : 'text'"
+            :value="toggle.value || ''"
+            :disabled="isItemDisabled(toggle) || isItemExtern(toggle) || isReadOnly"
+            @input="updateToggle(toggle, 'value', ($event.target as HTMLInputElement).value)"
+          />
+        </template>
+        <template #cell-param="{ item: toggle }">
+          <input
+            v-if="hasToggleParamControl(toggle)"
+            type="number"
+            :value="toggle.value || ''"
+            :disabled="isItemDisabled(toggle) || isItemExtern(toggle) || isReadOnly"
+            @input="updateToggle(toggle, 'value', ($event.target as HTMLInputElement).value)"
           />
         </template>
         <template #cell-comment="{ item: toggle }">

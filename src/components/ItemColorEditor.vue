@@ -9,6 +9,7 @@ import {
   getItemColorKey,
   getRuneColorKey,
   getGoldColorKey,
+  getMonsterColorKey,
   getSkillMissileDrawModeKey,
   getAllItems,
   canCopyItemToMain,
@@ -28,7 +29,7 @@ import { IdRange } from '../utils/IdRange'
 import { fitTextColumnWidth } from '../utils/columnWidth'
 import { log } from '../utils/log'
 import { COLOR_NONE, SKILL_MISSILE_DRAW_MODES } from '../configDefs'
-import type { ItemColorItem, RuneColorItem, GoldColorItem, SkillMissileDrawModeItem } from '../types'
+import type { ItemColorItem, RuneColorItem, GoldColorItem, MonsterColorItem, SkillMissileDrawModeItem } from '../types'
 import DebugDrawer from './debug/DebugDrawer.vue'
 import FlatListView from './debug/FlatListView.vue'
 import EditorPanel from './EditorPanel.vue'
@@ -48,10 +49,16 @@ const { t } = useI18n()
 const TAB_ITEMS = 'items' as const
 const TAB_RUNES = 'runes' as const
 const TAB_GOLDS = 'golds' as const
+const TAB_MONSTERS = 'monsters' as const
 const TAB_SKILL_MISSILES = 'skillMissiles' as const
 
-type TabType = typeof TAB_ITEMS | typeof TAB_RUNES | typeof TAB_GOLDS | typeof TAB_SKILL_MISSILES
-type ColorConfigItem = ItemColorItem | RuneColorItem | GoldColorItem | SkillMissileDrawModeItem
+type TabType =
+  | typeof TAB_ITEMS
+  | typeof TAB_RUNES
+  | typeof TAB_GOLDS
+  | typeof TAB_MONSTERS
+  | typeof TAB_SKILL_MISSILES
+type ColorConfigItem = ItemColorItem | RuneColorItem | GoldColorItem | MonsterColorItem | SkillMissileDrawModeItem
 
 interface Props {
   searchQuery?: string
@@ -75,6 +82,7 @@ const subTabsConfig = computed(() => [
   { id: TAB_ITEMS, label: t('subTab.items') },
   { id: TAB_RUNES, label: t('subTab.runes') },
   { id: TAB_GOLDS, label: t('subTab.golds') },
+  { id: TAB_MONSTERS, label: t('subTab.monsters') },
   { id: TAB_SKILL_MISSILES, label: t('subTab.skillMissiles') }
 ])
 
@@ -82,6 +90,7 @@ const subTabsConfig = computed(() => [
 const selectedItems = ref<Set<ColorConfigItem>>(new Set())
 const selectedRunes = ref<Set<ColorConfigItem>>(new Set())
 const selectedGolds = ref<Set<ColorConfigItem>>(new Set())
+const selectedMonsters = ref<Set<ColorConfigItem>>(new Set())
 const selectedSkillMissiles = ref<Set<ColorConfigItem>>(new Set())
 
 // Color filter state
@@ -99,6 +108,7 @@ watch(activeTab, (newTab) => {
   selectedItems.value.clear()
   selectedRunes.value.clear()
   selectedGolds.value.clear()
+  selectedMonsters.value.clear()
   selectedSkillMissiles.value.clear()
 })
 
@@ -109,7 +119,13 @@ onMounted(() => {
 })
 
 function isTabType(value: string): value is TabType {
-  return value === TAB_ITEMS || value === TAB_RUNES || value === TAB_GOLDS || value === TAB_SKILL_MISSILES
+  return (
+    value === TAB_ITEMS ||
+    value === TAB_RUNES ||
+    value === TAB_GOLDS ||
+    value === TAB_MONSTERS ||
+    value === TAB_SKILL_MISSILES
+  )
 }
 
 function handleExport(): void {
@@ -127,6 +143,7 @@ function hasInvalidIds(itemId: string): boolean {
 const itemColorsAll = computed(() => getAllItems<ItemColorItem>(config.value, 'itemColors'))
 const runeColorsAll = computed(() => getAllItems<RuneColorItem>(config.value, 'runeColors'))
 const goldColorsAll = computed(() => getAllItems<GoldColorItem>(config.value, 'goldColors'))
+const monsterColorsAll = computed(() => getAllItems<MonsterColorItem>(config.value, 'monsterColors'))
 const skillMissileDrawModesAll = computed(() => getAllItems<SkillMissileDrawModeItem>(config.value, 'skillMissileDrawModes'))
 
 // Filter items for display: main items (all) + extern items (only effective)
@@ -208,6 +225,26 @@ const goldColors = computed(() => {
   return applyDisplayOrder(items)
 })
 
+const monsterColors = computed(() => {
+  let items = filterForDisplay(monsterColorsAll.value)
+  if (!items.length) return []
+
+  if (props.searchQuery) {
+    const q = props.searchQuery.toLowerCase()
+    items = items.filter(item =>
+      item.monsterId.toLowerCase().includes(q) ||
+      item.monsterType.toLowerCase().includes(q) ||
+      item.comment?.toLowerCase().includes(q)
+    )
+  }
+
+  if (mapColorFilter.value && mapColorFilter.value !== COLOR_NONE) {
+    items = items.filter(item => item.blobColor === mapColorFilter.value)
+  }
+
+  return applyDisplayOrder(items)
+})
+
 const skillMissileDrawModes = computed(() => {
   let items = filterForDisplay(skillMissileDrawModesAll.value)
   if (!items.length) return []
@@ -228,6 +265,7 @@ const skillMissileDrawModes = computed(() => {
 const itemColorsJumpMap = computed(() => buildCommentedMainMap(itemColors.value, getItemColorKey))
 const runeColorsJumpMap = computed(() => buildCommentedMainMap(runeColors.value, getRuneColorKey))
 const goldColorsJumpMap = computed(() => buildCommentedMainMap(goldColors.value, getGoldColorKey))
+const monsterColorsJumpMap = computed(() => buildCommentedMainMap(monsterColors.value, getMonsterColorKey))
 const skillMissileDrawModesJumpMap = computed(() =>
   buildCommentedMainMap(skillMissileDrawModes.value, getSkillMissileDrawModeKey)
 )
@@ -241,6 +279,9 @@ function getRuneJumpTarget(item: RuneColorItem): number | undefined {
 }
 function getGoldJumpTarget(item: GoldColorItem): number | undefined {
   return getJumpTargetIndex(item, goldColorsJumpMap.value, getGoldColorKey)
+}
+function getMonsterJumpTarget(item: MonsterColorItem): number | undefined {
+  return getJumpTargetIndex(item, monsterColorsJumpMap.value, getMonsterColorKey)
 }
 function getSkillMissileJumpTarget(item: SkillMissileDrawModeItem): number | undefined {
   return getJumpTargetIndex(item, skillMissileDrawModesJumpMap.value, getSkillMissileDrawModeKey)
@@ -256,12 +297,20 @@ function jumpToRuneColor(index: number): void {
 function jumpToGoldColor(index: number): void {
   scrollToIndex(index, '.golds-color-list')
 }
+function jumpToMonsterColor(index: number): void {
+  scrollToIndex(index, '.monsters-color-list')
+}
 function jumpToSkillMissileDrawMode(index: number): void {
   scrollToIndex(index, '.skill-missiles-list')
 }
 
 // Get merged display index for drag operations
 function getMergedIndex(filteredIndex: number, type: TabType): number {
+  if (type === TAB_MONSTERS) {
+    const item = monsterColors.value[filteredIndex]
+    if (!item) return -1
+    return getAllItems<MonsterColorItem>(config.value, 'monsterColors').indexOf(item)
+  }
   if (type === TAB_GOLDS) {
     const item = goldColors.value[filteredIndex]
     if (!item) return -1
@@ -287,9 +336,11 @@ function getMergedIndex(filteredIndex: number, type: TabType): number {
 function getItemAtIndex(filteredIndex: number, type: typeof TAB_ITEMS): ItemColorItem | undefined
 function getItemAtIndex(filteredIndex: number, type: typeof TAB_RUNES): RuneColorItem | undefined
 function getItemAtIndex(filteredIndex: number, type: typeof TAB_GOLDS): GoldColorItem | undefined
+function getItemAtIndex(filteredIndex: number, type: typeof TAB_MONSTERS): MonsterColorItem | undefined
 function getItemAtIndex(filteredIndex: number, type: typeof TAB_SKILL_MISSILES): SkillMissileDrawModeItem | undefined
 function getItemAtIndex(filteredIndex: number, type: TabType): ColorConfigItem | undefined
 function getItemAtIndex(filteredIndex: number, type: TabType): ColorConfigItem | undefined {
+  if (type === TAB_MONSTERS) return monsterColors.value[filteredIndex]
   if (type === TAB_GOLDS) return goldColors.value[filteredIndex]
   if (type === TAB_RUNES) return runeColors.value[filteredIndex]
   if (type === TAB_SKILL_MISSILES) return skillMissileDrawModes.value[filteredIndex]
@@ -317,6 +368,22 @@ const goldMapTextWidth = computed(() => {
   const maxLen = Math.max(0, ...items.map(item => (item.mapText || '').length))
   return Math.max(120, maxLen * 8 + 24)
 })
+
+const monsterIdWidth = computed(() =>
+  fitTextColumnWidth(
+    getAllItems<MonsterColorItem>(config.value, 'monsterColors').map(item => item.monsterId),
+    t('itemColors.monsterId'),
+    { min: 120, max: 260, padding: 34 }
+  )
+)
+
+const monsterTypeWidth = computed(() =>
+  fitTextColumnWidth(
+    getAllItems<MonsterColorItem>(config.value, 'monsterColors').map(item => item.monsterType),
+    t('itemColors.monsterType'),
+    { min: 100, max: 220, padding: 34 }
+  )
+)
 
 const skillMissileDrawModeWidth = computed(() =>
   fitTextColumnWidth(
@@ -363,6 +430,14 @@ const goldColorColumns = computed<ConfigTableColumn[]>(() => [
   { key: 'actions', label: t('itemColors.actions'), width: '220px', className: 'col-actions' }
 ])
 
+const monsterColorColumns = computed<ConfigTableColumn[]>(() => [
+  { key: 'monsterId', label: t('itemColors.monsterId'), width: monsterIdWidth.value },
+  { key: 'blobColor', label: t('itemColors.mapColor'), width: '32px' },
+  { key: 'monsterType', label: t('itemColors.monsterType'), width: monsterTypeWidth.value },
+  { key: 'comment', label: t('itemColors.comment'), width: '180px', className: 'col-comment' },
+  { key: 'actions', label: t('itemColors.actions'), width: '220px', className: 'col-actions' }
+])
+
 const skillMissileColumns = computed<ConfigTableColumn[]>(() => [
   { key: 'skillId', label: t('itemColors.skillId'), width: skillMissileSkillIdWidth.value },
   { key: 'drawMode', label: t('itemColors.drawMode'), width: skillMissileDrawModeWidth.value },
@@ -384,10 +459,15 @@ function hasColorFields(item: ColorConfigItem): item is ItemColorItem | RuneColo
   return 'textColor' in item && 'mapColor' in item
 }
 
+function hasBlobColorField(item: ColorConfigItem): item is MonsterColorItem {
+  return 'blobColor' in item
+}
+
 // Selectable counts (non-extern items only)
 const selectableItemsCount = computed(() => itemColors.value.filter(item => !isItemExtern(item)).length)
 const selectableRunesCount = computed(() => runeColors.value.filter(item => !isItemExtern(item)).length)
 const selectableGoldsCount = computed(() => goldColors.value.filter(item => !isItemExtern(item)).length)
+const selectableMonstersCount = computed(() => monsterColors.value.filter(item => !isItemExtern(item)).length)
 const selectableSkillMissilesCount = computed(() =>
   skillMissileDrawModes.value.filter(item => !isItemExtern(item)).length
 )
@@ -395,6 +475,7 @@ const selectableSkillMissilesCount = computed(() =>
 // Selection helpers
 function getSelectedSet(tabType: TabType): Ref<Set<ColorConfigItem>> {
   if (tabType === TAB_SKILL_MISSILES) return selectedSkillMissiles
+  if (tabType === TAB_MONSTERS) return selectedMonsters
   return tabType === TAB_GOLDS ? selectedGolds
     : tabType === TAB_RUNES ? selectedRunes
     : selectedItems
@@ -402,6 +483,7 @@ function getSelectedSet(tabType: TabType): Ref<Set<ColorConfigItem>> {
 
 function getDisplayItems(tabType: TabType): ColorConfigItem[] {
   if (tabType === TAB_SKILL_MISSILES) return skillMissileDrawModes.value
+  if (tabType === TAB_MONSTERS) return monsterColors.value
   if (tabType === TAB_GOLDS) return goldColors.value
   if (tabType === TAB_RUNES) return runeColors.value
   return itemColors.value
@@ -409,6 +491,7 @@ function getDisplayItems(tabType: TabType): ColorConfigItem[] {
 
 function getFileOrderedItems(tabType: TabType): ColorConfigItem[] {
   if (tabType === TAB_SKILL_MISSILES) return skillMissileDrawModesAll.value
+  if (tabType === TAB_MONSTERS) return monsterColorsAll.value
   if (tabType === TAB_GOLDS) return goldColorsAll.value
   if (tabType === TAB_RUNES) return runeColorsAll.value
   return itemColorsAll.value
@@ -449,8 +532,9 @@ function hasSelection(tabType: TabType): boolean {
   return getSelectedSet(tabType).value.size > 0
 }
 
-function getArrayNameByTab(tabType: TabType): 'itemColors' | 'runeColors' | 'goldColors' | 'skillMissileDrawModes' {
+function getArrayNameByTab(tabType: TabType): 'itemColors' | 'runeColors' | 'goldColors' | 'monsterColors' | 'skillMissileDrawModes' {
   if (tabType === TAB_SKILL_MISSILES) return 'skillMissileDrawModes'
+  if (tabType === TAB_MONSTERS) return 'monsterColors'
   if (tabType === TAB_GOLDS) return 'goldColors'
   if (tabType === TAB_RUNES) return 'runeColors'
   return 'itemColors'
@@ -476,6 +560,8 @@ function batchSetMapColor(color: string, tabType: TabType): void {
   for (const item of selected.value) {
     if (!isItemExtern(item) && hasColorFields(item)) {
       item.mapColor = color
+    } else if (!isItemExtern(item) && hasBlobColorField(item)) {
+      item.blobColor = color
     }
   }
   selected.value.clear()
@@ -592,6 +678,8 @@ function copyAllExtern(tabType: TabType): void {
       success = duplicateGoldColorItemToMain(item as GoldColorItem, true)
     } else if (tabType === TAB_RUNES) {
       success = duplicateRuneColorItemToMain(item as RuneColorItem, true)
+    } else if (tabType === TAB_MONSTERS) {
+      success = duplicateMonsterColorItemToMain(item as MonsterColorItem, true)
     } else if (tabType === TAB_SKILL_MISSILES) {
       success = duplicateSkillMissileDrawModeItemToMain(item as SkillMissileDrawModeItem, true)
     } else {
@@ -990,6 +1078,114 @@ function duplicateGoldColorItemToMain(original: GoldColorItem, skipRefresh = fal
   return true
 }
 
+function addMonsterColor() {
+  if (!config.value || isReadOnly.value) return
+  const newItem: MonsterColorItem = {
+    monsterId: '',
+    blobColor: COLOR_NONE,
+    monsterType: '',
+    comment: '',
+    sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
+    isNew: true,
+    isCommented: false
+  }
+  addItemToEditable(config.value, 'monsterColors', newItem)
+  refreshEffectiveStatus(config.value)
+  scrollToMainItemInList(() => monsterColors.value, newItem, getMonsterColorKey, '.monsters-color-list')
+}
+
+function updateMonsterColor(index: number, field: string, value: string) {
+  const item = getItemAtIndex(index, TAB_MONSTERS)
+  if (!item || isReadonlyColorItem(item)) return
+  ;(item as unknown as Record<string, unknown>)[field] = value
+}
+
+function handleDeleteMonsterColor(index: number) {
+  if (!config.value || isReadOnly.value) return
+  const item = getItemAtIndex(index, TAB_MONSTERS)
+  if (!item || isItemExtern(item)) return
+
+  deleteItemFromFile(config.value, item, 'monsterColors')
+  refreshEffectiveStatus(config.value)
+}
+
+function handleCommentMonsterColor(index: number) {
+  if (!config.value || isReadOnly.value) return
+  const item = getItemAtIndex(index, TAB_MONSTERS)
+  if (!item || isItemExtern(item)) return
+
+  item.isCommented = true
+  item.isDeleted = false
+  refreshEffectiveStatus(config.value)
+}
+
+function handleRestoreMonsterColor(index: number) {
+  if (!config.value || isReadOnly.value) return
+  const item = getItemAtIndex(index, TAB_MONSTERS)
+  if (!item || isItemExtern(item)) return
+
+  item.isCommented = false
+  item.isDeleted = false
+  refreshEffectiveStatus(config.value)
+}
+
+function copyMonsterColor(index: number) {
+  if (!config.value || isReadOnly.value) return
+  const original = getItemAtIndex(index, TAB_MONSTERS)
+  if (!original) return
+
+  const copy: MonsterColorItem = {
+    monsterId: original.monsterId + '_copy',
+    blobColor: original.blobColor,
+    monsterType: original.monsterType,
+    comment: original.comment,
+    sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
+    isNew: true,
+    isCommented: false
+  }
+  addItemToEditable(config.value, 'monsterColors', copy)
+  refreshEffectiveStatus(config.value)
+}
+
+function duplicateMonsterColorToMain(index: number, skipRefresh = false): boolean {
+  if (!config.value || isReadOnly.value) return false
+  const original = getItemAtIndex(index, TAB_MONSTERS)
+  if (!original) return false
+  return duplicateMonsterColorItemToMain(original, skipRefresh)
+}
+
+function duplicateMonsterColorItemToMain(original: MonsterColorItem, skipRefresh = false): boolean {
+  if (!config.value || isReadOnly.value) return false
+  if (!canCopyItemToMain(original)) return false
+
+  const key = getMonsterColorKey(original)
+  const allItems = getAllItems<MonsterColorItem>(config.value, 'monsterColors')
+  const hasMainItem = allItems.some(item => getMonsterColorKey(item) === key && item.layer === 'user')
+  if (hasMainItem) return false
+
+  const newItem: MonsterColorItem = {
+    monsterId: original.monsterId,
+    blobColor: original.blobColor,
+    monsterType: original.monsterType,
+    comment: original.comment,
+    sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
+    isNew: true,
+    isCommented: false
+  }
+  addItemToEditable(config.value, 'monsterColors', newItem)
+  if (!skipRefresh) {
+    refreshEffectiveStatus(config.value)
+    scrollToMainItemInList(() => monsterColors.value, newItem, getMonsterColorKey, '.monsters-color-list')
+  }
+  return true
+}
+
 function addSkillMissileDrawMode() {
   if (!config.value || isReadOnly.value) return
   const newItem: SkillMissileDrawModeItem = {
@@ -1138,6 +1334,53 @@ function handleDropGold(e: DragEvent, targetIndex: number): void {
   dragOverIndex.value = null
 }
 
+function handleDragStartMonster(e: DragEvent, index: number): void {
+  log(`[handleDragStartMonster] index=${index}`)
+  dragIndex.value = index
+  if (!e.dataTransfer) return
+  e.dataTransfer.effectAllowed = 'move'
+  e.dataTransfer.setData('text/plain', String(index))
+}
+
+function handleDropMonster(e: DragEvent, targetIndex: number): void {
+  e.preventDefault()
+  log(`[handleDropMonster] START: sourceIndex=${dragIndex.value}, targetIndex=${targetIndex}`)
+
+  if (isReadOnly.value || !config.value) {
+    log(`[handleDropMonster] ABORT: isReadOnly=${isReadOnly.value}, config=${!!config.value}`)
+    return
+  }
+  const sourceIndex = dragIndex.value
+  if (sourceIndex === null || sourceIndex === targetIndex) {
+    log(`[handleDropMonster] ABORT: sourceIndex=${sourceIndex}, targetIndex=${targetIndex}`)
+    dragIndex.value = null
+    dragOverIndex.value = null
+    return
+  }
+
+  const item = getItemAtIndex(sourceIndex, TAB_MONSTERS)
+  if (!item) {
+    log(`[handleDropMonster] ABORT: item not found at sourceIndex=${sourceIndex}`)
+    return
+  }
+
+  const targetRealIndex = getMergedIndex(targetIndex, TAB_MONSTERS)
+  log(`[handleDropMonster] targetRealIndex=${targetRealIndex}`)
+  if (targetRealIndex < 0) {
+    log(`[handleDropMonster] ABORT: targetRealIndex < 0`)
+    return
+  }
+  const targetMergedIdx = getRealDropTargetIndex(sourceIndex, targetIndex, targetRealIndex)
+
+  log(`[handleDropMonster] calling moveItemInFile: targetMergedIdx=${targetMergedIdx}`)
+  const result = moveItemInFile(config.value, item, targetMergedIdx, 'monsterColors')
+  log(`[handleDropMonster] moveItemInFile returned: ${result}`)
+
+  refreshEffectiveStatus(config.value)
+  dragIndex.value = null
+  dragOverIndex.value = null
+}
+
 function handleDragStartSkillMissile(e: DragEvent, index: number): void {
   log(`[handleDragStartSkillMissile] index=${index}`)
   dragIndex.value = index
@@ -1192,6 +1435,7 @@ function clearFilters() {
 
 function getColorDebugKey(item: ColorConfigItem): string {
   if ('itemId' in item) return getItemColorKey(item)
+  if ('monsterId' in item) return getMonsterColorKey(item)
   if ('skillId' in item) return getSkillMissileDrawModeKey(item)
   return item.range
 }
@@ -1203,6 +1447,9 @@ function formatColorDebugItem(item: ColorConfigItem): string {
   if ('skillId' in item) {
     return `${item.skillId} → drawMode:${item.drawMode}`
   }
+  if ('monsterId' in item) {
+    return `${item.monsterId} → color:${item.blobColor}, type:${item.monsterType}`
+  }
   return `${item.range} → text:${item.textColor}, map:${item.mapColor}`
 }
 
@@ -1211,6 +1458,7 @@ const currentDebugItems = computed<ColorConfigItem[]>(() => {
   if (activeTab.value === TAB_SKILL_MISSILES) {
     return getAllItems<SkillMissileDrawModeItem>(config.value, 'skillMissileDrawModes')
   }
+  if (activeTab.value === TAB_MONSTERS) return getAllItems<MonsterColorItem>(config.value, 'monsterColors')
   if (activeTab.value === TAB_GOLDS) return getAllItems<GoldColorItem>(config.value, 'goldColors')
   if (activeTab.value === TAB_RUNES) return getAllItems<RuneColorItem>(config.value, 'runeColors')
   return getAllItems<ItemColorItem>(config.value, 'itemColors')
@@ -1218,6 +1466,7 @@ const currentDebugItems = computed<ColorConfigItem[]>(() => {
 
 const currentDebugTitle = computed(() => {
   if (activeTab.value === TAB_SKILL_MISSILES) return 'Skill Missile DrawMode'
+  if (activeTab.value === TAB_MONSTERS) return 'Monster Colors'
   if (activeTab.value === TAB_GOLDS) return 'Gold Colors'
   if (activeTab.value === TAB_RUNES) return 'Rune Colors'
   return 'Item Colors'
@@ -1238,7 +1487,7 @@ const currentFormatter = computed(() => formatColorDebugItem)
         <div v-if="hasSelection(activeTab) && !isReadOnly" class="batch-bar">
           <span class="batch-info">{{ t('batch.selected', { count: getSelectedSet(activeTab).value.size }) }}</span>
           <TextColorPicker
-            v-if="activeTab !== TAB_SKILL_MISSILES"
+            v-if="activeTab !== TAB_SKILL_MISSILES && activeTab !== TAB_MONSTERS"
             :modelValue="COLOR_NONE"
             @update:modelValue="batchSetTextColor($event, activeTab)"
           />
@@ -1259,7 +1508,7 @@ const currentFormatter = computed(() => formatColorDebugItem)
           @click="copyAllExtern(activeTab)"
         >{{ t('batch.copyAllExtern') }}</button>
         <!-- Color Filters -->
-        <div v-if="activeTab !== TAB_SKILL_MISSILES" class="filter-group">
+        <div v-if="activeTab !== TAB_SKILL_MISSILES && activeTab !== TAB_MONSTERS" class="filter-group">
           <span class="filter-label">{{ t('itemColors.filterTextColor') }}:</span>
           <TextColorPicker
             :modelValue="textColorFilter"
@@ -1275,12 +1524,23 @@ const currentFormatter = computed(() => formatColorDebugItem)
           />
           <button v-if="mapColorFilter && mapColorFilter !== COLOR_NONE" class="btn btn-small btn-secondary" @click="mapColorFilter = ''">×</button>
         </div>
-        <button v-if="activeTab !== TAB_SKILL_MISSILES && ((textColorFilter && textColorFilter !== COLOR_NONE) || (mapColorFilter && mapColorFilter !== COLOR_NONE))" class="btn btn-small btn-secondary" @click="clearFilters">
+        <button
+          v-if="
+            activeTab !== TAB_SKILL_MISSILES &&
+            (
+              (activeTab !== TAB_MONSTERS && textColorFilter && textColorFilter !== COLOR_NONE) ||
+              (mapColorFilter && mapColorFilter !== COLOR_NONE)
+            )
+          "
+          class="btn btn-small btn-secondary"
+          @click="clearFilters"
+        >
           {{ t('search.clear') }}
         </button>
         <button v-if="activeTab === TAB_ITEMS && !isReadOnly" class="btn btn-primary btn-small" @click="addItemColor">{{ t('btn.add') }}</button>
         <button v-if="activeTab === TAB_RUNES && !isReadOnly" class="btn btn-primary btn-small" @click="addRuneColor">{{ t('btn.add') }}</button>
         <button v-if="activeTab === TAB_GOLDS && !isReadOnly" class="btn btn-primary btn-small" @click="addGoldColor">{{ t('btn.add') }}</button>
+        <button v-if="activeTab === TAB_MONSTERS && !isReadOnly" class="btn btn-primary btn-small" @click="addMonsterColor">{{ t('btn.add') }}</button>
         <button v-if="activeTab === TAB_SKILL_MISSILES && !isReadOnly" class="btn btn-primary btn-small" @click="addSkillMissileDrawMode">{{ t('btn.add') }}</button>
         <button class="btn btn-secondary btn-small" @click="handleExport" :title="t('btn.export')">{{ t('btn.export') }}</button>
       </template>
@@ -1608,6 +1868,111 @@ const currentFormatter = computed(() => formatColorDebugItem)
                   ×
                 </button>
               </template>
+          </template>
+        </ConfigTable>
+      </div>
+
+      <!-- Monster Colors Tab -->
+      <div v-show="activeTab === TAB_MONSTERS" class="tab-content">
+        <ConfigTable
+          :items="monsterColors"
+          :columns="monsterColorColumns"
+          :empty-text="t('itemColors.monsterEmpty')"
+          list-class="color-list monsters-color-list"
+          show-checkbox
+          show-index
+          show-drag
+          :is-all-selected="selectedMonsters.size === selectableMonstersCount && selectableMonstersCount > 0"
+          :is-read-only="isReadOnly"
+          :is-selected="(item) => isSelected(item, TAB_MONSTERS)"
+          :is-disabled="isColorRowDisabled"
+          :drag-over-index="dragOverIndex"
+          :row-classes="getItemRowClasses"
+          @select-all="toggleSelectAll(TAB_MONSTERS)"
+          @select="(item) => toggleSelect(item, TAB_MONSTERS)"
+          @dragstart="(event, index) => handleDragStartMonster(event, index)"
+          @dragover="handleDragOver"
+          @dragleave="handleDragLeave"
+          @drop="(event, index) => handleDropMonster(event, index)"
+          @dragend="handleDragEnd"
+        >
+          <template #cell-monsterId="{ item, index }">
+            <input
+              type="text"
+              :placeholder="t('itemColors.monsterId')"
+              :value="item.monsterId"
+              :readonly="isReadonlyColorItem(item)"
+              :disabled="isReadOnly"
+              @input="updateMonsterColor(index, 'monsterId', ($event.target as HTMLInputElement).value)"
+            />
+          </template>
+          <template #cell-blobColor="{ item, index }">
+            <MapColorPicker
+              :modelValue="item.blobColor"
+              :disabled="isReadOnly"
+              :readonly="isReadonlyColorItem(item)"
+              @update:modelValue="updateMonsterColor(index, 'blobColor', $event)"
+            />
+          </template>
+          <template #cell-monsterType="{ item, index }">
+            <input
+              type="text"
+              :placeholder="t('itemColors.monsterType')"
+              :value="item.monsterType"
+              :readonly="isReadonlyColorItem(item)"
+              :disabled="isReadOnly"
+              @input="updateMonsterColor(index, 'monsterType', ($event.target as HTMLInputElement).value)"
+            />
+          </template>
+          <template #cell-comment="{ item, index }">
+            <input
+              type="text"
+              class="comment-input"
+              :placeholder="t('itemColors.comment')"
+              :value="item.comment"
+              :readonly="isReadonlyColorItem(item)"
+              :disabled="isReadOnly"
+              @input="updateMonsterColor(index, 'comment', ($event.target as HTMLInputElement).value)"
+            />
+          </template>
+          <template #cell-actions="{ item, index }">
+            <template v-if="isItemExtern(item)">
+              <button
+                v-if="getMonsterJumpTarget(item) !== undefined"
+                class="btn btn-small btn-warning"
+                @click="jumpToMonsterColor(getMonsterJumpTarget(item)!)"
+                :title="t('action.jumpToMain')"
+              >→</button>
+              <button
+                v-if="!isReadOnly && getMonsterJumpTarget(item) === undefined"
+                class="btn btn-small btn-accent"
+                @click="duplicateMonsterColorToMain(index)"
+                :title="t('action.copyToMain')"
+              >
+                +
+              </button>
+            </template>
+            <template v-else-if="item.isCommented || item.isDeleted">
+              <button v-if="!isReadOnly" class="btn btn-small btn-primary" @click="handleRestoreMonsterColor(index)" :title="t('action.restore')">
+                ↩
+              </button>
+              <span v-if="item.isCommented" class="status-tag tag-commented">//</span>
+              <span v-if="item.isDeleted" class="status-tag tag-deleted">×</span>
+            </template>
+            <template v-else-if="!isReadOnly">
+              <button v-if="canCopyItemToMain(item)" class="btn btn-small btn-accent" @click="duplicateMonsterColorToMain(index)" :title="t('action.copyToMain')">
+                +
+              </button>
+              <button class="btn btn-small btn-secondary" @click="copyMonsterColor(index)" :title="t('action.copy')">
+                ⧉
+              </button>
+              <button class="btn btn-small btn-secondary" @click="handleCommentMonsterColor(index)" :title="t('action.comment')">
+                //
+              </button>
+              <button class="btn btn-small btn-danger" @click="handleDeleteMonsterColor(index)" :title="t('action.delete')">
+                ×
+              </button>
+            </template>
           </template>
         </ConfigTable>
       </div>

@@ -43,9 +43,21 @@ export interface GoldColorItem extends BaseConfigItem {
   mapText: string
 }
 
+export interface MonsterColorItem extends BaseConfigItem {
+  monsterId: string
+  blobColor: string
+  monsterType: string
+}
+
 export interface SkillMissileDrawModeItem extends BaseConfigItem {
   skillId: string
   drawMode: string
+}
+
+export interface MagicBagNameItem extends BaseConfigItem {
+  index: string
+  itemId: string
+  name: string
 }
 
 export interface ImportItemItem extends BaseConfigItem {
@@ -127,7 +139,9 @@ export interface ConfigData {
   itemColors: ItemColorItem[]
   runeColors: RuneColorItem[]
   goldColors: GoldColorItem[]
+  monsterColors: MonsterColorItem[]
   skillMissileDrawModes: SkillMissileDrawModeItem[]
+  magicBagNames: MagicBagNameItem[]
   importItems: ImportItemItem[]
   transmute: TransmuteConfig
   includes: ExternItem[]
@@ -153,7 +167,9 @@ export function createEmptyConfigData(): ConfigData {
     itemColors: [],
     runeColors: [],
     goldColors: [],
+    monsterColors: [],
     skillMissileDrawModes: [],
+    magicBagNames: [],
     importItems: [],
     transmute: {
       statLimits: [],

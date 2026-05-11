@@ -28,7 +28,9 @@ import type {
   ItemColorItem,
   RuneColorItem,
   GoldColorItem,
+  MonsterColorItem,
   SkillMissileDrawModeItem,
+  MagicBagNameItem,
   ImportItemItem,
   StatLimitItem,
   StatLimitGroupItem,
@@ -42,6 +44,7 @@ import type {
 
 // Default indent for all output lines
 export const INDENT = '    '
+const REQUIRED_QUALITY_RANGE = '1-8'
 
 // Check if value needs quotes (not a number or hex)
 function needsQuotes(value: string): boolean {
@@ -185,7 +188,7 @@ export function formatSimpleConfigLine(key: string, data: ToggleItem): string {
 }
 
 // Format Item Colors line
-function formatItemColorLine(item: ItemColorItem): string {
+export function formatItemColorLine(item: ItemColorItem): string {
   const params: string[] = [item.itemId]
   if (item.quality) params.push(item.quality)
   if (item.ethereal) params.push(item.ethereal)
@@ -195,21 +198,30 @@ function formatItemColorLine(item: ItemColorItem): string {
 }
 
 // Format Rune Colors line
-function formatRuneColorLine(rune: RuneColorItem): string {
+export function formatRuneColorLine(rune: RuneColorItem): string {
   return formatSchemaLine('Rune Colors', [rune.range], [rune.textColor, rune.mapColor, rune.mapText], rune.comment)
 }
 
 // Format Gold Colors line
-function formatGoldColorLine(gold: GoldColorItem): string {
+export function formatGoldColorLine(gold: GoldColorItem): string {
   return formatSchemaLine('Gold Colors', [gold.range], [gold.textColor, gold.mapColor, gold.mapText], gold.comment)
 }
 
-function formatSkillMissileDrawModeLine(item: SkillMissileDrawModeItem): string {
+export function formatMonsterColorLine(item: MonsterColorItem): string {
+  const values = item.monsterType ? [item.blobColor, item.monsterType] : [item.blobColor]
+  return formatSchemaLine('Monster Colors', [item.monsterId], values, item.comment)
+}
+
+export function formatSkillMissileDrawModeLine(item: SkillMissileDrawModeItem): string {
   return formatSchemaLine('Skill Missile DrawMode', [item.skillId], [item.drawMode], item.comment)
 }
 
+export function formatMagicBagNameLine(item: MagicBagNameItem): string {
+  return formatSchemaLine('Magic Bag Index Name', [item.index], [item.itemId, item.name], item.comment)
+}
+
 // Format Import Item line
-function formatImportItemLine(item: ImportItemItem): string {
+export function formatImportItemLine(item: ImportItemItem): string {
   const params: string[] = [item.itemId]
   if (item.quality) params.push(item.quality)
   if (item.ethereal) params.push(item.ethereal)
@@ -222,7 +234,7 @@ function formatImportItemLine(item: ImportItemItem): string {
 }
 
 // Format Stat Limit line
-function formatStatLimitLine(name: string, stat: StatLimitItem): string {
+export function formatStatLimitLine(name: string, stat: StatLimitItem): string {
   return formatSchemaLine(
     'Auto Transmute Stat Limit',
     [name, stat.statId],
@@ -232,40 +244,38 @@ function formatStatLimitLine(name: string, stat: StatLimitItem): string {
 }
 
 // Format Stat Limit Group line
-function formatStatLimitGroupLine(name: string, relation: string, limitName: string, comment: string): string {
+export function formatStatLimitGroupLine(name: string, relation: string, limitName: string, comment: string): string {
   const indexes = relation !== '0' ? [name, relation] : [name]
   return formatSchemaLine('Auto Transmute Stat Limit Group', indexes, [limitName], comment)
 }
 
 // Format Item Descriptor line
-function formatItemDescriptorLine(name: string, desc: ItemDescriptorItem): string {
-  const params: string[] = [name, desc.itemId]
-  if (desc.quality) params.push(desc.quality)
+export function formatItemDescriptorLine(name: string, desc: ItemDescriptorItem): string {
+  const params: string[] = [name, desc.itemId, desc.quality || REQUIRED_QUALITY_RANGE]
 
   return formatSchemaLine('Auto Transmute Item Descriptor', params, [desc.limitName, desc.count], desc.comment)
 }
 
 // Format Cube Formulas line
-function formatCubeFormulasLine(name: string, formula: CubeFormulaItem): string {
+export function formatCubeFormulasLine(name: string, formula: CubeFormulaItem): string {
   return formatSchemaLine('Auto Transmute Cube Formulas', [name], formula.descriptors, formula.comment)
 }
 
 // Format Pre Item Task line
-function formatPreItemTaskLine(name: string, task: PreItemTaskItem): string {
-  const params: string[] = [name, task.itemId]
-  if (task.quality) params.push(task.quality)
+export function formatPreItemTaskLine(name: string, task: PreItemTaskItem): string {
+  const params: string[] = [name, task.itemId, task.quality || REQUIRED_QUALITY_RANGE]
 
   return formatSchemaLine('Auto Transmute Pre Item Task', params, [task.limitName, task.action], task.comment)
 }
 
 // Format Do Task line
-function formatDoTaskLine(name: string, task: DoTaskItem): string {
+export function formatDoTaskLine(name: string, task: DoTaskItem): string {
   const values = [task.preTask, ...task.formulas]
   return formatSchemaLine('Auto Transmute Do Task', [name], values, task.comment)
 }
 
 // Format Key Binding line
-function formatKeyBindingLine(keyCode: string, binding: KeyBindingItem): string {
+export function formatKeyBindingLine(keyCode: string, binding: KeyBindingItem): string {
   return formatSchemaLine('Auto Transmute Key Binding', [keyCode], [binding.command], binding.comment)
 }
 
@@ -333,6 +343,13 @@ export function generateConfig(configData: ConfigData): string {
     }
   }
 
+  const monsterColorLines: string[] = []
+  for (const item of configData.monsterColors) {
+    if (shouldOutput(item)) {
+      monsterColorLines.push(outputLine(formatMonsterColorLine(item), item.isCommented))
+    }
+  }
+
   const skillMissileDrawModeLines: string[] = []
   for (const item of configData.skillMissileDrawModes) {
     if (shouldOutput(item)) {
@@ -344,6 +361,7 @@ export function generateConfig(configData: ConfigData): string {
     itemColorLines.length > 0 ||
     runeColorLines.length > 0 ||
     goldColorLines.length > 0 ||
+    monsterColorLines.length > 0 ||
     skillMissileDrawModeLines.length > 0
   ) {
     addSectionHeader(sections, t('gen.itemColors'))
@@ -360,11 +378,34 @@ export function generateConfig(configData: ConfigData): string {
       sections.push(`// ${t('gen.goldColors')}`)
       sections.push(...goldColorLines)
     }
-    if (skillMissileDrawModeLines.length > 0) {
+    if (monsterColorLines.length > 0) {
       if (itemColorLines.length > 0 || runeColorLines.length > 0 || goldColorLines.length > 0) sections.push('')
+      sections.push(`// ${t('gen.monsterColors')}`)
+      sections.push(...monsterColorLines)
+    }
+    if (skillMissileDrawModeLines.length > 0) {
+      if (
+        itemColorLines.length > 0 ||
+        runeColorLines.length > 0 ||
+        goldColorLines.length > 0 ||
+        monsterColorLines.length > 0
+      ) {
+        sections.push('')
+      }
       sections.push(`// ${t('gen.skillMissileDrawModes')}`)
       sections.push(...skillMissileDrawModeLines)
     }
+  }
+
+  const magicBagNameLines: string[] = []
+  for (const item of configData.magicBagNames) {
+    if (shouldOutput(item)) {
+      magicBagNameLines.push(outputLine(formatMagicBagNameLine(item), item.isCommented))
+    }
+  }
+  if (magicBagNameLines.length > 0) {
+    addSectionHeader(sections, t('gen.magicBagNames'))
+    sections.push(...magicBagNameLines)
   }
 
   // ========== Import Items ==========

@@ -1,6 +1,23 @@
 import { ref, watch, computed, type Ref } from 'vue'
 import { parseConfig } from '../parser'
-import { formatSimpleConfigLine, generateConfig } from '../generator'
+import {
+  formatCubeFormulasLine,
+  formatDoTaskLine,
+  formatGoldColorLine,
+  formatImportItemLine,
+  formatItemColorLine,
+  formatItemDescriptorLine,
+  formatKeyBindingLine,
+  formatMagicBagNameLine,
+  formatMonsterColorLine,
+  formatPreItemTaskLine,
+  formatRuneColorLine,
+  formatSimpleConfigLine,
+  formatSkillMissileDrawModeLine,
+  formatStatLimitGroupLine,
+  formatStatLimitLine,
+  generateConfig
+} from '../generator'
 import { useI18n } from '../i18n'
 import { refreshEffectiveStatus } from './useItemActions'
 import { log } from '../utils/log'
@@ -117,6 +134,10 @@ function getAllIncludes(cfg: Config): ExternItem[] {
 }
 
 // Partial export generators
+function formatExportLine(line: string, isCommented: boolean): string {
+  return isCommented ? `// ${line}` : line
+}
+
 function generateTogglesExport(cfg: Config): string {
   const lines: string[] = []
   for (const fileConfig of cfg.files) {
@@ -124,7 +145,7 @@ function generateTogglesExport(cfg: Config): string {
       if (data.isDeleted) continue
       if (data.isEffective === false) continue
       const line = formatSimpleConfigLine(data.name, data)
-      lines.push(data.isCommented ? `// ${line}` : line)
+      lines.push(formatExportLine(line, data.isCommented))
     }
   }
   return lines.join('\r\n')
@@ -134,22 +155,19 @@ function generateItemColorsExport(cfg: Config): string {
   const lines: string[] = []
   for (const fileConfig of cfg.files) {
     for (const item of fileConfig.data.itemColors) {
-      const params: string[] = [item.itemId]
-      if (item.quality) params.push(item.quality)
-      if (item.ethereal) params.push(item.ethereal)
-      if (item.sockets) params.push(item.sockets)
-      const paramStr = params.map(p => `[${p}]`).join('')
-      const values: string[] = [item.textColor, item.mapColor]
-      if (item.mapText) values.push(`"${item.mapText}"`)
-      lines.push(`Item Colors${paramStr}: ${values.join(', ')}`)
+      lines.push(formatExportLine(formatItemColorLine(item), item.isCommented))
     }
     for (const rune of fileConfig.data.runeColors) {
-      const values: string[] = [rune.textColor, rune.mapColor]
-      if (rune.mapText) values.push(`"${rune.mapText}"`)
-      lines.push(`Rune Colors[${rune.range}]: ${values.join(', ')}`)
+      lines.push(formatExportLine(formatRuneColorLine(rune), rune.isCommented))
+    }
+    for (const gold of fileConfig.data.goldColors) {
+      lines.push(formatExportLine(formatGoldColorLine(gold), gold.isCommented))
+    }
+    for (const monster of fileConfig.data.monsterColors) {
+      lines.push(formatExportLine(formatMonsterColorLine(monster), monster.isCommented))
     }
     for (const item of fileConfig.data.skillMissileDrawModes) {
-      lines.push(`Skill Missile DrawMode[${item.skillId}]: ${item.drawMode}`)
+      lines.push(formatExportLine(formatSkillMissileDrawModeLine(item), item.isCommented))
     }
   }
   return lines.join('\r\n')
@@ -159,14 +177,7 @@ function generateImportItemsExport(cfg: Config): string {
   const lines: string[] = []
   for (const fileConfig of cfg.files) {
     for (const item of fileConfig.data.importItems) {
-      const params: string[] = [item.itemId]
-      if (item.quality) params.push(item.quality)
-      if (item.ethereal) params.push(item.ethereal)
-      if (item.sockets) params.push(item.sockets)
-      const paramStr = params.map(p => `[${p}]`).join('')
-      const values: string[] = [item.mode, item.showInfo, item.unused]
-      if (item.statGroup) values.push(`"${item.statGroup}"`)
-      lines.push(`Import Item${paramStr}: ${values.join(', ')}`)
+      lines.push(formatExportLine(formatImportItemLine(item), item.isCommented))
     }
   }
   return lines.join('\r\n')
@@ -181,57 +192,61 @@ function generateTransmuteExport(cfg: Config): string {
     // Stat Limits
     for (const stat of t.statLimits) {
       if (stat.isEffective === false) continue
-      lines.push(`Auto Transmute Stat Limit[${stat.name}][${stat.statId}]: ${stat.param}, ${stat.min}, ${stat.max}`)
+      lines.push(formatExportLine(formatStatLimitLine(stat.name, stat), stat.isCommented))
     }
 
     // Stat Limit Groups
     for (const group of t.statLimitGroups) {
       if (group.isEffective === false) continue
-      for (const limitName of group.limits) {
-        const relStr = group.relation !== '0' ? `[${group.relation}]` : ''
-        lines.push(`Auto Transmute Stat Limit Group[${group.name}]${relStr}: "${limitName}"`)
+      for (let i = 0; i < group.limits.length; i++) {
+        lines.push(formatExportLine(
+          formatStatLimitGroupLine(group.name, group.relation, group.limits[i], group.comments?.[i] || ''),
+          group.isCommented
+        ))
       }
     }
 
     // Item Descriptors
     for (const desc of t.itemDescriptors) {
       if (desc.isEffective === false) continue
-      const params: string[] = [desc.name, desc.itemId]
-      if (desc.quality) params.push(desc.quality)
-      const paramStr = params.map(p => `[${p}]`).join('')
-      lines.push(`Auto Transmute Item Descriptor${paramStr}: ${desc.limitName}, ${desc.count}`)
+      lines.push(formatExportLine(formatItemDescriptorLine(desc.name, desc), desc.isCommented))
     }
 
     // Cube Formulas
     for (const formula of t.cubeFormulas) {
       if (formula.isEffective === false) continue
-      const values = formula.descriptors.map(d => `"${d}"`).join(', ')
-      lines.push(`Auto Transmute Cube Formulas[${formula.name}]: ${values}`)
+      lines.push(formatExportLine(formatCubeFormulasLine(formula.name, formula), formula.isCommented))
     }
 
     // Pre Item Tasks
     for (const task of t.preItemTasks) {
       if (task.isEffective === false) continue
-      const params: string[] = [task.name, task.itemId]
-      if (task.quality) params.push(task.quality)
-      const paramStr = params.map(p => `[${p}]`).join('')
-      lines.push(`Auto Transmute Pre Item Task${paramStr}: ${task.limitName}, ${task.action}`)
+      lines.push(formatExportLine(formatPreItemTaskLine(task.name, task), task.isCommented))
     }
 
     // Do Tasks
     for (const task of t.doTasks) {
       if (task.isEffective === false) continue
-      const values = [task.preTask, ...task.formulas]
-      lines.push(`Auto Transmute Do Task[${task.name}]: ${values.join(', ')}`)
+      lines.push(formatExportLine(formatDoTaskLine(task.name, task), task.isCommented))
     }
 
     // Key Bindings
     for (const binding of t.keyBindings) {
       if (binding.isEffective === false) continue
-      lines.push(`Auto Transmute Key Binding[${binding.keyCode}]: "${binding.command}"`)
+      lines.push(formatExportLine(formatKeyBindingLine(binding.keyCode, binding), binding.isCommented))
     }
   }
 
+  return lines.join('\r\n')
+}
+
+function generateMagicBagNamesExport(cfg: Config): string {
+  const lines: string[] = []
+  for (const fileConfig of cfg.files) {
+    for (const item of fileConfig.data.magicBagNames) {
+      lines.push(formatExportLine(formatMagicBagNameLine(item), item.isCommented))
+    }
+  }
   return lines.join('\r\n')
 }
 
@@ -444,6 +459,10 @@ export function useConfig() {
       case 'transmute':
         content = generateTransmuteExport(config.value)
         exportName = 'transmute.cfg'
+        break
+      case 'magicBagNames':
+        content = generateMagicBagNamesExport(config.value)
+        exportName = 'magic-bag-names.cfg'
         break
       default:
         return

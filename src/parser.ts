@@ -7,7 +7,7 @@ import {
   TYPE_TOGGLE, TYPE_KEY, TYPE_OPTION, TYPE_INTEGER, TYPE_STRING, TYPE_COLOR,
   SET_ITEM_COLOR, SET_RUNE_COLOR, SET_GOLD_COLOR, SET_IMPORT_ITEM, SET_STAT_LIMIT, SET_STAT_LIMIT_GROUP,
   SET_ITEM_DESCRIPTOR, SET_CUBE_FORMULA, SET_PRE_ITEM_TASK, SET_DO_TASK, SET_KEY_BINDING,
-  SET_IMPORT_CONFIG, SET_SKILL_MISSILE_DRAW_MODE
+  SET_MAGIC_BAG_NAME, SET_IMPORT_CONFIG, SET_MONSTER_COLOR, SET_SKILL_MISSILE_DRAW_MODE
 } from './keywords'
 import type {
   ConfigData,
@@ -15,7 +15,9 @@ import type {
   ItemColorItem,
   RuneColorItem,
   GoldColorItem,
+  MonsterColorItem,
   SkillMissileDrawModeItem,
+  MagicBagNameItem,
   ImportItemItem,
   StatLimitItem,
   StatLimitGroupItem,
@@ -173,7 +175,9 @@ export function parseConfig(
     itemColors: [],
     runeColors: [],
     goldColors: [],
+    monsterColors: [],
     skillMissileDrawModes: [],
+    magicBagNames: [],
     importItems: [],
     transmute: {
       statLimits: [],
@@ -294,6 +298,14 @@ export function parseConfig(
         ...itemMeta
       }
       config.goldColors.push(goldColor)
+    } else if (setType === SET_MONSTER_COLOR) {
+      const monsterColor: MonsterColorItem = {
+        monsterId: params[0] || '',
+        blobColor: values[0] || '-1',
+        monsterType: values[1] || '',
+        ...itemMeta
+      }
+      config.monsterColors.push(monsterColor)
     } else if (setType === SET_SKILL_MISSILE_DRAW_MODE) {
       const skillMissileDrawMode: SkillMissileDrawModeItem = {
         skillId: params[0] || '',
@@ -301,6 +313,14 @@ export function parseConfig(
         ...itemMeta
       }
       config.skillMissileDrawModes.push(skillMissileDrawMode)
+    } else if (setType === SET_MAGIC_BAG_NAME) {
+      const magicBagName: MagicBagNameItem = {
+        index: params[0] || '',
+        itemId: values[0] || '',
+        name: values[1] || '',
+        ...itemMeta
+      }
+      config.magicBagNames.push(magicBagName)
     } else if (setType === SET_IMPORT_ITEM) {
       const importItem: ImportItemItem = {
         itemId: params[0] || '',
