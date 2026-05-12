@@ -25,11 +25,16 @@ import { moveItemInFile } from '../utils/grouping'
 import { useReferenceData } from '../composables/useReferenceData'
 import { useI18n } from '../i18n'
 import { useDebugMode } from '../composables/useDebugMode'
-import { IdRange } from '../utils/IdRange'
 import { fitTextColumnWidth } from '../utils/columnWidth'
 import { log } from '../utils/log'
 import { COLOR_NONE, SKILL_MISSILE_DRAW_MODES } from '../configDefs'
-import type { ItemColorItem, RuneColorItem, GoldColorItem, MonsterColorItem, SkillMissileDrawModeItem } from '../types'
+import type {
+  ItemColorItem,
+  RuneColorItem,
+  GoldColorItem,
+  MonsterColorItem,
+  SkillMissileDrawModeItem
+} from '../types'
 import DebugDrawer from './debug/DebugDrawer.vue'
 import FlatListView from './debug/FlatListView.vue'
 import EditorPanel from './EditorPanel.vue'
@@ -58,7 +63,12 @@ type TabType =
   | typeof TAB_GOLDS
   | typeof TAB_MONSTERS
   | typeof TAB_SKILL_MISSILES
-type ColorConfigItem = ItemColorItem | RuneColorItem | GoldColorItem | MonsterColorItem | SkillMissileDrawModeItem
+type ColorConfigItem =
+  | ItemColorItem
+  | RuneColorItem
+  | GoldColorItem
+  | MonsterColorItem
+  | SkillMissileDrawModeItem
 
 interface Props {
   searchQuery?: string
@@ -73,7 +83,7 @@ const { debugMode } = useDebugMode()
 const { saveSubTab, loadSubTab } = useFileStorage()
 const { applyDisplayOrder, sortByFileOrder, getRealDropTargetIndex } = useDisplayOrder()
 const { isItemDisabled, isItemExtern, getItemRowClasses } = useItemActions()
-const { itemsMap, getSkillById } = useReferenceData()
+const { getSkillById } = useReferenceData()
 
 const activeTab = ref<TabType>(TAB_ITEMS)
 
@@ -130,13 +140,6 @@ function isTabType(value: string): value is TabType {
 
 function handleExport(): void {
   exportSection('itemColors')
-}
-
-// Check for invalid item IDs
-function hasInvalidIds(itemId: string): boolean {
-  if (!itemId || !itemsMap.value || itemsMap.value.size === 0) return false
-  const range = new IdRange(itemId)
-  return range.hasInvalid(itemsMap.value)
 }
 
 // Get all items for building data
@@ -326,7 +329,6 @@ function getMergedIndex(filteredIndex: number, type: TabType): number {
     if (!item) return -1
     return getAllItems<SkillMissileDrawModeItem>(config.value, 'skillMissileDrawModes').indexOf(item)
   }
-
   const item = itemColors.value[filteredIndex]
   if (!item) return -1
   return getAllItems<ItemColorItem>(config.value, 'itemColors').indexOf(item)
@@ -461,6 +463,14 @@ function hasColorFields(item: ColorConfigItem): item is ItemColorItem | RuneColo
 
 function hasBlobColorField(item: ColorConfigItem): item is MonsterColorItem {
   return 'blobColor' in item
+}
+
+function supportsTextColor(tabType: TabType): boolean {
+  return tabType === TAB_ITEMS || tabType === TAB_RUNES || tabType === TAB_GOLDS
+}
+
+function supportsMapColor(tabType: TabType): boolean {
+  return tabType !== TAB_SKILL_MISSILES
 }
 
 // Selectable counts (non-extern items only)
@@ -1487,12 +1497,12 @@ const currentFormatter = computed(() => formatColorDebugItem)
         <div v-if="hasSelection(activeTab) && !isReadOnly" class="batch-bar">
           <span class="batch-info">{{ t('batch.selected', { count: getSelectedSet(activeTab).value.size }) }}</span>
           <TextColorPicker
-            v-if="activeTab !== TAB_SKILL_MISSILES && activeTab !== TAB_MONSTERS"
+            v-if="supportsTextColor(activeTab)"
             :modelValue="COLOR_NONE"
             @update:modelValue="batchSetTextColor($event, activeTab)"
           />
           <MapColorPicker
-            v-if="activeTab !== TAB_SKILL_MISSILES"
+            v-if="supportsMapColor(activeTab)"
             :modelValue="COLOR_NONE"
             @update:modelValue="batchSetMapColor($event, activeTab)"
           />
@@ -1508,7 +1518,7 @@ const currentFormatter = computed(() => formatColorDebugItem)
           @click="copyAllExtern(activeTab)"
         >{{ t('batch.copyAllExtern') }}</button>
         <!-- Color Filters -->
-        <div v-if="activeTab !== TAB_SKILL_MISSILES && activeTab !== TAB_MONSTERS" class="filter-group">
+        <div v-if="supportsTextColor(activeTab)" class="filter-group">
           <span class="filter-label">{{ t('itemColors.filterTextColor') }}:</span>
           <TextColorPicker
             :modelValue="textColorFilter"
@@ -1516,7 +1526,7 @@ const currentFormatter = computed(() => formatColorDebugItem)
           />
           <button v-if="textColorFilter && textColorFilter !== '' && textColorFilter !== COLOR_NONE" class="btn btn-small btn-secondary" @click="textColorFilter = ''">×</button>
         </div>
-        <div v-if="activeTab !== TAB_SKILL_MISSILES" class="filter-group">
+        <div v-if="supportsMapColor(activeTab)" class="filter-group">
           <span class="filter-label">{{ t('itemColors.filterMapColor') }}:</span>
           <MapColorPicker
             :modelValue="mapColorFilter"
@@ -1575,7 +1585,6 @@ const currentFormatter = computed(() => formatColorDebugItem)
               :placeholder="t('itemColors.itemId')"
               :disabled="isReadOnly"
               :readonly="isReadonlyColorItem(item)"
-              :class="{ 'has-warning': hasInvalidIds(item.itemId) }"
               @update:modelValue="updateItemColor(index, 'itemId', $event)"
             />
           </template>
@@ -2074,6 +2083,7 @@ const currentFormatter = computed(() => formatColorDebugItem)
           </template>
         </ConfigTable>
       </div>
+
     </EditorPanel>
 
     <!-- Debug Panel -->
@@ -2131,7 +2141,4 @@ const currentFormatter = computed(() => formatColorDebugItem)
   white-space: nowrap;
 }
 
-.has-warning {
-  outline: 2px dashed var(--warning-color);
-}
 </style>

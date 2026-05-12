@@ -124,7 +124,7 @@ export const QUALITIES: QualityOption[] = [
 
 // Color constants
 export const COLOR_NONE = '-1'  // No color / default / unset
-export const COLOR_HIDDEN = '-2'  // Hidden (text color only)
+export const COLOR_HIDDEN = '-2'  // Hidden (map color)
 
 // Text color type
 export interface TextColor {
@@ -136,7 +136,6 @@ export interface TextColor {
 
 // Text colors (ÿc? format) - name is i18n key
 export const TEXT_COLORS: TextColor[] = [
-  { id: -2, nameKey: 'color.-2', rgb: null },
   { id: -1, nameKey: 'color.-1', rgb: '#FFFFFF' },
   { id: 0, code: '0', nameKey: 'color.0', rgb: '#FFFFFF' },
   { id: 1, code: '1', nameKey: 'color.1', rgb: '#FF0000' },

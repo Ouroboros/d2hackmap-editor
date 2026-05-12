@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from '../i18n'
-import { COLOR_NONE } from '../configDefs'
+import { COLOR_HIDDEN, COLOR_NONE } from '../configDefs'
 
 const { t } = useI18n()
 
@@ -119,6 +119,8 @@ const displayColor = computed(() => {
   return currentColor.value?.hex || '#888888'
 })
 
+const isHidden = computed(() => props.modelValue === COLOR_HIDDEN)
+
 interface PaletteColor {
   index: number
   hex: string
@@ -135,6 +137,12 @@ function selectColor(color: PaletteColor): void {
 function clearColor(): void {
   if (props.readonly) return
   emit('update:modelValue', COLOR_NONE)
+  showPicker.value = false
+}
+
+function hideColor(): void {
+  if (props.readonly) return
+  emit('update:modelValue', COLOR_HIDDEN)
   showPicker.value = false
 }
 
@@ -183,11 +191,12 @@ function isColorSelected(colorIndex: number): boolean {
     <div
       class="color-display"
       :style="{ backgroundColor: displayColor }"
-      :class="{ 'no-color': !currentColor }"
+      :class="{ 'no-color': !currentColor && !isHidden, 'hidden-color': isHidden }"
       @click="togglePicker"
-      :title="currentColor ? t('mapColor.title', { value: modelValue, index: currentColor.index }) : t('mapColor.none')"
+      :title="isHidden ? `${t('color.-2')} (${COLOR_HIDDEN})` : currentColor ? t('mapColor.title', { value: modelValue, index: currentColor.index }) : t('mapColor.none')"
     >
-      <span v-if="!currentColor" class="no-color-text">-</span>
+      <span v-if="isHidden" class="hidden-color-text">×</span>
+      <span v-else-if="!currentColor" class="no-color-text">-</span>
     </div>
 
     <Teleport to="body">
@@ -198,6 +207,14 @@ function isColorSelected(colorIndex: number): boolean {
             <span v-if="readonly" class="readonly-badge">{{ t('status.readOnly') }}</span>
             <button v-if="!readonly" class="btn btn-small btn-secondary" @click="clearColor">{{ t('mapColor.clear') }}</button>
           </div>
+          <button
+            v-if="!readonly"
+            class="hidden-color-option"
+            :class="{ selected: isHidden }"
+            @click="hideColor"
+          >
+            {{ t('color.-2') }} ({{ COLOR_HIDDEN }})
+          </button>
           <div class="palette-grid">
             <div
               v-for="color in palette"
@@ -250,8 +267,24 @@ function isColorSelected(colorIndex: number): boolean {
   ) !important;
 }
 
+.color-display.hidden-color {
+  background: repeating-linear-gradient(
+    45deg,
+    #333333,
+    #333333 4px,
+    #222222 4px,
+    #222222 8px
+  ) !important;
+}
+
 .no-color-text {
   color: var(--text-muted);
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.hidden-color-text {
+  color: #ff4444;
   font-size: 14px;
   font-weight: bold;
 }
@@ -286,6 +319,23 @@ function isColorSelected(colorIndex: number): boolean {
   margin-bottom: 12px;
   font-weight: 500;
   position: relative !important;
+}
+
+.hidden-color-option {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.hidden-color-option:hover,
+.hidden-color-option.selected {
+  border-color: var(--accent-color);
+  background: var(--bg-tertiary);
 }
 
 .palette-grid {

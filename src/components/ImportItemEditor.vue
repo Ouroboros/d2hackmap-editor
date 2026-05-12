@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useConfig } from '../composables/useConfig'
+import { useFileStorage } from '../composables/useFileStorage'
 import {
   useItemActions,
   refreshEffectiveStatus,
   getImportItemKey,
+  getMagicBagNameKey,
   getAllItems,
   canCopyItemToMain,
   addItemToEditable,
@@ -20,7 +22,8 @@ import { useI18n } from '../i18n'
 import { useDebugMode } from '../composables/useDebugMode'
 import { useDisplayOrder } from '../composables/useDisplayOrder'
 import { PICKUP_MODES } from '../configDefs'
-import type { ImportItemItem } from '../types'
+import { fitTextColumnWidth } from '../utils/columnWidth'
+import type { ImportItemItem, MagicBagNameItem } from '../types'
 import DebugDrawer from './debug/DebugDrawer.vue'
 import FlatListView from './debug/FlatListView.vue'
 import EditorPanel from './EditorPanel.vue'
@@ -43,27 +46,47 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { config, exportSection, isReadOnly } = useConfig()
 const { debugMode } = useDebugMode()
+const { saveSubTab, loadSubTab } = useFileStorage()
 const { applyDisplayOrder, sortByFileOrder, getRealDropTargetIndex } = useDisplayOrder()
 const { isItemDisabled, isItemExtern, getItemRowClasses } = useItemActions()
 
-// Sub-tabs configuration (single tab for alignment)
+const TAB_IMPORT_ITEMS = 'importItems' as const
+const TAB_MAGIC_BAGS = 'magicBags' as const
+type TabType = typeof TAB_IMPORT_ITEMS | typeof TAB_MAGIC_BAGS
+
+const activeTab = ref<TabType>(TAB_IMPORT_ITEMS)
+
 const subTabsConfig = computed(() => [
-  { id: 'importItems', label: t('subTab.importItems') }
+  { id: TAB_IMPORT_ITEMS, label: t('subTab.importItems') },
+  { id: TAB_MAGIC_BAGS, label: t('subTab.magicBags') }
 ])
 
 // Selection state (store item references)
 const selectedItems = ref<Set<ImportItemItem>>(new Set())
+const selectedMagicBags = ref<Set<MagicBagNameItem>>(new Set())
 
 // Drag state
 const dragIndex = ref<number | null>(null)
 const dragOverIndex = ref<number | null>(null)
 
+watch(activeTab, (newTab) => {
+  saveSubTab('importItems', newTab)
+  selectedItems.value.clear()
+  selectedMagicBags.value.clear()
+})
+
+onMounted(() => {
+  const savedTab = loadSubTab('importItems', TAB_IMPORT_ITEMS)
+  activeTab.value = savedTab === TAB_MAGIC_BAGS ? TAB_MAGIC_BAGS : TAB_IMPORT_ITEMS
+})
+
 function handleExport(): void {
-  exportSection('importItems')
+  exportSection(activeTab.value === TAB_MAGIC_BAGS ? 'magicBagNames' : 'importItems')
 }
 
 // Get all items for building data
 const importItemsAll = computed(() => getAllItems<ImportItemItem>(config.value, 'importItems'))
+const magicBagNamesAll = computed(() => getAllItems<MagicBagNameItem>(config.value, 'magicBagNames'))
 
 // Filter items for display: main items (all) + extern items (only effective)
 function filterForDisplay<T extends { sourceFile: string | null; isEffective?: boolean }>(items: T[]): T[] {
@@ -88,21 +111,50 @@ const importItems = computed((): ImportItemItem[] => {
   return applyDisplayOrder(items)
 })
 
+const magicBagNames = computed((): MagicBagNameItem[] => {
+  let items = filterForDisplay(magicBagNamesAll.value)
+  if (!items.length) return []
+
+  if (props.searchQuery) {
+    const q = props.searchQuery.toLowerCase()
+    items = items.filter(item =>
+      item.itemId.toLowerCase().includes(q) ||
+      item.name.toLowerCase().includes(q) ||
+      item.comment?.toLowerCase().includes(q)
+    )
+  }
+
+  return applyDisplayOrder(items)
+})
+
 // Build map for jump targets from DISPLAYED items (so indices match data-index)
 const importItemsJumpMap = computed(() => buildCommentedMainMap(importItems.value, getImportItemKey))
+const magicBagNamesJumpMap = computed(() => buildCommentedMainMap(magicBagNames.value, getMagicBagNameKey))
 
 // Get jump target for an item
 function getItemJumpTarget(item: ImportItemItem): number | undefined {
   return getJumpTargetIndex(item, importItemsJumpMap.value, getImportItemKey)
 }
 
+function getMagicBagJumpTarget(item: MagicBagNameItem): number | undefined {
+  return getJumpTargetIndex(item, magicBagNamesJumpMap.value, getMagicBagNameKey)
+}
+
 function jumpToImportItem(index: number): void {
   scrollToIndex(index, '.import-items-list')
+}
+
+function jumpToMagicBagName(index: number): void {
+  scrollToIndex(index, '.magic-bags-list')
 }
 
 // Selectable count (non-extern items only)
 const selectableItemsCount = computed(() => importItems.value.filter(item => !isItemExtern(item)).length)
 const isAllSelected = computed(() => selectedItems.value.size === selectableItemsCount.value && selectableItemsCount.value > 0)
+const selectableMagicBagsCount = computed(() => magicBagNames.value.filter(item => !isItemExtern(item)).length)
+const isAllMagicBagsSelected = computed(() =>
+  selectedMagicBags.value.size === selectableMagicBagsCount.value && selectableMagicBagsCount.value > 0
+)
 
 // Get merged display index for drag operations
 function getMergedIndex(filteredIndex: number): number {
@@ -113,9 +165,21 @@ function getMergedIndex(filteredIndex: number): number {
   return allItems.indexOf(targetItem)
 }
 
+function getMagicBagMergedIndex(filteredIndex: number): number {
+  if (filteredIndex < 0 || filteredIndex >= magicBagNames.value.length) return -1
+
+  const allItems = getAllItems<MagicBagNameItem>(config.value, 'magicBagNames')
+  const targetItem = magicBagNames.value[filteredIndex]
+  return allItems.indexOf(targetItem)
+}
+
 // Get the effective item at filtered index
 function getItemAtIndex(filteredIndex: number): ImportItemItem | undefined {
   return importItems.value[filteredIndex]
+}
+
+function getMagicBagAtIndex(filteredIndex: number): MagicBagNameItem | undefined {
+  return magicBagNames.value[filteredIndex]
 }
 
 function isReadonlyImportItem(item: ImportItemItem): boolean {
@@ -126,11 +190,42 @@ function isImportRowDisabled(item: ImportItemItem): boolean {
   return isItemDisabled(item) || isItemExtern(item)
 }
 
+function isReadonlyMagicBagName(item: MagicBagNameItem): boolean {
+  return isReadOnly.value || isItemDisabled(item) || isItemExtern(item)
+}
+
+function isMagicBagRowDisabled(item: MagicBagNameItem): boolean {
+  return isItemDisabled(item) || isItemExtern(item)
+}
+
+const magicBagItemIdWidth = computed(() =>
+  fitTextColumnWidth(
+    getAllItems<MagicBagNameItem>(config.value, 'magicBagNames').map(item => item.itemId),
+    t('itemColors.magicBagItem'),
+    { min: 120, max: 220, padding: 34 }
+  )
+)
+
+const magicBagNameWidth = computed(() =>
+  fitTextColumnWidth(
+    getAllItems<MagicBagNameItem>(config.value, 'magicBagNames').map(item => item.name),
+    t('itemColors.magicBagName'),
+    { min: 180, max: 420, padding: 34 }
+  )
+)
+
 const importItemColumns = computed<ConfigTableColumn[]>(() => [
   { key: 'itemId', label: t('itemColors.itemId'), width: '150px' },
   { key: 'quality', label: t('itemColors.quality'), width: '80px' },
   { key: 'mode', label: t('import.mode'), width: '200px' },
   { key: 'statGroup', label: t('import.statGroup'), width: '120px' },
+  { key: 'comment', label: t('itemColors.comment'), width: '180px', className: 'col-comment' },
+  { key: 'actions', label: t('itemColors.actions'), width: '220px', className: 'col-actions' }
+])
+
+const magicBagColumns = computed<ConfigTableColumn[]>(() => [
+  { key: 'itemId', label: t('itemColors.magicBagItem'), width: magicBagItemIdWidth.value },
+  { key: 'name', label: t('itemColors.magicBagName'), width: magicBagNameWidth.value },
   { key: 'comment', label: t('itemColors.comment'), width: '180px', className: 'col-comment' },
   { key: 'actions', label: t('itemColors.actions'), width: '220px', className: 'col-actions' }
 ])
@@ -263,6 +358,122 @@ function duplicateImportItemToMain(original: ImportItemItem, skipRefresh = false
   return true
 }
 
+function getNextMagicBagIndex(): string {
+  const indexes = magicBagNamesAll.value
+    .map(item => Number.parseInt(item.index, 10))
+    .filter(index => Number.isFinite(index))
+  return String(indexes.length > 0 ? Math.max(...indexes) + 1 : 1)
+}
+
+function addMagicBagName(): void {
+  if (!config.value || isReadOnly.value) return
+  const newItem: MagicBagNameItem = {
+    index: getNextMagicBagIndex(),
+    itemId: '',
+    name: '',
+    comment: '',
+    sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
+    isNew: true,
+    isCommented: false
+  }
+  addItemToEditable(config.value, 'magicBagNames', newItem)
+  refreshEffectiveStatus(config.value)
+  scrollToMainItemInList(() => magicBagNames.value, newItem, getMagicBagNameKey, '.magic-bags-list')
+}
+
+function updateMagicBagName(index: number, field: keyof MagicBagNameItem, value: string): void {
+  const item = getMagicBagAtIndex(index)
+  if (!item || isReadonlyMagicBagName(item)) return
+  ;(item as MagicBagNameItem)[field] = value as never
+}
+
+function handleDeleteMagicBagName(index: number): void {
+  if (!config.value || isReadOnly.value) return
+  const item = getMagicBagAtIndex(index)
+  if (!item || isItemExtern(item)) return
+
+  deleteItemFromFile(config.value, item, 'magicBagNames')
+  refreshEffectiveStatus(config.value)
+}
+
+function handleCommentMagicBagName(index: number): void {
+  if (!config.value || isReadOnly.value) return
+  const item = getMagicBagAtIndex(index)
+  if (!item || isItemExtern(item)) return
+
+  item.isCommented = true
+  item.isDeleted = false
+  refreshEffectiveStatus(config.value)
+}
+
+function handleRestoreMagicBagName(index: number): void {
+  if (!config.value || isReadOnly.value) return
+  const item = getMagicBagAtIndex(index)
+  if (!item || isItemExtern(item)) return
+
+  item.isCommented = false
+  item.isDeleted = false
+  refreshEffectiveStatus(config.value)
+}
+
+function copyMagicBagName(index: number): void {
+  if (!config.value || isReadOnly.value) return
+  const original = getMagicBagAtIndex(index)
+  if (!original) return
+
+  const copy: MagicBagNameItem = {
+    index: getNextMagicBagIndex(),
+    itemId: original.itemId,
+    name: original.name,
+    comment: original.comment,
+    sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
+    isNew: true,
+    isCommented: false
+  }
+  addItemToEditable(config.value, 'magicBagNames', copy)
+  refreshEffectiveStatus(config.value)
+  scrollToMainItemInList(() => magicBagNames.value, copy, getMagicBagNameKey, '.magic-bags-list')
+}
+
+function duplicateMagicBagNameToMain(index: number, skipRefresh = false): boolean {
+  if (!config.value || isReadOnly.value) return false
+  const original = getMagicBagAtIndex(index)
+  if (!original) return false
+  return duplicateMagicBagNameItemToMain(original, skipRefresh)
+}
+
+function duplicateMagicBagNameItemToMain(original: MagicBagNameItem, skipRefresh = false): boolean {
+  if (!config.value || isReadOnly.value) return false
+  if (!canCopyItemToMain(original)) return false
+
+  const key = getMagicBagNameKey(original)
+  const allItems = getAllItems<MagicBagNameItem>(config.value, 'magicBagNames')
+  const hasMainItem = allItems.some(item => getMagicBagNameKey(item) === key && item.layer === 'user')
+  if (hasMainItem) return false
+
+  const newItem: MagicBagNameItem = {
+    index: original.index,
+    itemId: original.itemId,
+    name: original.name,
+    comment: original.comment,
+    sourceFile: null,
+    layer: 'user',
+    saveTarget: 'user',
+    isNew: true,
+    isCommented: false
+  }
+  addItemToEditable(config.value, 'magicBagNames', newItem)
+  if (!skipRefresh) {
+    refreshEffectiveStatus(config.value)
+    scrollToMainItemInList(() => magicBagNames.value, newItem, getMagicBagNameKey, '.magic-bags-list')
+  }
+  return true
+}
+
 // Selection functions
 function toggleSelectAll() {
   const items = importItems.value
@@ -290,6 +501,33 @@ function isSelected(item: ImportItemItem) {
 
 function hasSelection() {
   return selectedItems.value.size > 0
+}
+
+function toggleSelectAllMagicBags(): void {
+  const selectableItems = magicBagNames.value.filter(item => !isItemExtern(item))
+
+  if (selectedMagicBags.value.size === selectableItems.length && selectableItems.length > 0) {
+    selectedMagicBags.value.clear()
+  } else {
+    selectedMagicBags.value = new Set(selectableItems)
+  }
+}
+
+function toggleSelectMagicBag(item: MagicBagNameItem): void {
+  if (selectedMagicBags.value.has(item)) {
+    selectedMagicBags.value.delete(item)
+  } else {
+    selectedMagicBags.value.add(item)
+  }
+  selectedMagicBags.value = new Set(selectedMagicBags.value)
+}
+
+function isMagicBagSelected(item: MagicBagNameItem): boolean {
+  return selectedMagicBags.value.has(item)
+}
+
+function hasMagicBagSelection(): boolean {
+  return selectedMagicBags.value.size > 0
 }
 
 // Batch operations
@@ -332,9 +570,51 @@ function batchRestore() {
   refreshEffectiveStatus(config.value)
 }
 
+function batchDeleteMagicBags(): void {
+  if (isReadOnly.value || !config.value) return
+
+  for (const item of selectedMagicBags.value) {
+    if (!isItemExtern(item)) {
+      deleteItemFromFile(config.value, item, 'magicBagNames')
+    }
+  }
+  selectedMagicBags.value.clear()
+  refreshEffectiveStatus(config.value)
+}
+
+function batchCommentMagicBags(): void {
+  if (isReadOnly.value || !config.value) return
+
+  for (const item of selectedMagicBags.value) {
+    if (!isItemExtern(item)) {
+      item.isCommented = true
+      item.isDeleted = false
+    }
+  }
+  selectedMagicBags.value.clear()
+  refreshEffectiveStatus(config.value)
+}
+
+function batchRestoreMagicBags(): void {
+  if (isReadOnly.value || !config.value) return
+
+  for (const item of selectedMagicBags.value) {
+    if (!isItemExtern(item)) {
+      item.isCommented = false
+      item.isDeleted = false
+    }
+  }
+  selectedMagicBags.value.clear()
+  refreshEffectiveStatus(config.value)
+}
+
 // Check if there are extern items
 function hasExternItems() {
   return importItems.value.some(item => isItemExtern(item))
+}
+
+function hasExternMagicBags(): boolean {
+  return magicBagNames.value.some(item => isItemExtern(item))
 }
 
 // Copy all extern items - use skipRefresh to avoid index shifting during batch
@@ -352,6 +632,24 @@ function copyAllExtern() {
   }
 
   // Refresh once after all copies
+  if (copied > 0) {
+    refreshEffectiveStatus(config.value)
+  }
+}
+
+function copyAllExternMagicBags(): void {
+  if (!config.value || isReadOnly.value) return
+
+  const externItems = sortByFileOrder(
+    magicBagNames.value.filter(item => isItemExtern(item)),
+    magicBagNamesAll.value
+  )
+
+  let copied = 0
+  for (const item of externItems) {
+    if (duplicateMagicBagNameItemToMain(item, true)) copied++
+  }
+
   if (copied > 0) {
     refreshEffectiveStatus(config.value)
   }
@@ -421,6 +719,54 @@ function handleDrop(e: DragEvent, targetIndex: number) {
   dragOverIndex.value = null
 }
 
+function handleDragStartMagicBag(e: DragEvent, index: number): void {
+  log(`[MagicBag handleDragStart] index=${index}`)
+  dragIndex.value = index
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', String(index))
+  }
+}
+
+function handleDropMagicBag(e: DragEvent, targetIndex: number): void {
+  e.preventDefault()
+  log(`[MagicBag handleDrop] START: sourceIndex=${dragIndex.value}, targetIndex=${targetIndex}`)
+
+  if (isReadOnly.value || !config.value) {
+    log(`[MagicBag handleDrop] ABORT: isReadOnly=${isReadOnly.value}, config=${!!config.value}`)
+    return
+  }
+  const sourceIndex = dragIndex.value
+  if (sourceIndex === null || sourceIndex === targetIndex) {
+    log(`[MagicBag handleDrop] ABORT: sourceIndex=${sourceIndex}, targetIndex=${targetIndex}`)
+    dragIndex.value = null
+    dragOverIndex.value = null
+    return
+  }
+
+  const item = getMagicBagAtIndex(sourceIndex)
+  if (!item) {
+    log(`[MagicBag handleDrop] ABORT: item not found at sourceIndex=${sourceIndex}`)
+    return
+  }
+
+  const targetRealIndex = getMagicBagMergedIndex(targetIndex)
+  log(`[MagicBag handleDrop] targetRealIndex=${targetRealIndex}`)
+  if (targetRealIndex < 0) {
+    log(`[MagicBag handleDrop] ABORT: targetRealIndex < 0`)
+    return
+  }
+  const targetMergedIdx = getRealDropTargetIndex(sourceIndex, targetIndex, targetRealIndex)
+
+  log(`[MagicBag handleDrop] calling moveItemInFile: targetMergedIdx=${targetMergedIdx}`)
+  const result = moveItemInFile(config.value, item, targetMergedIdx, 'magicBagNames')
+  log(`[MagicBag handleDrop] moveItemInFile returned: ${result}`)
+
+  refreshEffectiveStatus(config.value)
+  dragIndex.value = null
+  dragOverIndex.value = null
+}
+
 function handleDragEnd() {
   dragIndex.value = null
   dragOverIndex.value = null
@@ -439,9 +785,17 @@ function formatImportItem(item: ImportItemItem): string {
   return `${item.itemId}|${item.quality}|${item.ethereal}|${item.sockets} → mode:${item.mode}${item.statGroup ? `, stat:${item.statGroup}` : ''}`
 }
 
+function formatMagicBagName(item: MagicBagNameItem): string {
+  return `${item.index} → ${item.itemId}, ${item.name}`
+}
+
 // Debug panel data (typed computed to avoid template type inference issues)
 const debugImportItems = computed((): ImportItemItem[] => {
   return getAllItems<ImportItemItem>(config.value, 'importItems')
+})
+
+const debugMagicBagNames = computed((): MagicBagNameItem[] => {
+  return getAllItems<MagicBagNameItem>(config.value, 'magicBagNames')
 })
 </script>
 
@@ -449,27 +803,40 @@ const debugImportItems = computed((): ImportItemItem[] => {
   <div class="import-item-editor">
     <EditorPanel>
       <template #tabs>
-        <SubTabs :tabs="subTabsConfig" model-value="importItems" />
+        <SubTabs v-model="activeTab" :tabs="subTabsConfig" />
       </template>
       <template #batch-bar>
-        <div v-if="hasSelection() && !isReadOnly" class="batch-bar">
+        <div v-if="activeTab === TAB_IMPORT_ITEMS && hasSelection() && !isReadOnly" class="batch-bar">
           <span class="batch-info">{{ t('batch.selected', { count: selectedItems.size }) }}</span>
           <button class="btn btn-small btn-primary" @click="batchRestore">{{ t('btn.restore') }}</button>
           <button class="btn btn-small btn-secondary" @click="batchComment">{{ t('btn.comment') }}</button>
           <button class="btn btn-small btn-danger" @click="batchDelete">{{ t('btn.delete') }}</button>
         </div>
+        <div v-if="activeTab === TAB_MAGIC_BAGS && hasMagicBagSelection() && !isReadOnly" class="batch-bar">
+          <span class="batch-info">{{ t('batch.selected', { count: selectedMagicBags.size }) }}</span>
+          <button class="btn btn-small btn-primary" @click="batchRestoreMagicBags">{{ t('btn.restore') }}</button>
+          <button class="btn btn-small btn-secondary" @click="batchCommentMagicBags">{{ t('btn.comment') }}</button>
+          <button class="btn btn-small btn-danger" @click="batchDeleteMagicBags">{{ t('btn.delete') }}</button>
+        </div>
       </template>
       <template #actions>
         <button
-          v-if="hasExternItems() && !isReadOnly"
+          v-if="activeTab === TAB_IMPORT_ITEMS && hasExternItems() && !isReadOnly"
           class="btn btn-small btn-accent"
           @click="copyAllExtern"
         >{{ t('batch.copyAllExtern') }}</button>
-        <button v-if="!isReadOnly" class="btn btn-primary btn-small" @click="addItem">{{ t('btn.add') }}</button>
+        <button
+          v-if="activeTab === TAB_MAGIC_BAGS && hasExternMagicBags() && !isReadOnly"
+          class="btn btn-small btn-accent"
+          @click="copyAllExternMagicBags"
+        >{{ t('batch.copyAllExtern') }}</button>
+        <button v-if="activeTab === TAB_IMPORT_ITEMS && !isReadOnly" class="btn btn-primary btn-small" @click="addItem">{{ t('btn.add') }}</button>
+        <button v-if="activeTab === TAB_MAGIC_BAGS && !isReadOnly" class="btn btn-primary btn-small" @click="addMagicBagName">{{ t('btn.add') }}</button>
         <button class="btn btn-secondary btn-small" @click="handleExport" :title="t('btn.export')">{{ t('btn.export') }}</button>
       </template>
 
       <ConfigTable
+        v-show="activeTab === TAB_IMPORT_ITEMS"
         :items="importItems"
         :columns="importItemColumns"
         :empty-text="t('import.empty')"
@@ -573,15 +940,118 @@ const debugImportItems = computed((): ImportItemItem[] => {
             </template>
         </template>
       </ConfigTable>
+
+      <ConfigTable
+        v-show="activeTab === TAB_MAGIC_BAGS"
+        :items="magicBagNames"
+        :columns="magicBagColumns"
+        :empty-text="t('itemColors.magicBagEmpty')"
+        list-class="magic-bags-list"
+        show-checkbox
+        show-index
+        show-drag
+        :is-all-selected="isAllMagicBagsSelected"
+        :is-read-only="isReadOnly"
+        :is-selected="isMagicBagSelected"
+        :is-disabled="isMagicBagRowDisabled"
+        :drag-over-index="dragOverIndex"
+        :row-classes="getItemRowClasses"
+        @select-all="toggleSelectAllMagicBags"
+        @select="toggleSelectMagicBag"
+        @dragstart="handleDragStartMagicBag"
+        @dragover="handleDragOver"
+        @dragleave="handleDragLeave"
+        @drop="handleDropMagicBag"
+        @dragend="handleDragEnd"
+      >
+        <template #cell-itemId="{ item, index }">
+          <ItemPicker
+            :modelValue="item.itemId"
+            :placeholder="t('itemColors.magicBagItem')"
+            :disabled="isReadOnly"
+            :readonly="isReadonlyMagicBagName(item)"
+            single
+            @update:modelValue="updateMagicBagName(index, 'itemId', $event)"
+          />
+        </template>
+        <template #cell-name="{ item, index }">
+          <input
+            type="text"
+            :placeholder="t('itemColors.magicBagName')"
+            :value="item.name"
+            :readonly="isReadonlyMagicBagName(item)"
+            :disabled="isReadOnly"
+            @input="updateMagicBagName(index, 'name', ($event.target as HTMLInputElement).value)"
+          />
+        </template>
+        <template #cell-comment="{ item, index }">
+          <input
+            type="text"
+            class="comment-input"
+            :placeholder="t('itemColors.comment')"
+            :value="item.comment"
+            :readonly="isReadonlyMagicBagName(item)"
+            :disabled="isReadOnly"
+            @input="updateMagicBagName(index, 'comment', ($event.target as HTMLInputElement).value)"
+          />
+        </template>
+        <template #cell-actions="{ item, index }">
+          <template v-if="isItemExtern(item)">
+            <button
+              v-if="getMagicBagJumpTarget(item) !== undefined"
+              class="btn btn-small btn-warning"
+              @click="jumpToMagicBagName(getMagicBagJumpTarget(item)!)"
+              :title="t('action.jumpToMain')"
+            >→</button>
+            <button
+              v-if="!isReadOnly && getMagicBagJumpTarget(item) === undefined"
+              class="btn btn-small btn-accent"
+              @click="duplicateMagicBagNameToMain(index)"
+              :title="t('action.copyToMain')"
+            >
+              +
+            </button>
+          </template>
+          <template v-else-if="item.isCommented || item.isDeleted">
+            <button v-if="!isReadOnly" class="btn btn-small btn-primary" @click="handleRestoreMagicBagName(index)" :title="t('action.restore')">
+              ↩
+            </button>
+            <span v-if="item.isCommented" class="status-tag tag-commented">//</span>
+            <span v-if="item.isDeleted" class="status-tag tag-deleted">×</span>
+          </template>
+          <template v-else-if="!isReadOnly">
+            <button v-if="canCopyItemToMain(item)" class="btn btn-small btn-accent" @click="duplicateMagicBagNameToMain(index)" :title="t('action.copyToMain')">
+              +
+            </button>
+            <button class="btn btn-small btn-secondary" @click="copyMagicBagName(index)" :title="t('action.copy')">
+              ⧉
+            </button>
+            <button class="btn btn-small btn-secondary" @click="handleCommentMagicBagName(index)" :title="t('action.comment')">
+              //
+            </button>
+            <button class="btn btn-small btn-danger" @click="handleDeleteMagicBagName(index)" :title="t('action.delete')">
+              ×
+            </button>
+          </template>
+        </template>
+      </ConfigTable>
     </EditorPanel>
 
     <!-- Debug Panel -->
-    <DebugDrawer v-if="debugMode && debugImportItems.length">
+    <DebugDrawer v-if="debugMode && activeTab === TAB_IMPORT_ITEMS && debugImportItems.length">
       <FlatListView
         :items="debugImportItems"
         title="Import Items"
         :get-key="getImportItemKey"
         :format-item="formatImportItem"
+      />
+    </DebugDrawer>
+    <DebugDrawer v-if="debugMode && activeTab === TAB_MAGIC_BAGS && debugMagicBagNames.length">
+      <FlatListView
+        :items="debugMagicBagNames"
+        title="Magic Bag Index Name"
+        :get-key="getMagicBagNameKey"
+        :format-item="formatMagicBagName"
       />
     </DebugDrawer>
   </div>

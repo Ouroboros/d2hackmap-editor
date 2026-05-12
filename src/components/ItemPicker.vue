@@ -11,13 +11,15 @@ interface Props {
   disabled?: boolean
   readonly?: boolean
   placeholder?: string
+  single?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: '',
   disabled: false,
   readonly: false,
-  placeholder: ''
+  placeholder: '',
+  single: false
 })
 
 const emit = defineEmits<{
@@ -52,6 +54,11 @@ watch(showPicker, (val) => {
 // Parse selected IDs from manualInput (live editing)
 const selectedIds = computed<Set<number>>(() => {
   if (!manualInput.value) return new Set<number>()
+  if (props.single) {
+    const id = Number.parseInt(manualInput.value, 10)
+    return Number.isFinite(id) ? new Set<number>([id]) : new Set<number>()
+  }
+
   return parseRange(manualInput.value, 99999)
 })
 
@@ -93,6 +100,11 @@ function isSelected(id: number): boolean {
 // Toggle item selection
 function toggleItem(id: number): void {
   if (props.readonly) return
+  if (props.single) {
+    manualInput.value = selectedIds.value.has(id) ? '' : String(id)
+    return
+  }
+
   const selected = new Set<number>(selectedIds.value)
   if (selected.has(id)) {
     selected.delete(id)
@@ -136,8 +148,13 @@ function openPicker(): void {
 // Confirm and emit value
 function confirmSelection(): void {
   if (props.readonly) return
-  emit('update:modelValue', manualInput.value)
+  emit('update:modelValue', props.single ? normalizeSingleInput(manualInput.value) : manualInput.value)
   showPicker.value = false
+}
+
+function normalizeSingleInput(value: string): string {
+  const match = value.match(/\d+/)
+  return match ? match[0] : ''
 }
 
 // Cancel and close
@@ -225,6 +242,7 @@ const selectedTooltip = computed(() => {
               class="search-input"
             />
             <button
+              v-if="!single"
               class="btn btn-small"
               :class="showSelectedOnly ? 'btn-primary' : 'btn-secondary'"
               @click="showSelectedOnly = !showSelectedOnly"
@@ -246,7 +264,7 @@ const selectedTooltip = computed(() => {
               :class="{ selected: isSelected(item.id), readonly }"
             >
               <input
-              type="checkbox"
+              :type="single ? 'radio' : 'checkbox'"
               :checked="isSelected(item.id)"
               :disabled="readonly"
               @change="toggleItem(item.id)"
