@@ -85,6 +85,22 @@ export const FIELD_DO_ACTION = 'doAction' as const
 export const FIELD_DRAW_MODE = 'drawMode' as const
 export const FIELD_MONSTER_TYPE = 'monsterType' as const
 
+export const OUTPUT_RAW = 'raw' as const
+export const OUTPUT_BOOL = 'bool' as const
+export const OUTPUT_HOTKEY = 'hotkey' as const
+export const OUTPUT_INT = 'int' as const
+export const OUTPUT_UINT = 'uint' as const
+export const OUTPUT_STRING = 'string' as const
+export const OUTPUT_QUOTED_STRING = 'quotedString' as const
+export const OUTPUT_TEXT_COLOR = 'textColor' as const
+export const OUTPUT_BLOB_COLOR = 'blobColor' as const
+export const OUTPUT_PICKUP_MODE = 'pickupMode' as const
+export const OUTPUT_PICKUP_HINT = 'pickupHint' as const
+export const OUTPUT_PICKUP_UNUSED = 'pickupUnused' as const
+export const OUTPUT_DO_ACTION = 'doAction' as const
+export const OUTPUT_DRAW_MODE = 'drawMode' as const
+export const OUTPUT_MONSTER_TYPE = 'monsterType' as const
+
 export type FieldType =
   | typeof FIELD_BOOL
   | typeof FIELD_HOTKEY
@@ -111,9 +127,27 @@ export type FieldType =
   | typeof FIELD_DRAW_MODE
   | typeof FIELD_MONSTER_TYPE
 
+export type FieldOutputType =
+  | typeof OUTPUT_RAW
+  | typeof OUTPUT_BOOL
+  | typeof OUTPUT_HOTKEY
+  | typeof OUTPUT_INT
+  | typeof OUTPUT_UINT
+  | typeof OUTPUT_STRING
+  | typeof OUTPUT_QUOTED_STRING
+  | typeof OUTPUT_TEXT_COLOR
+  | typeof OUTPUT_BLOB_COLOR
+  | typeof OUTPUT_PICKUP_MODE
+  | typeof OUTPUT_PICKUP_HINT
+  | typeof OUTPUT_PICKUP_UNUSED
+  | typeof OUTPUT_DO_ACTION
+  | typeof OUTPUT_DRAW_MODE
+  | typeof OUTPUT_MONSTER_TYPE
+
 export interface ConfigFieldSchema {
   name: string
-  type: FieldType
+  inputType: FieldType
+  outputType: FieldOutputType
   optional?: boolean
   repeat?: boolean
 }
@@ -123,6 +157,19 @@ export interface ConfigItemSchema {
   cppClass: string
   indexes: readonly ConfigFieldSchema[]
   values: readonly ConfigFieldSchema[]
+}
+
+function indexField(name: string, inputType: FieldType, options: Omit<ConfigFieldSchema, 'name' | 'inputType' | 'outputType'> = {}): ConfigFieldSchema {
+  return { name, inputType, outputType: OUTPUT_RAW, ...options }
+}
+
+function valueField(
+  name: string,
+  inputType: FieldType,
+  outputType: FieldOutputType,
+  options: Omit<ConfigFieldSchema, 'name' | 'inputType' | 'outputType'> = {}
+): ConfigFieldSchema {
+  return { name, inputType, outputType, ...options }
 }
 
 export interface Keywords {
@@ -140,44 +187,44 @@ const SIMPLE_SCHEMAS: Record<Exclude<SimpleType, typeof TYPE_SET>, Omit<ConfigIt
     cppClass: 'HMConfigItemToggle',
     indexes: [],
     values: [
-      { name: 'enabled', type: FIELD_BOOL },
-      { name: 'hotkey', type: FIELD_HOTKEY },
-      { name: 'value', type: FIELD_UINT, optional: true },
+      valueField('enabled', FIELD_BOOL, OUTPUT_BOOL),
+      valueField('hotkey', FIELD_HOTKEY, OUTPUT_HOTKEY),
+      valueField('value', FIELD_UINT, OUTPUT_UINT, { optional: true }),
     ],
   },
   [TYPE_KEY]: {
     cppClass: 'HMConfigItemKey',
     indexes: [],
     values: [
-      { name: 'hotkey', type: FIELD_HOTKEY },
+      valueField('hotkey', FIELD_HOTKEY, OUTPUT_HOTKEY),
     ],
   },
   [TYPE_OPTION]: {
     cppClass: 'HMConfigItemOption',
     indexes: [],
     values: [
-      { name: 'enabled', type: FIELD_BOOL },
+      valueField('enabled', FIELD_BOOL, OUTPUT_BOOL),
     ],
   },
   [TYPE_INTEGER]: {
     cppClass: 'HMConfigItemInt',
     indexes: [],
     values: [
-      { name: 'value', type: FIELD_UINT },
+      valueField('value', FIELD_UINT, OUTPUT_UINT),
     ],
   },
   [TYPE_STRING]: {
     cppClass: 'HMConfigItemString',
     indexes: [],
     values: [
-      { name: 'value', type: FIELD_STRING },
+      valueField('value', FIELD_STRING, OUTPUT_QUOTED_STRING),
     ],
   },
   [TYPE_COLOR]: {
     cppClass: 'HMConfigItemColorT',
     indexes: [],
     values: [
-      { name: 'value', type: FIELD_BLOB_COLOR },
+      valueField('value', FIELD_BLOB_COLOR, OUTPUT_BLOB_COLOR),
     ],
   },
 }
@@ -186,162 +233,162 @@ const SET_SCHEMAS: Record<SetType, Omit<ConfigItemSchema, 'key'>> = {
   [SET_ITEM_COLOR]: {
     cppClass: 'HMConfigItemItemColorSetT',
     indexes: [
-      { name: 'itemId', type: FIELD_ITEM_ID_RANGE },
-      { name: 'quality', type: FIELD_QUALITY_RANGE, optional: true },
-      { name: 'ethereal', type: FIELD_ETHEREAL_RANGE, optional: true },
-      { name: 'sockets', type: FIELD_SOCKET_RANGE, optional: true },
+      indexField('itemId', FIELD_ITEM_ID_RANGE),
+      indexField('quality', FIELD_QUALITY_RANGE, { optional: true }),
+      indexField('ethereal', FIELD_ETHEREAL_RANGE, { optional: true }),
+      indexField('sockets', FIELD_SOCKET_RANGE, { optional: true }),
     ],
     values: [
-      { name: 'textColor', type: FIELD_TEXT_COLOR },
-      { name: 'mapColor', type: FIELD_BLOB_COLOR },
-      { name: 'mapText', type: FIELD_STRING, optional: true },
+      valueField('textColor', FIELD_TEXT_COLOR, OUTPUT_TEXT_COLOR),
+      valueField('mapColor', FIELD_BLOB_COLOR, OUTPUT_BLOB_COLOR),
+      valueField('mapText', FIELD_STRING, OUTPUT_QUOTED_STRING, { optional: true }),
     ],
   },
   [SET_RUNE_COLOR]: {
     cppClass: 'HMConfigItemRuneColorSetT',
     indexes: [
-      { name: 'range', type: FIELD_INDEX_RANGE },
+      indexField('range', FIELD_INDEX_RANGE),
     ],
     values: [
-      { name: 'textColor', type: FIELD_TEXT_COLOR },
-      { name: 'mapColor', type: FIELD_BLOB_COLOR },
-      { name: 'mapText', type: FIELD_STRING, optional: true },
+      valueField('textColor', FIELD_TEXT_COLOR, OUTPUT_TEXT_COLOR),
+      valueField('mapColor', FIELD_BLOB_COLOR, OUTPUT_BLOB_COLOR),
+      valueField('mapText', FIELD_STRING, OUTPUT_QUOTED_STRING, { optional: true }),
     ],
   },
   [SET_GOLD_COLOR]: {
     cppClass: 'HMConfigItemRuneColorSetT',
     indexes: [
-      { name: 'range', type: FIELD_INDEX_RANGE },
+      indexField('range', FIELD_INDEX_RANGE),
     ],
     values: [
-      { name: 'textColor', type: FIELD_TEXT_COLOR },
-      { name: 'mapColor', type: FIELD_BLOB_COLOR },
-      { name: 'mapText', type: FIELD_STRING, optional: true },
+      valueField('textColor', FIELD_TEXT_COLOR, OUTPUT_TEXT_COLOR),
+      valueField('mapColor', FIELD_BLOB_COLOR, OUTPUT_BLOB_COLOR),
+      valueField('mapText', FIELD_STRING, OUTPUT_QUOTED_STRING, { optional: true }),
     ],
   },
   [SET_IMPORT_ITEM]: {
     cppClass: 'HMConfigItemAutoPickupSetT',
     indexes: [
-      { name: 'itemId', type: FIELD_ITEM_ID_RANGE },
-      { name: 'quality', type: FIELD_QUALITY_RANGE, optional: true },
-      { name: 'ethereal', type: FIELD_ETHEREAL_RANGE, optional: true },
-      { name: 'sockets', type: FIELD_SOCKET_RANGE, optional: true },
+      indexField('itemId', FIELD_ITEM_ID_RANGE),
+      indexField('quality', FIELD_QUALITY_RANGE, { optional: true }),
+      indexField('ethereal', FIELD_ETHEREAL_RANGE, { optional: true }),
+      indexField('sockets', FIELD_SOCKET_RANGE, { optional: true }),
     ],
     values: [
-      { name: 'method', type: FIELD_PICKUP_MODE },
-      { name: 'hint', type: FIELD_PICKUP_HINT },
-      { name: 'unused', type: FIELD_PICKUP_UNUSED, optional: true },
-      { name: 'statLimit', type: FIELD_STAT_LIMIT_NAME, optional: true },
+      valueField('method', FIELD_PICKUP_MODE, OUTPUT_PICKUP_MODE),
+      valueField('hint', FIELD_PICKUP_HINT, OUTPUT_PICKUP_HINT),
+      valueField('unused', FIELD_PICKUP_UNUSED, OUTPUT_PICKUP_UNUSED, { optional: true }),
+      valueField('statLimit', FIELD_STAT_LIMIT_NAME, OUTPUT_QUOTED_STRING, { optional: true }),
     ],
   },
   [SET_STAT_LIMIT]: {
     cppClass: 'HMConfigItemStatLimitSet',
     indexes: [
-      { name: 'name', type: FIELD_STAT_LIMIT_NAME },
-      { name: 'statId', type: FIELD_STAT_ID },
+      indexField('name', FIELD_STAT_LIMIT_NAME),
+      indexField('statId', FIELD_STAT_ID),
     ],
     values: [
-      { name: 'layer', type: FIELD_INT },
-      { name: 'min', type: FIELD_INT },
-      { name: 'max', type: FIELD_INT },
+      valueField('layer', FIELD_INT, OUTPUT_INT),
+      valueField('min', FIELD_INT, OUTPUT_INT),
+      valueField('max', FIELD_INT, OUTPUT_INT),
     ],
   },
   [SET_STAT_LIMIT_GROUP]: {
     cppClass: 'HMConfigItemStatLimitGroupSet',
     indexes: [
-      { name: 'name', type: FIELD_STAT_LIMIT_NAME },
-      { name: 'relation', type: FIELD_RELATION, optional: true },
+      indexField('name', FIELD_STAT_LIMIT_NAME),
+      indexField('relation', FIELD_RELATION, { optional: true }),
     ],
     values: [
-      { name: 'statLimitName', type: FIELD_STAT_LIMIT_NAME },
+      valueField('statLimitName', FIELD_STAT_LIMIT_NAME, OUTPUT_QUOTED_STRING),
     ],
   },
   [SET_ITEM_DESCRIPTOR]: {
     cppClass: 'HMConfigItemItemDescriptorSet',
     indexes: [
-      { name: 'name', type: FIELD_ITEM_DESCRIPTOR_NAME },
-      { name: 'itemId', type: FIELD_ITEM_ID_RANGE },
-      { name: 'quality', type: FIELD_QUALITY_RANGE },
+      indexField('name', FIELD_ITEM_DESCRIPTOR_NAME),
+      indexField('itemId', FIELD_ITEM_ID_RANGE),
+      indexField('quality', FIELD_QUALITY_RANGE),
     ],
     values: [
-      { name: 'statLimitName', type: FIELD_STAT_LIMIT_NAME },
-      { name: 'count', type: FIELD_UINT },
+      valueField('statLimitName', FIELD_STAT_LIMIT_NAME, OUTPUT_QUOTED_STRING),
+      valueField('count', FIELD_UINT, OUTPUT_UINT),
     ],
   },
   [SET_CUBE_FORMULA]: {
     cppClass: 'HMConfigItemCubeFormulaSet',
     indexes: [
-      { name: 'name', type: FIELD_CUBE_FORMULA_NAME },
+      indexField('name', FIELD_CUBE_FORMULA_NAME),
     ],
     values: [
-      { name: 'itemDescriptorName', type: FIELD_ITEM_DESCRIPTOR_NAME, repeat: true },
+      valueField('itemDescriptorName', FIELD_ITEM_DESCRIPTOR_NAME, OUTPUT_QUOTED_STRING, { repeat: true }),
     ],
   },
   [SET_PRE_ITEM_TASK]: {
     cppClass: 'HMConfigItemPreItemTaskSetT',
     indexes: [
-      { name: 'name', type: FIELD_PRE_TASK_NAME },
-      { name: 'itemId', type: FIELD_ITEM_ID_RANGE },
-      { name: 'quality', type: FIELD_QUALITY_RANGE },
+      indexField('name', FIELD_PRE_TASK_NAME),
+      indexField('itemId', FIELD_ITEM_ID_RANGE),
+      indexField('quality', FIELD_QUALITY_RANGE),
     ],
     values: [
-      { name: 'statLimitName', type: FIELD_STAT_LIMIT_NAME },
-      { name: 'action', type: FIELD_DO_ACTION },
+      valueField('statLimitName', FIELD_STAT_LIMIT_NAME, OUTPUT_QUOTED_STRING),
+      valueField('action', FIELD_DO_ACTION, OUTPUT_DO_ACTION),
     ],
   },
   [SET_DO_TASK]: {
     cppClass: 'HMConfigItemDoTaskSet',
     indexes: [
-      { name: 'name', type: FIELD_STRING },
+      indexField('name', FIELD_STRING),
     ],
     values: [
-      { name: 'preTaskName', type: FIELD_PRE_TASK_NAME },
-      { name: 'cubeFormulaName', type: FIELD_CUBE_FORMULA_NAME, repeat: true },
+      valueField('preTaskName', FIELD_PRE_TASK_NAME, OUTPUT_QUOTED_STRING),
+      valueField('cubeFormulaName', FIELD_CUBE_FORMULA_NAME, OUTPUT_QUOTED_STRING, { repeat: true }),
     ],
   },
   [SET_KEY_BINDING]: {
     cppClass: 'HMConfigItemKeyBinding',
     indexes: [
-      { name: 'hotkey', type: FIELD_HOTKEY },
+      indexField('hotkey', FIELD_HOTKEY),
     ],
     values: [
-      { name: 'command', type: FIELD_STRING },
+      valueField('command', FIELD_STRING, OUTPUT_QUOTED_STRING),
     ],
   },
   [SET_MAGIC_BAG_NAME]: {
     cppClass: 'HMConfigItemMagicBagNameSet',
     indexes: [
-      { name: 'index', type: FIELD_STRING },
+      indexField('index', FIELD_STRING),
     ],
     values: [
-      { name: 'itemId', type: FIELD_INT },
-      { name: 'name', type: FIELD_STRING },
+      valueField('itemId', FIELD_INT, OUTPUT_INT),
+      valueField('name', FIELD_STRING, OUTPUT_QUOTED_STRING),
     ],
   },
   [SET_IMPORT_CONFIG]: {
     cppClass: 'HMConfigItemOrderedStringSet',
     indexes: [],
     values: [
-      { name: 'file', type: FIELD_STRING },
+      valueField('file', FIELD_STRING, OUTPUT_QUOTED_STRING),
     ],
   },
   [SET_MONSTER_COLOR]: {
     cppClass: 'HMConfigMonsterColorSet',
     indexes: [
-      { name: 'monsterId', type: FIELD_INDEX_RANGE },
+      indexField('monsterId', FIELD_INDEX_RANGE),
     ],
     values: [
-      { name: 'blobColor', type: FIELD_BLOB_COLOR },
-      { name: 'monsterType', type: FIELD_MONSTER_TYPE, optional: true },
+      valueField('blobColor', FIELD_BLOB_COLOR, OUTPUT_BLOB_COLOR),
+      valueField('monsterType', FIELD_MONSTER_TYPE, OUTPUT_MONSTER_TYPE, { optional: true }),
     ],
   },
   [SET_SKILL_MISSILE_DRAW_MODE]: {
     cppClass: 'HMConfigSkillMissileDrawModeSet',
     indexes: [
-      { name: 'skillId', type: FIELD_INDEX_RANGE },
+      indexField('skillId', FIELD_INDEX_RANGE),
     ],
     values: [
-      { name: 'drawMode', type: FIELD_DRAW_MODE },
+      valueField('drawMode', FIELD_DRAW_MODE, OUTPUT_DRAW_MODE),
     ],
   },
 }

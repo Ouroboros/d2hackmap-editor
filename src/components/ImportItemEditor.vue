@@ -215,11 +215,22 @@ const magicBagNameWidth = computed(() =>
   )
 )
 
+const importItemStatGroupWidth = computed(() =>
+  fitTextColumnWidth(
+    [
+      t('statGroup.placeholder'),
+      ...importItemsAll.value.map(item => item.statGroup)
+    ],
+    t('import.statGroup'),
+    { min: 150, max: 320, padding: 54 }
+  )
+)
+
 const importItemColumns = computed<ConfigTableColumn[]>(() => [
   { key: 'itemId', label: t('itemColors.itemId'), width: '150px' },
   { key: 'quality', label: t('itemColors.quality'), width: '80px' },
   { key: 'mode', label: t('import.mode'), width: '200px' },
-  { key: 'statGroup', label: t('import.statGroup'), width: '120px' },
+  { key: 'statGroup', label: t('import.statGroup'), width: importItemStatGroupWidth.value },
   { key: 'comment', label: t('itemColors.comment'), width: '180px', className: 'col-comment' },
   { key: 'actions', label: t('itemColors.actions'), width: '220px', className: 'col-actions' }
 ])

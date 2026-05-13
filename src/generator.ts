@@ -5,22 +5,24 @@
 
 import { useI18n } from './i18n'
 import {
-  FIELD_BLOB_COLOR,
-  FIELD_BOOL,
-  FIELD_HOTKEY,
-  FIELD_INT,
-  FIELD_DO_ACTION,
-  FIELD_DRAW_MODE,
-  FIELD_MONSTER_TYPE,
-  FIELD_PICKUP_HINT,
-  FIELD_PICKUP_MODE,
-  FIELD_PICKUP_UNUSED,
-  FIELD_STRING,
-  FIELD_TEXT_COLOR,
-  FIELD_UINT,
+  OUTPUT_BLOB_COLOR,
+  OUTPUT_BOOL,
+  OUTPUT_HOTKEY,
+  OUTPUT_INT,
+  OUTPUT_DO_ACTION,
+  OUTPUT_DRAW_MODE,
+  OUTPUT_MONSTER_TYPE,
+  OUTPUT_PICKUP_HINT,
+  OUTPUT_PICKUP_MODE,
+  OUTPUT_PICKUP_UNUSED,
+  OUTPUT_QUOTED_STRING,
+  OUTPUT_RAW,
+  OUTPUT_STRING,
+  OUTPUT_TEXT_COLOR,
+  OUTPUT_UINT,
   getConfigItemSchema,
   type ConfigFieldSchema,
-  type FieldType
+  type FieldOutputType
 } from './keywords'
 import type {
   ConfigData,
@@ -65,30 +67,27 @@ function formatStringValue(value: string): string {
   return `"${value.replace(/"/g, '\\"')}"`
 }
 
-function formatReferenceValue(value: string): string {
-  return value === '' || /[,"\r\n]/.test(value) ? formatStringValue(value) : value
-}
-
-function formatSchemaValue(value: string, fieldType: FieldType): string {
-  if (fieldType === FIELD_STRING) return formatStringValue(value)
-  if (fieldType === FIELD_BOOL) return value === '1' || value === 'true' ? '1' : '0'
-  if (fieldType === FIELD_HOTKEY) return value || '-1'
+function formatSchemaValue(value: string, outputType: FieldOutputType): string {
+  if (outputType === OUTPUT_RAW) return value
+  if (outputType === OUTPUT_STRING || outputType === OUTPUT_QUOTED_STRING) return formatStringValue(value)
+  if (outputType === OUTPUT_BOOL) return value === '1' || value === 'true' ? '1' : '0'
+  if (outputType === OUTPUT_HOTKEY) return value || '-1'
   if (
-    fieldType === FIELD_INT ||
-    fieldType === FIELD_UINT ||
-    fieldType === FIELD_TEXT_COLOR ||
-    fieldType === FIELD_BLOB_COLOR ||
-    fieldType === FIELD_PICKUP_MODE ||
-    fieldType === FIELD_PICKUP_HINT ||
-    fieldType === FIELD_PICKUP_UNUSED ||
-    fieldType === FIELD_DO_ACTION ||
-    fieldType === FIELD_DRAW_MODE ||
-    fieldType === FIELD_MONSTER_TYPE
+    outputType === OUTPUT_INT ||
+    outputType === OUTPUT_UINT ||
+    outputType === OUTPUT_TEXT_COLOR ||
+    outputType === OUTPUT_BLOB_COLOR ||
+    outputType === OUTPUT_PICKUP_MODE ||
+    outputType === OUTPUT_PICKUP_HINT ||
+    outputType === OUTPUT_PICKUP_UNUSED ||
+    outputType === OUTPUT_DO_ACTION ||
+    outputType === OUTPUT_DRAW_MODE ||
+    outputType === OUTPUT_MONSTER_TYPE
   ) {
     return formatValue(value)
   }
 
-  return formatReferenceValue(value)
+  return value
 }
 
 function formatSchemaValues(values: string[], fields: readonly ConfigFieldSchema[]): string[] {
@@ -101,7 +100,7 @@ function formatSchemaValues(values: string[], fields: readonly ConfigFieldSchema
       hasRepeatField = true
       while (valueIndex < values.length) {
         const value = values[valueIndex++]
-        if (value !== '') formatted.push(formatSchemaValue(value, field.type))
+        if (value !== '') formatted.push(formatSchemaValue(value, field.outputType))
       }
       break
     }
@@ -112,7 +111,7 @@ function formatSchemaValues(values: string[], fields: readonly ConfigFieldSchema
       throw new Error(`Missing required config value: ${field.name}`)
     }
     if (field.optional && value === '') continue
-    formatted.push(formatSchemaValue(value, field.type))
+    formatted.push(formatSchemaValue(value, field.outputType))
   }
 
   if (!hasRepeatField && values.slice(valueIndex).some(value => value !== '')) {
@@ -131,7 +130,10 @@ function formatSchemaLine(key: string, indexes: string[], values: string[], comm
     throw new Error(`Invalid config indexes for ${key}: expected at least ${requiredIndexCount}, got ${indexes.length}`)
   }
 
-  const paramStr = indexes.map(value => `[${value}]`).join('')
+  const paramStr = indexes.map((value, index) => {
+    const field = schema.indexes[index]
+    return `[${formatSchemaValue(value, field?.outputType || OUTPUT_RAW)}]`
+  }).join('')
   const formattedValues = formatSchemaValues(values, schema.values)
   const content = `${key}${paramStr}: ${formattedValues.join(', ')}`
   return formatLine(content, comment)
