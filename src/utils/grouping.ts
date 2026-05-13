@@ -4,7 +4,7 @@
 
 import type { BaseConfigItem, Config, FileConfig } from '../types'
 import { log } from './log'
-import { isEditableLayer } from '../profile/profileLayers'
+import { isEditableLayer } from '../configSource'
 
 // Array-type keys of ConfigData (excluding 'transmute' which is an object)
 type ConfigDataArrayKey =

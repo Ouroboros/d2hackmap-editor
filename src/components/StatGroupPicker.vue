@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useConfig } from '../composables/useConfig'
 import { useI18n } from '../i18n'
+import { shouldDisplayConfigItem } from '../configSource'
 
 const { t } = useI18n()
 
@@ -65,7 +66,7 @@ watch(showPicker, (val) => {
 const statLimits = computed(() => {
   const limits = config.value?.files.flatMap(file => file.data.transmute.statLimits) || []
   return [...new Set(limits
-    .filter(item => item.isEffective !== false || item.isCommented)
+    .filter(shouldDisplayConfigItem)
     .map(item => item.name)
     .filter(Boolean))]
     .sort()
@@ -75,7 +76,7 @@ const statLimits = computed(() => {
 const statLimitGroups = computed(() => {
   const groups = config.value?.files.flatMap(file => file.data.transmute.statLimitGroups) || []
   return [...new Set(groups
-    .filter(item => item.isEffective !== false || item.isCommented)
+    .filter(shouldDisplayConfigItem)
     .map(item => item.name)
     .filter(Boolean))]
     .sort()

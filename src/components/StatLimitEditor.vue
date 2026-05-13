@@ -17,6 +17,7 @@ import { useI18n } from '../i18n'
 import { useDebugMode } from '../composables/useDebugMode'
 import { useReferenceData } from '../composables/useReferenceData'
 import { RELATION_TYPES } from '../configDefs'
+import { shouldDisplayConfigItem } from '../configSource'
 import type { BaseConfigItem, StatLimitGroupItem, StatLimitItem } from '../types'
 import EditorPanel from './EditorPanel.vue'
 import SubTabs from './SubTabs.vue'
@@ -79,7 +80,7 @@ function handleExport(): void {
 }
 
 const statLimits = computed(() => {
-  const items = statLimitsAll.value.filter(item => item.isEffective !== false || item.isCommented)
+  const items = statLimitsAll.value.filter(shouldDisplayConfigItem)
   return applyDisplayOrder(filterBySearch(items, props.searchQuery, 'name', 'statId', 'comment'))
 })
 
@@ -259,7 +260,7 @@ const statLimitGroupColumns = computed<ConfigTableColumn[]>(() => [
 
 const statLimitGroups = computed(() => {
   const allItems = getAllTransmuteItems<StatLimitGroupItem>('statLimitGroups')
-  const items = allItems.filter(item => item.isEffective !== false || item.isCommented)
+  const items = allItems.filter(shouldDisplayConfigItem)
   return applyDisplayOrder(filterBySearch(items, props.searchQuery, 'name', 'comment'))
 })
 

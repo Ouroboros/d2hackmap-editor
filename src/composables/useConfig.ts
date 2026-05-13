@@ -21,7 +21,7 @@ import {
 import { useI18n } from '../i18n'
 import { refreshEffectiveStatus } from './useItemActions'
 import { log } from '../utils/log'
-import { isEditableLayer } from '../profile/profileLayers'
+import { isEditableLayer } from '../configSource'
 import { parseProfileName } from '../profile/profileHeader'
 import {
   createEmptyConfig,

@@ -28,7 +28,9 @@ import { useDebugMode } from '../composables/useDebugMode'
 import { fitTextColumnWidth } from '../utils/columnWidth'
 import { log } from '../utils/log'
 import { COLOR_NONE, SKILL_MISSILE_DRAW_MODES } from '../configDefs'
+import { shouldDisplayConfigItem } from '../configSource'
 import type {
+  BaseConfigItem,
   ItemColorItem,
   RuneColorItem,
   GoldColorItem,
@@ -149,9 +151,9 @@ const goldColorsAll = computed(() => getAllItems<GoldColorItem>(config.value, 'g
 const monsterColorsAll = computed(() => getAllItems<MonsterColorItem>(config.value, 'monsterColors'))
 const skillMissileDrawModesAll = computed(() => getAllItems<SkillMissileDrawModeItem>(config.value, 'skillMissileDrawModes'))
 
-// Filter items for display: main items (all) + extern items (only effective)
-function filterForDisplay<T extends { sourceFile: string | null; isEffective?: boolean }>(items: T[]): T[] {
-  return items.filter(item => item.sourceFile === null || item.isEffective)
+// Filter items for display: effective items plus editable editor-commented items for restore.
+function filterForDisplay<T extends BaseConfigItem>(items: T[]): T[] {
+  return items.filter(shouldDisplayConfigItem)
 }
 
 // Displayed items (filtered)
@@ -164,6 +166,9 @@ const itemColors = computed(() => {
     const q = props.searchQuery.toLowerCase()
     items = items.filter(item =>
       item.itemId.toLowerCase().includes(q) ||
+      item.quality?.toLowerCase().includes(q) ||
+      item.ethereal?.toLowerCase().includes(q) ||
+      item.sockets?.toLowerCase().includes(q) ||
       item.mapText?.toLowerCase().includes(q) ||
       item.comment?.toLowerCase().includes(q)
     )
@@ -404,9 +409,20 @@ const skillMissileSkillIdWidth = computed(() =>
   )
 )
 
+const etherealOptions = computed(() => [
+  { value: 0, label: t('itemColors.etherealNo') },
+  { value: 1, label: t('itemColors.etherealYes') }
+])
+
+const socketOptions = computed(() =>
+  Array.from({ length: 17 }, (_, value) => ({ value, label: String(value) }))
+)
+
 const itemColorColumns = computed<ConfigTableColumn[]>(() => [
   { key: 'itemId', label: t('itemColors.itemId'), width: '150px' },
   { key: 'quality', label: t('itemColors.quality'), width: '80px' },
+  { key: 'ethereal', label: t('itemColors.ethereal'), width: '80px' },
+  { key: 'sockets', label: t('itemColors.sockets'), width: '90px' },
   { key: 'textColor', label: t('itemColors.textColor'), width: '32px' },
   { key: 'mapColor', label: t('itemColors.mapColor'), width: '32px' },
   { key: 'mapText', label: t('itemColors.mapText'), width: `${itemMapTextWidth.value}px` },
@@ -627,7 +643,7 @@ function copyItemColor(index: number) {
   if (!original) return
 
   const copy: ItemColorItem = {
-    itemId: original.itemId + '_copy',  // Append _copy to make it a new group
+    itemId: original.itemId,
     quality: original.quality,
     ethereal: original.ethereal,
     sockets: original.sockets,
@@ -651,7 +667,7 @@ function copyRuneColor(index: number) {
   if (!original) return
 
   const copy: RuneColorItem = {
-    range: original.range + '_copy',  // Append _copy to make it a new group
+    range: original.range,
     textColor: original.textColor,
     mapColor: original.mapColor,
     mapText: original.mapText,
@@ -782,6 +798,9 @@ function updateItemColor(index: number, field: string, value: string) {
   if (!item || isReadonlyColorItem(item)) return
   if (item) {
     ;(item as unknown as Record<string, unknown>)[field] = value
+    if (field === 'sockets' && value && !item.ethereal) {
+      item.ethereal = '0,1'
+    }
   }
 }
 
@@ -1035,7 +1054,7 @@ function copyGoldColor(index: number) {
   if (!original) return
 
   const copy: GoldColorItem = {
-    range: original.range + '_copy',  // Append _copy to make it a new group
+    range: original.range,
     textColor: original.textColor,
     mapColor: original.mapColor,
     mapText: original.mapText,
@@ -1147,7 +1166,7 @@ function copyMonsterColor(index: number) {
   if (!original) return
 
   const copy: MonsterColorItem = {
-    monsterId: original.monsterId + '_copy',
+    monsterId: original.monsterId,
     blobColor: original.blobColor,
     monsterType: original.monsterType,
     comment: original.comment,
@@ -1594,6 +1613,30 @@ const currentFormatter = computed(() => formatColorDebugItem)
               :disabled="isReadOnly"
               :readonly="isReadonlyColorItem(item)"
               @update:modelValue="updateItemColor(index, 'quality', $event)"
+            />
+          </template>
+          <template #cell-ethereal="{ item, index }">
+            <QualityPicker
+              :modelValue="item.ethereal"
+              :options="etherealOptions"
+              :maxValue="1"
+              allValue="0,1"
+              :title="t('itemColors.etherealTitle')"
+              :disabled="isReadOnly"
+              :readonly="isReadonlyColorItem(item)"
+              @update:modelValue="updateItemColor(index, 'ethereal', $event)"
+            />
+          </template>
+          <template #cell-sockets="{ item, index }">
+            <QualityPicker
+              :modelValue="item.sockets"
+              :options="socketOptions"
+              :maxValue="16"
+              allValue="0-16"
+              :title="t('itemColors.socketsTitle')"
+              :disabled="isReadOnly"
+              :readonly="isReadonlyColorItem(item)"
+              @update:modelValue="updateItemColor(index, 'sockets', $event)"
             />
           </template>
           <template #cell-textColor="{ item, index }">

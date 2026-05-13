@@ -29,7 +29,7 @@ import {
   type ConfigDirectory,
   type ProfileInfo
 } from './services/tauriApi'
-import { classifyConfigFile } from './profile/profileLayers'
+import { classifyConfigFile } from './configSource'
 import { ENTRY_FILENAME } from './profile/profileConstants'
 import { parseProfileName, withProfileHeader } from './profile/profileHeader'
 import { parseConfig } from './parser'
@@ -734,13 +734,21 @@ onUnmounted(() => {
             >{{ t('displayOrder.effective') }}</button>
           </div>
         </div>
-        <input
-          type="text"
-          v-model="searchQuery"
-          :placeholder="t('search.placeholder')"
-          class="search-input"
-        />
-        <button v-if="searchQuery" class="btn btn-small btn-secondary" @click="searchQuery = ''">{{ t('search.clear') }}</button>
+        <div class="app-search-field">
+          <input
+            type="text"
+            v-model="searchQuery"
+            :placeholder="t('search.placeholder')"
+            class="search-input app-search-input"
+          />
+          <button
+            v-if="searchQuery"
+            type="button"
+            class="app-search-clear"
+            :title="t('search.clear')"
+            @click="searchQuery = ''"
+          >×</button>
+        </div>
       </div>
     </div>
 

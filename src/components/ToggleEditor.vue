@@ -17,7 +17,8 @@ import {
 import { useI18n } from '../i18n'
 import { useDebugMode } from '../composables/useDebugMode'
 import { useDisplayOrder } from '../composables/useDisplayOrder'
-import type { ToggleItem } from '../types'
+import { shouldDisplayConfigItem } from '../configSource'
+import type { BaseConfigItem, ToggleItem } from '../types'
 import DebugDrawer from './debug/DebugDrawer.vue'
 import FlatListView from './debug/FlatListView.vue'
 import EditorPanel from './EditorPanel.vue'
@@ -57,9 +58,9 @@ function handleExport(): void {
 // Get all items for building data
 const togglesAll = computed(() => getAllItems<ToggleItem>(config.value, 'toggles'))
 
-// Filter items for display: main items (all) + extern items (only effective)
-function filterForDisplay<T extends { sourceFile: string | null; isEffective?: boolean }>(items: T[]): T[] {
-  return items.filter(item => item.sourceFile === null || item.isEffective)
+// Filter items for display: effective items plus editable editor-commented items for restore.
+function filterForDisplay<T extends BaseConfigItem>(items: T[]): T[] {
+  return items.filter(shouldDisplayConfigItem)
 }
 
 // Get filtered items for display

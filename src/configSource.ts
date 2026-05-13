@@ -1,9 +1,9 @@
-import type { BaseConfigItem, ConfigLayer, FileConfig, SaveTarget } from '../types'
+import type { BaseConfigItem, ConfigLayer, FileConfig, SaveTarget } from './types'
 import {
   ACTIVE_PROFILE_FILENAME,
   ENTRY_FILENAME,
   USER_DEFINED_FILENAME
-} from './profileConstants'
+} from './profile/profileConstants'
 
 export function baseName(path: string): string {
   return path.split(/[\\/]/).pop() || path
@@ -28,6 +28,11 @@ export function saveTargetForLayer(layer: ConfigLayer): SaveTarget {
 
 export function isEditableItem(item: BaseConfigItem): boolean {
   return isEditableLayer(item.layer)
+}
+
+export function shouldDisplayConfigItem(item: BaseConfigItem): boolean {
+  if (item.isCommented) return isEditableItem(item)
+  return item.isEffective !== false
 }
 
 export function isExternItem(item: BaseConfigItem): boolean {

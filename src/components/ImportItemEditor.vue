@@ -23,7 +23,8 @@ import { useDebugMode } from '../composables/useDebugMode'
 import { useDisplayOrder } from '../composables/useDisplayOrder'
 import { PICKUP_MODES } from '../configDefs'
 import { fitTextColumnWidth } from '../utils/columnWidth'
-import type { ImportItemItem, MagicBagNameItem } from '../types'
+import { shouldDisplayConfigItem } from '../configSource'
+import type { BaseConfigItem, ImportItemItem, MagicBagNameItem } from '../types'
 import DebugDrawer from './debug/DebugDrawer.vue'
 import FlatListView from './debug/FlatListView.vue'
 import EditorPanel from './EditorPanel.vue'
@@ -88,9 +89,9 @@ function handleExport(): void {
 const importItemsAll = computed(() => getAllItems<ImportItemItem>(config.value, 'importItems'))
 const magicBagNamesAll = computed(() => getAllItems<MagicBagNameItem>(config.value, 'magicBagNames'))
 
-// Filter items for display: main items (all) + extern items (only effective)
-function filterForDisplay<T extends { sourceFile: string | null; isEffective?: boolean }>(items: T[]): T[] {
-  return items.filter(item => item.sourceFile === null || item.isEffective)
+// Filter items for display: effective items plus editable editor-commented items for restore.
+function filterForDisplay<T extends BaseConfigItem>(items: T[]): T[] {
+  return items.filter(shouldDisplayConfigItem)
 }
 
 // Get filtered items for display
@@ -297,7 +298,7 @@ function copyItem(index: number): void {
   if (!original) return
 
   const copy: ImportItemItem = {
-    itemId: original.itemId + '_copy',  // Append _copy to make it a new group
+    itemId: original.itemId,
     quality: original.quality,
     ethereal: original.ethereal,
     sockets: original.sockets,

@@ -30,7 +30,7 @@ import type {
   ConfigLayer,
   SaveTarget
 } from './types'
-import { saveTargetForLayer } from './profile/profileLayers'
+import { saveTargetForLayer } from './configSource'
 
 // Parsed config line
 interface ParsedLine {

@@ -9,7 +9,7 @@ import type {
   FileConfig,
   BaseConfigItem
 } from '../types'
-import { isEditableItem, isEditableLayer, isExternItem } from '../profile/profileLayers'
+import { isEditableItem, isEditableLayer, isExternItem } from '../configSource'
 
 export interface ItemGroup<T> {
   key: string

@@ -18,6 +18,7 @@ import { fitTextColumnWidth } from '../utils/columnWidth'
 import { useI18n } from '../i18n'
 import { useDebugMode } from '../composables/useDebugMode'
 import { ACTION_TYPES } from '../configDefs'
+import { shouldDisplayConfigItem } from '../configSource'
 import type { BaseConfigItem, CubeFormulaItem, DoTaskItem, ItemDescriptorItem, PreItemTaskItem } from '../types'
 import EditorPanel from './EditorPanel.vue'
 import SubTabs from './SubTabs.vue'
@@ -105,7 +106,7 @@ function isTransmuteRowDisabled(item: BaseConfigItem): boolean {
 }
 
 const itemDescriptors = computed(() => {
-  const items = itemDescriptorsAll.value.filter(item => item.isEffective !== false || item.isCommented)
+  const items = itemDescriptorsAll.value.filter(shouldDisplayConfigItem)
   return applyDisplayOrder(filterBySearch(items, props.searchQuery, 'name', 'itemId', 'comment'))
 })
 
@@ -289,7 +290,7 @@ function handleItemDescriptorDragEnd() {
 }
 
 const cubeFormulas = computed(() => {
-  const items = cubeFormulasAll.value.filter(item => item.isEffective !== false || item.isCommented)
+  const items = cubeFormulasAll.value.filter(shouldDisplayConfigItem)
   return applyDisplayOrder(filterBySearch(items, props.searchQuery, 'name', 'comment'))
 })
 
@@ -339,7 +340,7 @@ const selectableCubeFormulasCount = computed(() => {
 })
 
 const preItemTasks = computed(() => {
-  const items = preItemTasksAll.value.filter(item => item.isEffective !== false || item.isCommented)
+  const items = preItemTasksAll.value.filter(shouldDisplayConfigItem)
   return applyDisplayOrder(filterBySearch(items, props.searchQuery, 'name', 'itemId', 'comment'))
 })
 
@@ -358,7 +359,7 @@ const preItemTaskNames = computed(() => {
 })
 
 const doTasks = computed(() => {
-  const items = doTasksAll.value.filter(item => item.isEffective !== false || item.isCommented)
+  const items = doTasksAll.value.filter(shouldDisplayConfigItem)
   return applyDisplayOrder(filterBySearch(items, props.searchQuery, 'name', 'preTask', 'comment'))
 })
 

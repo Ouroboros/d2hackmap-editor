@@ -5,16 +5,30 @@ import { useI18n } from '../i18n'
 
 const { t } = useI18n()
 
+export interface PickerOption {
+  value: number
+  label: string
+  color?: string
+}
+
 interface Props {
   modelValue?: string
   disabled?: boolean
   readonly?: boolean
+  title?: string
+  options?: PickerOption[]
+  maxValue?: number
+  allValue?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: '',
   disabled: false,
-  readonly: false
+  readonly: false,
+  title: '',
+  options: undefined,
+  maxValue: undefined,
+  allValue: undefined
 })
 
 const emit = defineEmits<{
@@ -26,7 +40,7 @@ const isLightTheme = ref<boolean>(false)
 const pickerPosition = ref<{ left: number; top: number }>({ left: 0, top: 0 })
 
 // Quality definitions (1-8)
-const qualities = computed(() => [
+const defaultQualities = computed<PickerOption[]>(() => [
   { value: 1, label: t('quality.1'), color: '#808080' },
   { value: 2, label: t('quality.2'), color: '#FFFFFF' },
   { value: 3, label: t('quality.3'), color: '#FFFFFF' },
@@ -36,6 +50,11 @@ const qualities = computed(() => [
   { value: 7, label: t('quality.7'), color: '#C7B377' },
   { value: 8, label: t('quality.8'), color: '#FFA500' },
 ])
+
+const options = computed(() => props.options?.length ? props.options : defaultQualities.value)
+const maxValue = computed(() => props.maxValue ?? Math.max(...options.value.map(option => option.value)))
+const allValue = computed(() => props.allValue ?? `1-${maxValue.value}`)
+const selectTitle = computed(() => props.title || t('quality.selectTitle'))
 
 // Get display color (adjust bright colors for light theme)
 function getDisplayColor(color: string): string {
@@ -75,14 +94,13 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown)
 })
 
-const MAX_QUALITY = 8
-
-const selectedQualities = computed(() => parseRange(props.modelValue, MAX_QUALITY))
+const selectedQualities = computed(() => parseRange(props.modelValue, maxValue.value))
+const allSelected = computed(() => options.value.every(option => selectedQualities.value.has(option.value)))
 
 const displayText = computed(() => {
   const sel = selectedQualities.value
   if (sel.size === 0) return t('quality.any')
-  if (sel.size === MAX_QUALITY) return t('quality.all')
+  if (allSelected.value) return t('quality.all')
   return props.modelValue || t('quality.any')
 })
 
@@ -92,13 +110,16 @@ function isSelected(value: number): boolean {
 
 function toggleQuality(value: number): void {
   if (props.readonly) return
-  const newValue = toggleInRange(props.modelValue, value, MAX_QUALITY)
-  emit('update:modelValue', newValue)
+  const selected = parseRange(toggleInRange(props.modelValue, value, maxValue.value), maxValue.value)
+  const optionValues = new Set(options.value.map(option => option.value))
+  const filtered = new Set(Array.from(selected).filter(item => optionValues.has(item)))
+  const isAllSelected = options.value.every(option => filtered.has(option.value))
+  emit('update:modelValue', isAllSelected ? allValue.value : buildRange(filtered, maxValue.value))
 }
 
 function selectAll(): void {
   if (props.readonly) return
-  emit('update:modelValue', `1-${MAX_QUALITY}`)
+  emit('update:modelValue', allValue.value)
 }
 
 function selectNone(): void {
@@ -152,7 +173,7 @@ function closePicker(): void {
       <div v-if="showPicker" class="picker-overlay" @mousedown.self="closePicker">
         <div class="picker-popup quality-picker-popup" :style="{ left: `${pickerPosition.left}px`, top: `${pickerPosition.top}px` }" @click.stop>
           <div class="picker-header">
-            <span>{{ t('quality.selectTitle') }}</span>
+            <span>{{ selectTitle }}</span>
             <span v-if="readonly" class="readonly-badge">{{ t('status.readOnly') }}</span>
             <div v-if="!readonly" class="picker-actions">
               <button class="btn btn-small btn-secondary" @click="selectAll">{{ t('quality.selectAll') }}</button>
@@ -161,11 +182,11 @@ function closePicker(): void {
           </div>
           <div class="quality-list">
             <label
-              v-for="q in qualities"
+              v-for="q in options"
               :key="q.value"
               class="quality-item"
               :class="{ readonly }"
-              :style="{ '--quality-color': getDisplayColor(q.color) }"
+              :style="{ '--quality-color': getDisplayColor(q.color || 'var(--text-primary)') }"
             >
               <input
                 type="checkbox"
@@ -173,7 +194,7 @@ function closePicker(): void {
                 :disabled="readonly"
                 @change="toggleQuality(q.value)"
               />
-              <span class="quality-label">{{ q.value }}. {{ q.label }}</span>
+              <span class="quality-label">{{ q.label === String(q.value) ? q.label : `${q.value}. ${q.label}` }}</span>
             </label>
           </div>
           <div class="picker-footer">

@@ -13,6 +13,7 @@ import { moveTransmuteItemInFile } from '../utils/grouping'
 import { fitTextColumnWidthNumber } from '../utils/columnWidth'
 import { useI18n } from '../i18n'
 import { useDebugMode } from '../composables/useDebugMode'
+import { shouldDisplayConfigItem } from '../configSource'
 import type { BaseConfigItem } from '../types'
 import type { KeyBindingItem } from '../types'
 import EditorPanel from './EditorPanel.vue'
@@ -51,7 +52,7 @@ const {
 } = useTransmuteItems()
 
 const keyBindings = computed(() => {
-  const items = keyBindingsAll.value.filter(item => item.isEffective !== false || item.isCommented)
+  const items = keyBindingsAll.value.filter(shouldDisplayConfigItem)
   return applyDisplayOrder(filterBySearch(items, props.searchQuery, 'keyCode', 'command', 'comment'))
 })
 

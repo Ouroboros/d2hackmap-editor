@@ -745,6 +745,37 @@ label {
   width: 300px;
 }
 
+.app-search-field {
+  position: relative;
+  width: 300px;
+  flex: 0 0 300px;
+}
+
+.app-search-input {
+  width: 100%;
+  padding-right: 32px;
+}
+
+.app-search-clear {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--danger-color);
+  font-size: 18px;
+  line-height: 18px;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.app-search-clear:hover {
+  color: #b91c1c;
+}
+
 /* Color preview */
 .color-preview {
   display: inline-flex;

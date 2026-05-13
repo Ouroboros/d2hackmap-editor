@@ -191,7 +191,7 @@ export function formatSimpleConfigLine(key: string, data: ToggleItem): string {
 export function formatItemColorLine(item: ItemColorItem): string {
   const params: string[] = [item.itemId]
   if (item.quality) params.push(item.quality)
-  if (item.ethereal) params.push(item.ethereal)
+  if (item.ethereal || item.sockets) params.push(item.ethereal || '0,1')
   if (item.sockets) params.push(item.sockets)
 
   return formatSchemaLine('Item Colors', params, [item.textColor, item.mapColor, item.mapText], item.comment)
