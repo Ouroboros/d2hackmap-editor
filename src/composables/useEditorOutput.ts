@@ -15,6 +15,23 @@ import {
 } from '../profile/profileConstants'
 import { withProfileHeader } from '../profile/profileHeader'
 import { useI18n } from '../i18n'
+import {
+  getCubeFormulaKey,
+  getDoTaskKey,
+  getGoldColorKey,
+  getImportItemKey,
+  getItemColorKey,
+  getItemDescriptorKey,
+  getKeyBindingKey,
+  getMagicBagNameKey,
+  getMonsterColorKey,
+  getPreItemTaskKey,
+  getRuneColorKey,
+  getSkillMissileDrawModeKey,
+  getStatLimitGroupKey,
+  getStatLimitKey,
+  getToggleKey
+} from './useItemActions'
 
 // Constants
 export const EDITOR_OUTPUT_FILENAME = ENTRY_FILENAME
@@ -104,6 +121,53 @@ function mergeProfileAndUserData(profileData: ConfigData, userData: ConfigData):
   return merged
 }
 
+function dedupeItemsForSave<T extends BaseConfigItem>(
+  items: T[],
+  getKey: (item: T) => string
+): T[] {
+  const seen = new Set<string>()
+  const keepIndexes = new Set<number>()
+
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i]
+    if (item.isDeleted || item.isCommented) {
+      keepIndexes.add(i)
+      continue
+    }
+
+    const key = getKey(item)
+    if (seen.has(key)) continue
+
+    seen.add(key)
+    keepIndexes.add(i)
+  }
+
+  return items.filter((_, index) => keepIndexes.has(index))
+}
+
+function dedupeConfigDataForSave(data: ConfigData): ConfigData {
+  return {
+    ...data,
+    toggles: dedupeItemsForSave(data.toggles, getToggleKey),
+    itemColors: dedupeItemsForSave(data.itemColors, getItemColorKey),
+    runeColors: dedupeItemsForSave(data.runeColors, getRuneColorKey),
+    goldColors: dedupeItemsForSave(data.goldColors, getGoldColorKey),
+    monsterColors: dedupeItemsForSave(data.monsterColors, getMonsterColorKey),
+    skillMissileDrawModes: dedupeItemsForSave(data.skillMissileDrawModes, getSkillMissileDrawModeKey),
+    magicBagNames: dedupeItemsForSave(data.magicBagNames, getMagicBagNameKey),
+    importItems: dedupeItemsForSave(data.importItems, getImportItemKey),
+    transmute: {
+      statLimits: dedupeItemsForSave(data.transmute.statLimits, getStatLimitKey),
+      statLimitGroups: dedupeItemsForSave(data.transmute.statLimitGroups, getStatLimitGroupKey),
+      itemDescriptors: dedupeItemsForSave(data.transmute.itemDescriptors, getItemDescriptorKey),
+      cubeFormulas: dedupeItemsForSave(data.transmute.cubeFormulas, getCubeFormulaKey),
+      preItemTasks: dedupeItemsForSave(data.transmute.preItemTasks, getPreItemTaskKey),
+      doTasks: dedupeItemsForSave(data.transmute.doTasks, getDoTaskKey),
+      keyBindings: dedupeItemsForSave(data.transmute.keyBindings, getKeyBindingKey)
+    }
+  }
+}
+
 export function useEditorOutput() {
   const { t } = useI18n()
 
@@ -147,11 +211,11 @@ export function useEditorOutput() {
   function generateProfileContent(config: Config, profileNameOverride?: string): string {
     const profileFile = getProfileFile(config)
     const profileName = profileFile.profileName || t('profile.unnamed')
-    return withProfileHeader(generateConfig(profileFile.data), profileNameOverride || profileName)
+    return withProfileHeader(generateConfig(dedupeConfigDataForSave(profileFile.data)), profileNameOverride || profileName)
   }
 
   function generateUserContent(config: Config): string {
-    return generateConfig(getUserFile(config).data)
+    return generateConfig(dedupeConfigDataForSave(getUserFile(config).data))
   }
 
   async function readExistingLayerContent(rootPath: string, fileName: string, fallback: string): Promise<string> {
@@ -202,7 +266,7 @@ export function useEditorOutput() {
     const userFile = getUserFile(config)
     const mergedData = mergeProfileAndUserData(profileFile.data, userFile.data)
 
-    await writeLayers(rootPath, withProfileHeader(generateConfig(mergedData), profileName), '')
+    await writeLayers(rootPath, withProfileHeader(generateConfig(dedupeConfigDataForSave(mergedData)), profileName), '')
     profileFile.profileName = profileName
   }
 
