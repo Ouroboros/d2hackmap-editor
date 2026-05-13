@@ -22,6 +22,7 @@ import { useI18n } from '../i18n'
 import { useDebugMode } from '../composables/useDebugMode'
 import { useDisplayOrder } from '../composables/useDisplayOrder'
 import { PICKUP_MODES } from '../configDefs'
+import { ANY_ETHEREAL_RANGE, ANY_SOCKET_RANGE } from '../configRanges'
 import { fitTextColumnWidth } from '../utils/columnWidth'
 import { shouldDisplayConfigItem } from '../configSource'
 import type { BaseConfigItem, ImportItemItem, MagicBagNameItem } from '../types'
@@ -104,6 +105,8 @@ const importItems = computed((): ImportItemItem[] => {
     const q = props.searchQuery.toLowerCase()
     items = items.filter(item =>
       item.itemId.toLowerCase().includes(q) ||
+      item.ethereal?.toLowerCase().includes(q) ||
+      item.sockets?.toLowerCase().includes(q) ||
       item.statGroup?.toLowerCase().includes(q) ||
       item.comment?.toLowerCase().includes(q)
     )
@@ -226,9 +229,20 @@ const importItemStatGroupWidth = computed(() =>
   )
 )
 
+const etherealOptions = computed(() => [
+  { value: 0, label: t('itemColors.etherealNo') },
+  { value: 1, label: t('itemColors.etherealYes') }
+])
+
+const socketOptions = computed(() =>
+  Array.from({ length: 17 }, (_, value) => ({ value, label: String(value) }))
+)
+
 const importItemColumns = computed<ConfigTableColumn[]>(() => [
   { key: 'itemId', label: t('itemColors.itemId'), width: '150px' },
   { key: 'quality', label: t('itemColors.quality'), width: '80px' },
+  { key: 'ethereal', label: t('itemColors.ethereal'), width: '80px' },
+  { key: 'sockets', label: t('itemColors.sockets'), width: '90px' },
   { key: 'mode', label: t('import.mode'), width: '200px' },
   { key: 'statGroup', label: t('import.statGroup'), width: importItemStatGroupWidth.value },
   { key: 'comment', label: t('itemColors.comment'), width: '180px', className: 'col-comment' },
@@ -247,6 +261,9 @@ function updateItem(index: number, field: keyof ImportItemItem, value: string): 
   if (!item || isReadonlyImportItem(item)) return
   if (item) {
     ;(item as ImportItemItem)[field] = value as never
+    if (field === 'sockets' && value && !item.ethereal) {
+      item.ethereal = ANY_ETHEREAL_RANGE
+    }
   }
 }
 
@@ -885,6 +902,30 @@ const debugMagicBagNames = computed((): MagicBagNameItem[] => {
             :disabled="isReadOnly"
             :readonly="isReadonlyImportItem(item)"
             @update:modelValue="updateItem(index, 'quality', $event)"
+          />
+        </template>
+        <template #cell-ethereal="{ item, index }">
+          <QualityPicker
+            :modelValue="item.ethereal"
+            :options="etherealOptions"
+            :maxValue="1"
+            :allValue="ANY_ETHEREAL_RANGE"
+            :title="t('itemColors.etherealTitle')"
+            :disabled="isReadOnly"
+            :readonly="isReadonlyImportItem(item)"
+            @update:modelValue="updateItem(index, 'ethereal', $event)"
+          />
+        </template>
+        <template #cell-sockets="{ item, index }">
+          <QualityPicker
+            :modelValue="item.sockets"
+            :options="socketOptions"
+            :maxValue="16"
+            :allValue="ANY_SOCKET_RANGE"
+            :title="t('itemColors.socketsTitle')"
+            :disabled="isReadOnly"
+            :readonly="isReadonlyImportItem(item)"
+            @update:modelValue="updateItem(index, 'sockets', $event)"
           />
         </template>
         <template #cell-mode="{ item, index }">

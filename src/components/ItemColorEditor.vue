@@ -28,6 +28,7 @@ import { useDebugMode } from '../composables/useDebugMode'
 import { fitTextColumnWidth } from '../utils/columnWidth'
 import { log } from '../utils/log'
 import { COLOR_NONE, SKILL_MISSILE_DRAW_MODES } from '../configDefs'
+import { ANY_ETHEREAL_RANGE, ANY_SOCKET_RANGE } from '../configRanges'
 import { shouldDisplayConfigItem } from '../configSource'
 import type {
   BaseConfigItem,
@@ -799,7 +800,7 @@ function updateItemColor(index: number, field: string, value: string) {
   if (item) {
     ;(item as unknown as Record<string, unknown>)[field] = value
     if (field === 'sockets' && value && !item.ethereal) {
-      item.ethereal = '0,1'
+      item.ethereal = ANY_ETHEREAL_RANGE
     }
   }
 }
@@ -1620,7 +1621,7 @@ const currentFormatter = computed(() => formatColorDebugItem)
               :modelValue="item.ethereal"
               :options="etherealOptions"
               :maxValue="1"
-              allValue="0,1"
+              :allValue="ANY_ETHEREAL_RANGE"
               :title="t('itemColors.etherealTitle')"
               :disabled="isReadOnly"
               :readonly="isReadonlyColorItem(item)"
@@ -1632,7 +1633,7 @@ const currentFormatter = computed(() => formatColorDebugItem)
               :modelValue="item.sockets"
               :options="socketOptions"
               :maxValue="16"
-              allValue="0-16"
+              :allValue="ANY_SOCKET_RANGE"
               :title="t('itemColors.socketsTitle')"
               :disabled="isReadOnly"
               :readonly="isReadonlyColorItem(item)"

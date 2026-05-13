@@ -130,8 +130,8 @@ function selectNone(): void {
 function updatePickerPosition(target: HTMLElement): void {
   const rect = target.getBoundingClientRect()
   const popupWidth = 260
-  const popupHeight = 360
   const gap = 8
+  const popupHeight = Math.min(640, window.innerHeight - gap * 2)
   let left = rect.right + gap
   let top = rect.top
 
@@ -254,19 +254,23 @@ function closePicker(): void {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   width: auto !important;
   height: auto !important;
+  max-height: min(640px, calc(100vh - 16px));
+  overflow-y: auto;
 }
 
 .picker-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   margin-bottom: 8px;
   font-weight: 500;
 }
 
 .picker-actions {
   display: flex;
-  gap: 4px;
+  gap: 8px;
+  margin-left: auto;
 }
 
 .quality-list {

@@ -4,6 +4,7 @@
  */
 
 import { useI18n } from './i18n'
+import { ANY_ETHEREAL_RANGE } from './configRanges'
 import {
   OUTPUT_BLOB_COLOR,
   OUTPUT_BOOL,
@@ -193,7 +194,7 @@ export function formatSimpleConfigLine(key: string, data: ToggleItem): string {
 export function formatItemColorLine(item: ItemColorItem): string {
   const params: string[] = [item.itemId]
   if (item.quality) params.push(item.quality)
-  if (item.ethereal || item.sockets) params.push(item.ethereal || '0,1')
+  if (item.ethereal || item.sockets) params.push(item.ethereal || ANY_ETHEREAL_RANGE)
   if (item.sockets) params.push(item.sockets)
 
   return formatSchemaLine('Item Colors', params, [item.textColor, item.mapColor, item.mapText], item.comment)
@@ -226,7 +227,7 @@ export function formatMagicBagNameLine(item: MagicBagNameItem): string {
 export function formatImportItemLine(item: ImportItemItem): string {
   const params: string[] = [item.itemId]
   if (item.quality) params.push(item.quality)
-  if (item.ethereal) params.push(item.ethereal)
+  if (item.ethereal || item.sockets) params.push(item.ethereal || ANY_ETHEREAL_RANGE)
   if (item.sockets) params.push(item.sockets)
 
   const values: string[] = [item.mode, item.showInfo, item.unused]
