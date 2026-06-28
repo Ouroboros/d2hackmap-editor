@@ -1,3 +1,4 @@
+export const HACKMAP_BASE_FILENAME = 'd2hackmap.cfg'
 export const ENTRY_FILENAME = 'd2hackmap.gen.cfg'
 export const ACTIVE_PROFILE_FILENAME = 'd2hackmap.editor.profile.cfg'
 export const USER_DEFINED_FILENAME = 'd2hackmap.editor.user.cfg'

@@ -93,7 +93,6 @@ function handleBlur() {
       class="hotkey-display"
       :value="displayValue"
       :disabled="disabled"
-      :style="{ width: inputWidth + 'px' }"
       readonly
       @keydown="handleKeyDown"
       @blur="handleBlur"
@@ -114,15 +113,17 @@ function handleBlur() {
 
 <style scoped>
 .hotkey-input {
-  display: inline-flex;
+  position: relative;
+  display: flex;
+  width: 100%;
   align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
 }
 
 .hotkey-display {
-  padding: 4px 8px;
-  font-size: 12px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 12px;
+  font-size: 14px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
   background: var(--bg-primary);
@@ -147,8 +148,14 @@ function handleBlur() {
 }
 
 .hotkey-clear-btn {
-  padding: 4px 8px;
-  font-size: 11px;
+  position: absolute;
+  left: 100%;
+  margin-left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  padding: 6px 10px;
+  font-size: 14px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
   background: var(--bg-tertiary);

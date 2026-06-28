@@ -67,7 +67,7 @@ const hotkeyWidth = computed((): number => {
 })
 
 const keyBindingColumns = computed<ConfigTableColumn[]>(() => [
-  { key: 'keyCode', label: t('transmute.keyCode'), width: `${hotkeyWidth.value + 30}px` },
+  { key: 'keyCode', label: t('transmute.keyCode'), width: `${hotkeyWidth.value + 62}px`, className: 'col-hotkey' },
   { key: 'command', label: t('transmute.command'), width: '360px' },
   { key: 'comment', label: t('itemColors.comment'), width: '180px' },
   { key: 'actions', label: t('itemColors.actions'), width: '220px', className: 'col-actions' }
@@ -430,6 +430,10 @@ function formatKeyBinding(binding: KeyBindingItem): string {
 .key-bindings-list :deep(.col-actions) {
   flex: 0 0 220px;
   width: 220px;
+}
+
+.key-bindings-list :deep(.config-row .col-hotkey) {
+  padding-right: 32px;
 }
 
 .row-extern {

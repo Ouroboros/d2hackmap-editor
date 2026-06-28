@@ -30,7 +30,7 @@ import {
   type ProfileInfo
 } from './services/tauriApi'
 import { classifyConfigFile } from './configSource'
-import { ENTRY_FILENAME } from './profile/profileConstants'
+import { ENTRY_FILENAME, HACKMAP_BASE_FILENAME } from './profile/profileConstants'
 import { parseProfileName, withProfileHeader } from './profile/profileHeader'
 import { parseConfig } from './parser'
 import { useI18n } from './i18n'
@@ -305,14 +305,12 @@ async function ensureEditorEntryImported(dirHandle: ConfigDirectory): Promise<vo
   const defaultPath = joinRootConfigPath(dirHandle.path, REQUIRED_FILE)
   const defaultFile = await readConfigFile(defaultPath)
   const defaultConfig = parseConfig(defaultFile.lines, REQUIRED_FILE, 'extern')
-  const firstImport = defaultConfig.includes[0]?.file
-  if (!firstImport) {
-    throw new Error(`${REQUIRED_FILE} has no Import Config entry`)
-  }
+  const targetImport = defaultConfig.includes.find(item => isSameImportFile(item.file, HACKMAP_BASE_FILENAME))?.file
+  if (!targetImport) return
 
-  const target = await resolveConfigPath(dirHandle.path, defaultPath, firstImport)
+  const target = await resolveConfigPath(dirHandle.path, defaultPath, targetImport)
   if (target.status !== 'loaded' || !target.fullPath) {
-    throw new Error(`Failed to resolve Import Config target: ${firstImport}`)
+    throw new Error(`Failed to resolve Import Config target: ${targetImport}`)
   }
 
   const targetFile = await readConfigFile(target.fullPath)

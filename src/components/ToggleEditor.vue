@@ -173,7 +173,7 @@ const commentWidth = computed((): number => {
 const toggleColumns = computed<ConfigTableColumn[]>(() => [
   { key: 'enabled', label: t('toggle.enabled'), width: '40px' },
   { key: 'name', label: t('toggle.name'), width: `${nameWidth.value}px` },
-  { key: 'value', label: t('toggle.value'), width: `${valueWidth.value + 30}px` },
+  { key: 'value', label: t('toggle.value'), width: `${valueWidth.value + 62}px`, className: 'col-toggle-value' },
   { key: 'param', label: t('toggle.param'), width: `${paramWidth.value}px` },
   { key: 'comment', label: t('itemColors.comment'), width: `${commentWidth.value}px` },
   { key: 'actions', label: t('itemColors.actions'), width: '220px', className: 'col-actions' }
@@ -470,6 +470,10 @@ function formatToggle(item: ToggleItem): string {
 .toggle-list :deep(.config-header),
 .toggle-list :deep(.config-row) {
   gap: 16px;
+}
+
+.toggle-list :deep(.config-row .col-toggle-value) {
+  padding-right: 32px;
 }
 
 .col-name {
